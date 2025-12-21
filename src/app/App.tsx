@@ -145,7 +145,7 @@ function App() {
             </div>
             
             <div className="pt-8 border-t border-border text-center text-muted-foreground">
-              <p>© 2024 Farm Companion. Built with respect for farmers.</p>
+              <p>© 2025 MS Farm. Built by farmer for farmers.</p>
             </div>
           </div>
         </footer>

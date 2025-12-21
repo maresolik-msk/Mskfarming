@@ -28,7 +28,7 @@ export function Navigation() {
               <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground">🌱</span>
               </div>
-              <span className="text-xl text-foreground">Farm Companion</span>
+              <span className="text-xl text-foreground">MS Farm</span>
             </motion.div>
           </Link>
 

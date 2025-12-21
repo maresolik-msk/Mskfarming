@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Cloud, CloudRain, Sun, Wind, Droplets, AlertTriangle } from 'lucide-react';
+import { Cloud, CloudRain, Sun, Wind, Droplets, AlertTriangle, ChevronRight } from 'lucide-react';
 
 interface WeatherDay {
   day: string;
@@ -13,11 +13,11 @@ interface WeatherDay {
 
 interface WeatherForecastProps {
   location?: string;
+  compact?: boolean;
 }
 
-export function WeatherForecast({ location = 'Nashik, Maharashtra' }: WeatherForecastProps) {
-  // Mock weather data - In production, replace with real API call
-  // Example: OpenWeatherMap API, WeatherAPI, etc.
+export function WeatherForecast({ location = 'Nashik, Maharashtra', compact = true }: WeatherForecastProps) {
+  // Mock weather data
   const forecast: WeatherDay[] = [
     {
       day: 'Today',
@@ -29,7 +29,7 @@ export function WeatherForecast({ location = 'Nashik, Maharashtra' }: WeatherFor
       wind: 12,
     },
     {
-      day: 'Tomorrow',
+      day: 'Tom',
       date: 'Dec 22',
       temp: { min: 19, max: 29 },
       condition: 'sunny',
@@ -38,7 +38,7 @@ export function WeatherForecast({ location = 'Nashik, Maharashtra' }: WeatherFor
       wind: 10,
     },
     {
-      day: 'Monday',
+      day: 'Mon',
       date: 'Dec 23',
       temp: { min: 20, max: 30 },
       condition: 'cloudy',
@@ -47,7 +47,7 @@ export function WeatherForecast({ location = 'Nashik, Maharashtra' }: WeatherFor
       wind: 15,
     },
     {
-      day: 'Tuesday',
+      day: 'Tue',
       date: 'Dec 24',
       temp: { min: 21, max: 28 },
       condition: 'rainy',
@@ -56,7 +56,7 @@ export function WeatherForecast({ location = 'Nashik, Maharashtra' }: WeatherFor
       wind: 20,
     },
     {
-      day: 'Wednesday',
+      day: 'Wed',
       date: 'Dec 25',
       temp: { min: 20, max: 26 },
       condition: 'rainy',
@@ -65,7 +65,7 @@ export function WeatherForecast({ location = 'Nashik, Maharashtra' }: WeatherFor
       wind: 18,
     },
     {
-      day: 'Thursday',
+      day: 'Thu',
       date: 'Dec 26',
       temp: { min: 19, max: 27 },
       condition: 'cloudy',
@@ -74,7 +74,7 @@ export function WeatherForecast({ location = 'Nashik, Maharashtra' }: WeatherFor
       wind: 14,
     },
     {
-      day: 'Friday',
+      day: 'Fri',
       date: 'Dec 27',
       temp: { min: 18, max: 28 },
       condition: 'sunny',
@@ -84,18 +84,18 @@ export function WeatherForecast({ location = 'Nashik, Maharashtra' }: WeatherFor
     },
   ];
 
-  const getWeatherIcon = (condition: string) => {
+  const getWeatherIcon = (condition: string, size = "w-6 h-6") => {
     switch (condition) {
       case 'sunny':
-        return <Sun className="w-8 h-8 text-yellow-500" />;
+        return <Sun className={`${size} text-yellow-500`} />;
       case 'cloudy':
-        return <Cloud className="w-8 h-8 text-gray-400" />;
+        return <Cloud className={`${size} text-gray-400`} />;
       case 'rainy':
-        return <CloudRain className="w-8 h-8 text-blue-500" />;
+        return <CloudRain className={`${size} text-blue-500`} />;
       case 'stormy':
-        return <CloudRain className="w-8 h-8 text-blue-700" />;
+        return <CloudRain className={`${size} text-blue-700`} />;
       default:
-        return <Sun className="w-8 h-8 text-yellow-500" />;
+        return <Sun className={`${size} text-yellow-500`} />;
     }
   };
 
@@ -107,133 +107,84 @@ export function WeatherForecast({ location = 'Nashik, Maharashtra' }: WeatherFor
       return {
         type: 'warning',
         icon: <AlertTriangle className="w-5 h-5 text-orange-500" />,
-        message: 'Heavy rain expected. Delay fertilizer application. Ensure proper drainage.',
+        message: 'Heavy rain expected. Delay fertilizer.',
       };
     } else if (rainDays === 0) {
       return {
         type: 'info',
         icon: <Droplets className="w-5 h-5 text-blue-500" />,
-        message: 'No rain forecast. Plan irrigation for next 7 days.',
+        message: 'No rain. Plan irrigation.',
       };
     } else {
       return {
         type: 'success',
         icon: <Sun className="w-5 h-5 text-green-500" />,
-        message: 'Good weather for field work. Ideal for weeding and spraying.',
+        message: 'Good weather for work.',
       };
     }
   };
 
   const advice = getFarmingAdvice();
-  const totalRainfall = forecast.reduce((sum, day) => sum + day.rainfall, 0);
 
   return (
-    <div className="bg-card rounded-2xl p-6 border border-border">
-      {/* Header */}
+    <div className="bg-card rounded-2xl p-4 border border-border overflow-hidden">
+      {/* Header & Location */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-xl text-foreground mb-1">Weather Forecast</h3>
-          <p className="text-sm text-muted-foreground">{location}</p>
+          <h3 className="text-base font-medium text-foreground flex items-center gap-2">
+            Weather
+            <span className="text-xs font-normal text-muted-foreground">• {location.split(',')[0]}</span>
+          </h3>
         </div>
-        <button className="text-sm text-primary hover:underline">
-          Change Location
-        </button>
+        <div className="text-xs text-primary font-medium flex items-center gap-1">
+           7 Days <ChevronRight className="w-3 h-3" />
+        </div>
       </div>
 
-      {/* Farming Advice Alert */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`flex items-start gap-3 p-4 rounded-lg mb-6 ${
-          advice.type === 'warning'
-            ? 'bg-orange-500/10 border border-orange-500/20'
-            : advice.type === 'info'
-            ? 'bg-blue-500/10 border border-blue-500/20'
-            : 'bg-green-500/10 border border-green-500/20'
-        }`}
-      >
-        <div className="mt-0.5">{advice.icon}</div>
-        <div className="flex-1">
-          <div className="text-sm text-foreground">{advice.message}</div>
-        </div>
-      </motion.div>
+      {/* Main Horizontal Scroll Container */}
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+      <div className="relative -mx-4 px-4">
+        <div className="flex overflow-x-auto gap-3 pb-2 snap-x hide-scrollbar scroll-smooth">
+          {/* Advice Card as the first item or separate? Let's keep it separate for visibility, or insert as first card. 
+              The user wants a small horizontal section. Integrating advice card might be good.
+          */}
+          <div className="min-w-[140px] snap-start bg-muted/50 rounded-xl p-3 flex flex-col justify-between border border-border">
+             <div className="flex items-start justify-between">
+                <div className="text-xs font-medium text-muted-foreground">Advice</div>
+                {advice.icon}
+             </div>
+             <div className="text-sm font-medium leading-tight mt-2 text-foreground">
+               {advice.message}
+             </div>
+          </div>
 
-      {/* 7-Day Forecast Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
-        {forecast.map((day, index) => (
-          <motion.div
-            key={day.date}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className={`p-4 rounded-lg border-2 transition-all ${
-              index === 0
-                ? 'bg-primary/5 border-primary'
-                : 'bg-muted border-transparent hover:border-primary/30'
-            }`}
-          >
-            {/* Day */}
-            <div className="text-sm text-foreground mb-2 text-center">{day.day}</div>
-            
-            {/* Weather Icon */}
-            <div className="flex justify-center mb-2">{getWeatherIcon(day.condition)}</div>
-            
-            {/* Temperature */}
-            <div className="text-center mb-3">
-              <div className="text-xl text-foreground">{day.temp.max}°</div>
-              <div className="text-xs text-muted-foreground">{day.temp.min}°</div>
-            </div>
-            
-            {/* Rainfall */}
-            {day.rainfall > 0 && (
-              <div className="flex items-center justify-center gap-1 text-xs text-blue-500">
-                <Droplets className="w-3 h-3" />
-                {day.rainfall}mm
+          {forecast.map((day, index) => (
+            <div
+              key={day.date}
+              className={`min-w-[85px] snap-start rounded-xl p-3 flex flex-col items-center justify-between border transition-colors ${
+                index === 0
+                  ? 'bg-primary/5 border-primary/20'
+                  : 'bg-card border-border'
+              }`}
+            >
+              <div className="text-xs font-medium text-muted-foreground">{day.day}</div>
+              <div className="my-2">
+                {getWeatherIcon(day.condition, "w-8 h-8")}
               </div>
-            )}
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Weather Summary Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="p-3 bg-muted rounded-lg">
-          <div className="flex items-center gap-2 mb-1">
-            <CloudRain className="w-4 h-4 text-blue-500" />
-            <div className="text-xs text-muted-foreground">Total Rain</div>
-          </div>
-          <div className="text-lg text-foreground">{totalRainfall}mm</div>
-          <div className="text-xs text-muted-foreground">Next 7 days</div>
-        </div>
-
-        <div className="p-3 bg-muted rounded-lg">
-          <div className="flex items-center gap-2 mb-1">
-            <Droplets className="w-4 h-4 text-blue-500" />
-            <div className="text-xs text-muted-foreground">Avg Humidity</div>
-          </div>
-          <div className="text-lg text-foreground">
-            {Math.round(forecast.reduce((sum, d) => sum + d.humidity, 0) / forecast.length)}%
-          </div>
-          <div className="text-xs text-muted-foreground">This week</div>
-        </div>
-
-        <div className="p-3 bg-muted rounded-lg">
-          <div className="flex items-center gap-2 mb-1">
-            <Wind className="w-4 h-4 text-gray-500" />
-            <div className="text-xs text-muted-foreground">Avg Wind</div>
-          </div>
-          <div className="text-lg text-foreground">
-            {Math.round(forecast.reduce((sum, d) => sum + d.wind, 0) / forecast.length)} km/h
-          </div>
-          <div className="text-xs text-muted-foreground">This week</div>
-        </div>
-      </div>
-
-      {/* API Integration Note - Remove in production */}
-      <div className="mt-4 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-        <div className="text-xs text-muted-foreground">
-          💡 <strong>For Production:</strong> Replace mock data with real weather API
-          (OpenWeatherMap, WeatherAPI, etc.) by updating the forecast data fetch.
+              <div className="text-center">
+                <div className="text-sm font-bold text-foreground">{day.temp.max}°</div>
+                <div className="text-[10px] text-muted-foreground">{day.temp.min}°</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
