@@ -15,12 +15,17 @@ import { CommunitiesPage } from './pages/CommunitiesPage';
 import { AboutPage } from './pages/AboutPage';
 import { GetStartedPage } from './pages/GetStartedPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { getSession, logout as apiLogout, getUserProfile } from '../lib/api';
+import { useAppStore } from './store/appStore';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
-  const [farmerName, setFarmerName] = useState('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [showPrototype, setShowPrototype] = useState(false);
+  
+  const { setUser } = useAppStore();
 
   // Check if user wants to see the working prototype
   useEffect(() => {
@@ -30,30 +35,87 @@ function App() {
     }
   }, []);
 
-  const handleLogin = (phoneNumber: string) => {
+  // Check for existing session on mount
+  useEffect(() => {
+    async function checkAuth() {
+      if (!showPrototype) {
+        setIsCheckingAuth(false);
+        return;
+      }
+
+      try {
+        const response = await getSession();
+        
+        if (response.user) {
+          setCurrentUser(response.user);
+          setIsLoggedIn(true);
+          
+          // Try to get user profile to check if onboarding is complete
+          try {
+            const profile = await getUserProfile();
+            if (profile && profile.onboardingComplete) {
+              setHasCompletedOnboarding(true);
+              setUser(profile);
+            }
+          } catch (error) {
+            console.log('No profile found, need onboarding');
+          }
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    }
+
+    checkAuth();
+  }, [showPrototype, setUser]);
+
+  const handleLogin = (user: any) => {
+    setCurrentUser(user);
     setIsLoggedIn(true);
-    // Check if user has onboarding data (simulated)
+    
+    // Check if user has completed onboarding (check localStorage as fallback)
     const hasOnboarded = localStorage.getItem('hasOnboarded');
     if (hasOnboarded) {
       setHasCompletedOnboarding(true);
-      setFarmerName(localStorage.getItem('farmerName') || 'Farmer');
     }
   };
 
-  const handleOnboardingComplete = () => {
+  const handleOnboardingComplete = async (profileData: any) => {
     setHasCompletedOnboarding(true);
-    setFarmerName('Rajesh Kumar'); // Demo name
+    setUser(profileData);
     localStorage.setItem('hasOnboarded', 'true');
-    localStorage.setItem('farmerName', 'Rajesh Kumar');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await apiLogout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
     setIsLoggedIn(false);
     setHasCompletedOnboarding(false);
+    setCurrentUser(null);
     setShowPrototype(false);
     localStorage.removeItem('hasOnboarded');
-    localStorage.removeItem('farmerName');
   };
+
+  // Show loading state while checking auth
+  if (showPrototype && isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary flex items-center justify-center text-3xl animate-pulse">
+            🌱
+          </div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+        <Toaster position="top-center" richColors />
+      </div>
+    );
+  }
 
   // If prototype mode is enabled, show the working prototype
   if (showPrototype) {
@@ -77,7 +139,10 @@ function App() {
 
     return (
       <>
-        <MainDashboard farmerName={farmerName} onLogout={handleLogout} />
+        <MainDashboard 
+          farmerName={currentUser?.user_metadata?.name || 'Farmer'} 
+          onLogout={handleLogout} 
+        />
         <Toaster position="top-center" richColors />
       </>
     );

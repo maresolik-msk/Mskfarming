@@ -17,7 +17,10 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { SheetClose } from '../ui/sheet'; // Just in case, though we are in a modal
 
-// Mock Data for Seeds
+import { CropIntelligenceService } from '../../core/crop-intelligence/service';
+import { VarietyDetailView } from '../crop-intelligence/VarietyDetailView';
+
+// Mock Data for Seeds (Fallback)
 interface SeedVariety {
   id: string;
   name: string;
@@ -91,16 +94,38 @@ interface SeedSelectionModalProps {
 
 export function SeedSelectionModal({ onClose, fieldId, fieldName, soilType = "Clay Loam" }: SeedSelectionModalProps) {
   const [step, setStep] = useState<'input' | 'analyzing' | 'results' | 'compare'>('input');
-  const [selectedSeason, setSelectedSeason] = useState('Rabi');
+  const [selectedSeason, setSelectedSeason] = useState('Kharif');
   const [waterSource, setWaterSource] = useState('Borewell');
-  const [selectedCrop, setSelectedCrop] = useState('Rice');
+  
+  // Dynamic Data State
+  const [availableCrops, setAvailableCrops] = useState<any[]>([]);
+  const [selectedCropId, setSelectedCropId] = useState<string>('');
+  const [recommendedSeeds, setRecommendedSeeds] = useState<SeedVariety[]>([]);
+  const [loadingCrops, setLoadingCrops] = useState(true);
+  const [viewingVarietyId, setViewingVarietyId] = useState<string | null>(null);
+
+  // Load Crops on Mount
+  useEffect(() => {
+    async function loadCrops() {
+      try {
+        const crops = await CropIntelligenceService.getCrops();
+        setAvailableCrops(crops);
+        if (crops.length > 0) setSelectedCropId(crops[0].id);
+      } catch (err) {
+        console.error("Failed to load crops", err);
+      } finally {
+        setLoadingCrops(false);
+      }
+    }
+    loadCrops();
+  }, []);
   
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisMessage, setAnalysisMessage] = useState('Initializing...');
   
   const [selectedSeedsForCompare, setSelectedSeedsForCompare] = useState<string[]>([]);
 
-  // Simulate Analysis
+  // Simulate Analysis & Fetch Data
   useEffect(() => {
     if (step === 'analyzing') {
       const stages = [
@@ -114,6 +139,43 @@ export function SeedSelectionModal({ onClose, fieldId, fieldName, soilType = "Cl
       
       let currentStage = 0;
       
+      // Fetch varieties while animating
+      const fetchData = async () => {
+         const cropData = await CropIntelligenceService.getCrops(); // Re-fetch or use state
+         const currentCrop = cropData.find(c => c.id === selectedCropId);
+         
+         if (currentCrop) {
+           // Get details for all varieties of this crop
+           const varietiesPromises = currentCrop.varieties.map(v => 
+             CropIntelligenceService.getVarietyDetails(selectedCropId, v.id)
+           );
+           
+           const varietiesDetails = (await Promise.all(varietiesPromises)).map(res => res.data).filter(Boolean);
+           
+           // Map to UI Model
+           const mappedSeeds: SeedVariety[] = varietiesDetails.map((v: any, idx) => ({
+             id: v.id,
+             name: v.name,
+             crop: currentCrop.name,
+             description: `${v.type} variety from ${v.source}.`,
+             duration: `${v.durationDays} days`,
+             yield: `${v.yieldPotential} Potential`,
+             // Map Logic
+             waterNeed: v.stressTolerance?.drought === 'High' ? 'Low' : v.stressTolerance?.drought === 'Medium' ? 'Medium' : 'High',
+             diseaseResistance: v.diseaseResistance?.length > 0 ? 'High' : 'Medium',
+             risk: v.stressTolerance?.excessRain === 'Low' ? 'High' : 'Low',
+             tags: [v.type, ...v.diseaseResistance],
+             matchScore: 85 + (idx * 5) % 15, // Mock score
+             matchReasons: [`Suitable for ${selectedSeason}`, `Matches ${v.durationDays} day window`],
+             expertBadge: v.source
+           }));
+           
+           setRecommendedSeeds(mappedSeeds);
+         }
+      };
+      
+      fetchData();
+
       const interval = setInterval(() => {
         if (currentStage >= stages.length) {
           clearInterval(interval);
@@ -124,11 +186,11 @@ export function SeedSelectionModal({ onClose, fieldId, fieldName, soilType = "Cl
         setAnalysisProgress(stages[currentStage].progress);
         setAnalysisMessage(stages[currentStage].msg);
         currentStage++;
-      }, 600);
+      }, 800); // Slightly slower to allow fetch
       
       return () => clearInterval(interval);
     }
-  }, [step]);
+  }, [step, selectedCropId]);
 
   const handleToggleCompare = (id: string) => {
     if (selectedSeedsForCompare.includes(id)) {
@@ -139,6 +201,33 @@ export function SeedSelectionModal({ onClose, fieldId, fieldName, soilType = "Cl
       }
     }
   };
+
+  // Render Detail View if selected
+  if (viewingVarietyId) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <div 
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+          onClick={onClose}
+        />
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="relative bg-card w-full max-w-lg max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex-1 overflow-y-auto relative bg-background">
+            <VarietyDetailView 
+              cropId={selectedCropId} 
+              varietyId={viewingVarietyId} 
+              onBack={() => setViewingVarietyId(null)} 
+            />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -193,7 +282,7 @@ export function SeedSelectionModal({ onClose, fieldId, fieldName, soilType = "Cl
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">Season</label>
                   <div className="grid grid-cols-3 gap-2">
-                    {['Kharif', 'Rabi', 'Zaid'].map(season => (
+                    {['Kharif', 'Rabi', 'Summer'].map(season => (
                       <button
                         key={season}
                         onClick={() => setSelectedSeason(season)}
@@ -211,16 +300,19 @@ export function SeedSelectionModal({ onClose, fieldId, fieldName, soilType = "Cl
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">Crop Preference</label>
-                  <select 
-                    value={selectedCrop}
-                    onChange={(e) => setSelectedCrop(e.target.value)}
-                    className="w-full p-3 rounded-lg bg-background border border-border focus:ring-2 focus:ring-primary/20 outline-none"
-                  >
-                    <option value="Rice">Rice (Paddy)</option>
-                    <option value="Wheat">Wheat</option>
-                    <option value="Cotton">Cotton</option>
-                    <option value="Maize">Maize</option>
-                  </select>
+                  {loadingCrops ? (
+                    <div className="h-10 bg-muted animate-pulse rounded-lg" />
+                  ) : (
+                    <select 
+                      value={selectedCropId}
+                      onChange={(e) => setSelectedCropId(e.target.value)}
+                      className="w-full p-3 rounded-lg bg-background border border-border focus:ring-2 focus:ring-primary/20 outline-none"
+                    >
+                      {availableCrops.map(crop => (
+                        <option key={crop.id} value={crop.id}>{crop.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -319,7 +411,12 @@ export function SeedSelectionModal({ onClose, fieldId, fieldName, soilType = "Cl
               </div>
 
               <div className="space-y-4">
-                {SEED_DATABASE.map((seed, index) => (
+                {recommendedSeeds.length === 0 ? (
+                   <div className="text-center py-8 text-muted-foreground">
+                     <p>No varieties found for this crop/season.</p>
+                   </div>
+                ) : (
+                  recommendedSeeds.map((seed, index) => (
                   <motion.div
                     key={seed.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -334,9 +431,11 @@ export function SeedSelectionModal({ onClose, fieldId, fieldName, soilType = "Cl
                       </div>
                     )}
 
-                    <div className="flex items-start justify-between mb-3 mt-1">
+                    <div className="flex items-start justify-between mb-3 mt-1 cursor-pointer" onClick={() => setViewingVarietyId(seed.id)}>
                       <div>
-                        <h4 className="font-bold text-lg text-foreground">{seed.name}</h4>
+                        <h4 className="font-bold text-lg text-foreground hover:text-primary transition-colors flex items-center gap-2">
+                          {seed.name} <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                        </h4>
                         <p className="text-xs text-muted-foreground">{seed.duration} • {seed.yield}</p>
                       </div>
                       <div className="flex flex-col items-end pt-5">
@@ -377,7 +476,8 @@ export function SeedSelectionModal({ onClose, fieldId, fieldName, soilType = "Cl
                       </label>
                     </div>
                   </motion.div>
-                ))}
+                ))
+              )}
               </div>
             </div>
           )}
@@ -386,7 +486,7 @@ export function SeedSelectionModal({ onClose, fieldId, fieldName, soilType = "Cl
           {step === 'compare' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                {SEED_DATABASE.filter(s => selectedSeedsForCompare.includes(s.id)).map(seed => (
+                {recommendedSeeds.filter(s => selectedSeedsForCompare.includes(s.id)).map(seed => (
                   <div key={seed.id} className="space-y-4">
                     <div className="h-12 flex items-center justify-center font-bold text-center border-b border-border pb-2">
                       {seed.name}

@@ -157,259 +157,254 @@ export function FarmingJournal({ onClose, onSave }: FarmingJournalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        // Close when clicking on backdrop
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-card rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto"
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 25 }}
+        className="bg-background/95 backdrop-blur-xl rounded-3xl max-w-2xl w-full shadow-2xl max-h-[90vh] border border-white/10 dark:border-white/5 ring-1 ring-black/5 flex flex-col"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
-          <div>
-            <h3 className="text-xl text-foreground mb-1">Farming Journal</h3>
-            <p className="text-sm text-muted-foreground">Log your daily farm activities</p>
-          </div>
+        {/* Header - Sticky */}
+        <div className="flex-shrink-0 bg-background/80 backdrop-blur-md flex items-center justify-between px-6 py-5 border-b border-border/40">
+           <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center text-green-600 shadow-inner">
+                <Calendar className="w-5 h-5" />
+             </div>
+             <div>
+                <h3 className="text-lg font-bold text-foreground tracking-tight">Farming Journal</h3>
+                <p className="text-xs text-muted-foreground font-medium">Log daily activities & observations</p>
+             </div>
+           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
+            className="w-9 h-9 rounded-full hover:bg-muted/80 flex items-center justify-center transition-colors text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Date */}
-        <div className="mb-6">
-          <label className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            Date
-          </label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full px-4 py-3 bg-muted rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-
-        {/* Field & Crop Selection */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              Field
-            </label>
-            <select
-              value={selectedField}
-              onChange={(e) => setSelectedField(e.target.value)}
-              className="w-full px-4 py-3 bg-muted rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">Select Field</option>
-              {fields.map((field) => (
-                <option key={field.id} value={field.id}>
-                  {field.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-sm text-muted-foreground mb-2 block">Crop</label>
-            <select
-              value={selectedCrop}
-              onChange={(e) => setSelectedCrop(e.target.value)}
-              className="w-full px-4 py-3 bg-muted rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">Select Crop</option>
-              {crops.map((crop) => (
-                <option key={crop.id} value={crop.id}>
-                  {crop.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Activities */}
-        <div className="mb-6">
-          <label className="text-sm font-medium text-foreground mb-3 block">
-            🧑‍🌾 What did you do today?
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {activities.map((activity) => (
-              <button
-                key={activity.id}
-                onClick={() => toggleActivity(activity.id)}
-                className={`p-3 rounded-lg border-2 transition-all ${
-                  selectedActivities.includes(activity.id)
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                <div className="text-2xl mb-1">{activity.emoji}</div>
-                <div className="text-xs text-foreground">{activity.label}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Observations */}
-        <div className="mb-6">
-          <label className="text-sm font-medium text-foreground mb-3 block">
-            👀 What did you observe?
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {observations.map((observation) => (
-              <button
-                key={observation.id}
-                onClick={() => toggleObservation(observation.id)}
-                className={`p-3 rounded-lg border-2 transition-all ${
-                  selectedObservations.includes(observation.id)
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                <div className="text-2xl mb-1">{observation.emoji}</div>
-                <div className="text-xs text-foreground">{observation.label}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Weather */}
-        <div className="mb-6">
-          <label className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-            🌦️ Weather Today
-            <span className="text-xs text-muted-foreground font-normal">(Auto-detected: 32°C)</span>
-          </label>
-          <div className="grid grid-cols-4 gap-2">
-            {weatherOptions.map((option) => {
-              const Icon = option.icon;
-              return (
-                <button
-                  key={option.id}
-                  onClick={() => setWeather(option.id)}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    weather === option.id
-                      ? 'border-primary bg-primary/10'
-                      : 'border-border hover:border-primary/50'
-                  }`}
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-hide">
+            {/* Date & Field Section */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Date</label>
+                    <div className="relative">
+                        <input
+                            type="date"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                            className="w-full bg-background/50 border border-border/60 rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                        />
+                    </div>
+                </div>
+                 <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Field</label>
+                    <div className="relative">
+                        <select
+                            value={selectedField}
+                            onChange={(e) => setSelectedField(e.target.value)}
+                            className="w-full bg-background/50 border border-border/60 rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none"
+                        >
+                            <option value="">Select Field</option>
+                            {fields.map((field) => (
+                                <option key={field.id} value={field.id}>{field.name}</option>
+                            ))}
+                        </select>
+                        <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                </div>
+            </div>
+            
+             <div className="space-y-2">
+                <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Crop</label>
+                 <select
+                    value={selectedCrop}
+                    onChange={(e) => setSelectedCrop(e.target.value)}
+                    className="w-full bg-background/50 border border-border/60 rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                 >
-                  <Icon className={`w-6 h-6 mx-auto mb-1 ${option.color}`} />
-                  <div className="text-xs text-foreground">{option.label}</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Water Status */}
-        <div className="mb-6">
-          <label className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-            <Droplets className="w-4 h-4" />
-            Water Status
-          </label>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-              <span className="text-sm text-foreground">Canal water available?</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCanalWater(true)}
-                  className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                    canalWater === true
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background border border-border'
-                  }`}
-                >
-                  Yes
-                </button>
-                <button
-                  onClick={() => setCanalWater(false)}
-                  className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                    canalWater === false
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background border border-border'
-                  }`}
-                >
-                  No
-                </button>
-              </div>
+                    <option value="">Select Crop</option>
+                    {crops.map((crop) => (
+                        <option key={crop.id} value={crop.id}>{crop.name}</option>
+                    ))}
+                </select>
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-              <span className="text-sm text-foreground">Borewell used?</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setBorewellUsed(true)}
-                  className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                    borewellUsed === true
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background border border-border'
-                  }`}
-                >
-                  Yes
-                </button>
-                <button
-                  onClick={() => setBorewellUsed(false)}
-                  className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                    borewellUsed === false
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background border border-border'
-                  }`}
-                >
-                  No
-                </button>
-              </div>
+            {/* Activities */}
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Activities</label>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {activities.map((activity) => (
+                    <button
+                        key={activity.id}
+                        onClick={() => toggleActivity(activity.id)}
+                        className={`p-3 rounded-2xl border transition-all duration-200 flex flex-col items-center gap-2 group relative overflow-hidden ${
+                        selectedActivities.includes(activity.id)
+                            ? 'bg-green-500/10 border-green-500/50 text-green-700 shadow-sm'
+                            : 'bg-card hover:bg-muted/50 border-border/60 hover:border-border text-muted-foreground hover:text-foreground'
+                        }`}
+                    >
+                        <span className="text-2xl group-hover:scale-110 transition-transform duration-300">{activity.emoji}</span>
+                        <span className="text-[11px] font-semibold text-center leading-tight">{activity.label}</span>
+                        {selectedActivities.includes(activity.id) && (
+                            <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full shadow-sm" />
+                        )}
+                    </button>
+                    ))}
+                </div>
             </div>
-          </div>
+
+            {/* Observations */}
+            <div className="space-y-3">
+                <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Observations</label>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {observations.map((observation) => (
+                    <button
+                        key={observation.id}
+                        onClick={() => toggleObservation(observation.id)}
+                        className={`p-3 rounded-2xl border transition-all duration-200 flex flex-col items-center gap-2 group relative overflow-hidden ${
+                        selectedObservations.includes(observation.id)
+                            ? 'bg-amber-500/10 border-amber-500/50 text-amber-700 shadow-sm'
+                            : 'bg-card hover:bg-muted/50 border-border/60 hover:border-border text-muted-foreground hover:text-foreground'
+                        }`}
+                    >
+                        <span className="text-2xl group-hover:scale-110 transition-transform duration-300">{observation.emoji}</span>
+                        <span className="text-[11px] font-semibold text-center leading-tight">{observation.label}</span>
+                         {selectedObservations.includes(observation.id) && (
+                            <div className="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full shadow-sm" />
+                        )}
+                    </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Weather */}
+            <div className="space-y-3">
+                 <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Weather Condition</label>
+                    <span className="text-[10px] bg-blue-500/10 text-blue-600 px-2 py-1 rounded-full font-medium border border-blue-500/20">
+                        32°C Detected
+                    </span>
+                 </div>
+                 <div className="grid grid-cols-4 gap-3">
+                    {weatherOptions.map((option) => {
+                    const Icon = option.icon;
+                    const isSelected = weather === option.id;
+                    return (
+                        <button
+                        key={option.id}
+                        onClick={() => setWeather(option.id)}
+                        className={`p-3 rounded-2xl border transition-all duration-200 flex flex-col items-center gap-2 ${
+                            isSelected
+                            ? 'bg-blue-500/10 border-blue-500/50 text-blue-700 shadow-sm ring-1 ring-blue-500/20'
+                            : 'bg-card hover:bg-muted/50 border-border/60 hover:border-border text-muted-foreground hover:text-foreground'
+                        }`}
+                        >
+                        <Icon className={`w-6 h-6 ${isSelected ? option.color : 'text-muted-foreground'}`} />
+                        <span className="text-[10px] font-bold">{option.label}</span>
+                        </button>
+                    );
+                    })}
+                </div>
+            </div>
+
+             {/* Water Status */}
+             <div className="p-5 rounded-3xl bg-card/50 border border-border/40 space-y-4">
+                <div className="flex items-center gap-3 mb-2">
+                     <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center">
+                        <Droplets className="w-4 h-4" />
+                     </div>
+                     <h4 className="font-bold text-sm text-foreground">Water Management</h4>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                         <span className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Canal Water</span>
+                         <div className="flex bg-muted/40 p-1 rounded-xl border border-border/40 relative">
+                            <button
+                                onClick={() => setCanalWater(true)}
+                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${canalWater ? 'bg-background text-blue-600 shadow-sm ring-1 ring-black/5' : 'text-muted-foreground hover:text-foreground'}`}
+                            >
+                                Available
+                            </button>
+                            <button
+                                onClick={() => setCanalWater(false)}
+                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${!canalWater ? 'bg-background text-foreground shadow-sm ring-1 ring-black/5' : 'text-muted-foreground hover:text-foreground'}`}
+                            >
+                                No
+                            </button>
+                         </div>
+                    </div>
+                     <div className="space-y-2">
+                         <span className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Borewell Usage</span>
+                         <div className="flex bg-muted/40 p-1 rounded-xl border border-border/40 relative">
+                            <button
+                                onClick={() => setBorewellUsed(true)}
+                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${borewellUsed ? 'bg-background text-blue-600 shadow-sm ring-1 ring-black/5' : 'text-muted-foreground hover:text-foreground'}`}
+                            >
+                                Used
+                            </button>
+                            <button
+                                onClick={() => setBorewellUsed(false)}
+                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${!borewellUsed ? 'bg-background text-foreground shadow-sm ring-1 ring-black/5' : 'text-muted-foreground hover:text-foreground'}`}
+                            >
+                                Not Used
+                            </button>
+                         </div>
+                    </div>
+                </div>
+             </div>
+
+             {/* Notes */}
+             <div className="space-y-3">
+                <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Notes & Media</label>
+                <div className="grid grid-cols-2 gap-3">
+                    <button
+                    onClick={handleVoiceNote}
+                    className={`flex items-center justify-center gap-2 py-4 rounded-xl border transition-all ${
+                        isRecording
+                        ? 'bg-red-500 text-white border-red-600 animate-pulse'
+                        : 'bg-background hover:bg-muted border-border/60 hover:border-primary/30 text-foreground'
+                    }`}
+                    >
+                        <Mic className={`w-5 h-5 ${isRecording ? 'animate-bounce' : ''}`} />
+                        <span className="text-sm font-semibold">{isRecording ? 'Stop Rec' : 'Voice Note'}</span>
+                    </button>
+                     <button
+                        onClick={handlePhotoCapture}
+                        className="flex items-center justify-center gap-2 py-4 rounded-xl border border-border/60 bg-background hover:bg-muted transition-all hover:border-primary/30 text-foreground"
+                    >
+                        <Camera className="w-5 h-5" />
+                        <span className="text-sm font-semibold">Add Photo</span>
+                    </button>
+                </div>
+                 <textarea
+                    value={textNote}
+                    onChange={(e) => setTextNote(e.target.value)}
+                    placeholder="Type detailed observations here..."
+                    className="w-full px-4 py-3 bg-background/50 rounded-xl border border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none min-h-[100px] text-sm placeholder:text-muted-foreground/50"
+                />
+             </div>
         </div>
-
-        {/* Notes */}
-        <div className="mb-6">
-          <label className="text-sm font-medium text-foreground mb-3 block">
-            📝 Your Notes (Optional)
-          </label>
-          
-          {/* Voice & Photo Buttons */}
-          <div className="flex gap-2 mb-3">
+        
+        {/* Footer */}
+        <div className="flex-shrink-0 p-6 border-t border-border/40 bg-background/95 backdrop-blur-xl z-50 relative">
             <button
-              onClick={handleVoiceNote}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border-2 transition-all ${
-                isRecording
-                  ? 'border-red-500 bg-red-500/10 text-red-500'
-                  : 'border-border hover:border-primary/50'
-              }`}
+            onClick={handleSave}
+            className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all"
             >
-              <Mic className="w-5 h-5" />
-              <span className="text-sm">{isRecording ? 'Stop Recording' : 'Voice Note'}</span>
+            <Save className="w-5 h-5" />
+            Save Entry
             </button>
-
-            <button
-              onClick={handlePhotoCapture}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-border hover:border-primary/50 transition-all"
-            >
-              <Camera className="w-5 h-5" />
-              <span className="text-sm">Add Photo</span>
-            </button>
-          </div>
-
-          {/* Text Note */}
-          <textarea
-            value={textNote}
-            onChange={(e) => setTextNote(e.target.value)}
-            placeholder="Type your observations here..."
-            className="w-full px-4 py-3 bg-muted rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-            rows={3}
-          />
         </div>
-
-        {/* Save Button */}
-        <button
-          onClick={handleSave}
-          className="w-full flex items-center justify-center gap-2 py-4 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors"
-        >
-          <Save className="w-5 h-5" />
-          Save Journal Entry
-        </button>
       </motion.div>
     </div>
   );

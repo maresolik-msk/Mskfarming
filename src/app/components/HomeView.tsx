@@ -206,47 +206,75 @@ export function HomeView({
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
             </div>
 
-            <div className="relative p-6 text-white">
+            <div 
+              onClick={() => onAction('crop-details')}
+              className="relative p-7 text-white cursor-pointer group select-none"
+            >
+              {/* Dynamic Background */}
+              <div className="absolute top-0 right-0 w-80 h-80 bg-green-400/20 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2 group-hover:bg-green-400/30 transition-all duration-700 ease-out" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-600/20 rounded-full blur-[50px] translate-y-1/2 -translate-x-1/3 group-hover:bg-emerald-500/20 transition-all duration-700 ease-out" />
+              
               {/* Header */}
-              <div className="flex items-start justify-between mb-8">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Sprout className="w-4 h-4 text-green-400" />
-                    <span className="text-xs font-medium uppercase tracking-wider text-green-100/90">{cropInfo.field}</span>
+              <div className="relative z-10 flex items-start justify-between mb-8">
+                <div className="space-y-3">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 shadow-sm">
+                    <Sprout className="w-3.5 h-3.5 text-green-300" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-green-50">{cropInfo.field}</span>
                   </div>
-                  <h3 className="text-3xl font-bold tracking-tight">{cropInfo.name}</h3>
+                  <h3 className="text-4xl font-bold tracking-tight text-white drop-shadow-sm group-hover:scale-[1.02] transition-transform duration-300 origin-left">
+                    {cropInfo.name}
+                  </h3>
                 </div>
+                
+                {/* Day Counter */}
                 <div className="flex flex-col items-end">
-                   <span className="bg-green-500/20 backdrop-blur-md border border-green-400/30 text-green-300 text-xs font-bold px-3 py-1 rounded-full">
-                     Day {cropInfo.day}/{cropInfo.totalDays}
-                   </span>
+                   <div className="bg-black/20 backdrop-blur-md border border-white/10 text-white pl-4 pr-1 py-1 rounded-full shadow-lg flex items-center gap-3 group-hover:bg-black/30 transition-all">
+                     <span className="text-xs font-bold tracking-wide">Day {cropInfo.day}</span>
+                     <div className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-medium text-white/80">
+                        {cropInfo.totalDays}
+                     </div>
+                   </div>
                 </div>
               </div>
 
               {/* Progress Section */}
-              <div className="space-y-3">
+              <div className="relative z-10 space-y-5">
                 <div className="flex justify-between items-end text-sm">
-                  <span className="text-gray-200 font-medium">Growth Cycle</span>
-                  <span className="font-bold text-green-400">{cropInfo.progress}%</span>
+                  <span className="text-green-50/80 font-medium flex items-center gap-2">
+                    Growth Cycle
+                  </span>
+                  <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-white tracking-tight">{cropInfo.progress}</span>
+                      <span className="text-sm font-medium text-green-300">%</span>
+                  </div>
                 </div>
                 
-                {/* Custom Progress Bar */}
-                <div className="h-2.5 w-full bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+                {/* Premium Progress Bar */}
+                <div className="h-3 w-full bg-black/20 rounded-full overflow-hidden backdrop-blur-md border border-white/5 p-0.5">
                   <div 
-                    className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full shadow-[0_0_10px_rgba(74,222,128,0.5)]" 
+                    className="h-full bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 rounded-full shadow-[0_0_20px_rgba(74,222,128,0.4)] relative overflow-hidden transition-all duration-1000 ease-out group-hover:shadow-[0_0_25px_rgba(74,222,128,0.6)]" 
                     style={{ width: `${cropInfo.progress}%` }} 
-                  />
+                  >
+                     <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite]" />
+                  </div>
                 </div>
 
                 {/* Footer / Next Action */}
-                <div className="pt-4 mt-2 border-t border-white/10 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-gray-200">
-                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-                    <span>Next: Fertilizer in 3 days</span>
+                <div className="pt-5 mt-2 flex items-center justify-between">
+                  <div className="flex items-center gap-3.5 text-sm text-white bg-black/20 pl-3 pr-4 py-2.5 rounded-2xl backdrop-blur-md border border-white/5 shadow-sm group-hover:bg-black/30 transition-colors">
+                    <div className="relative flex-shrink-0">
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse relative z-10" />
+                        <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-yellow-400 animate-ping opacity-75" />
+                    </div>
+                    <div className="flex flex-col leading-none gap-1">
+                        <span className="text-[10px] text-white/60 font-medium uppercase tracking-wide">Next Task</span>
+                        <span className="font-bold text-xs">Fertilizer in 3 days</span>
+                    </div>
                   </div>
-                  <button className="flex items-center gap-1 text-xs font-bold text-white hover:text-green-400 transition-colors">
-                    Details <ArrowRight className="w-4 h-4" />
-                  </button>
+                  
+                  <div className="w-12 h-12 rounded-full bg-white text-emerald-600 flex items-center justify-center shadow-lg shadow-black/20 group-hover:scale-110 group-active:scale-95 transition-all duration-300">
+                    <ArrowRight className="w-6 h-6 stroke-[3] -rotate-45 group-hover:rotate-0 transition-transform duration-500 ease-out" />
+                  </div>
                 </div>
               </div>
             </div>

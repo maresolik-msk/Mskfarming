@@ -4,9 +4,11 @@ import {
   User, MapPin, Sprout, Target, Calendar, CheckCircle2, 
   ChevronRight, ChevronLeft, Droplets, Sun
 } from 'lucide-react';
+import { updateUserProfile } from '../../lib/api';
+import { toast } from 'sonner';
 
 interface OnboardingFlowProps {
-  onComplete: () => void;
+  onComplete: (profileData: any) => void;
 }
 
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
@@ -59,9 +61,48 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     if (step > 1) setStep(step - 1);
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     // Save data and complete onboarding
-    onComplete();
+    try {
+      // Import and check auth token
+      const { getAuthToken } = await import('../../lib/api');
+      
+      // Wait a moment and retry if token isn't available yet
+      let currentToken = getAuthToken();
+      let retries = 0;
+      while (!currentToken && retries < 5) {
+        console.log(`Waiting for auth token... attempt ${retries + 1}/5`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        currentToken = getAuthToken();
+        retries++;
+      }
+      
+      console.log('=== ONBOARDING COMPLETE - DEBUG ===');
+      console.log('Has auth token:', !!currentToken);
+      console.log('Token preview:', currentToken ? currentToken.substring(0, 30) + '...' : 'NONE');
+      console.log('LocalStorage token:', localStorage.getItem('authToken') ? 'EXISTS' : 'NONE');
+      
+      if (!currentToken) {
+        console.error('NO AUTH TOKEN FOUND! User is not authenticated.');
+        toast.error('Authentication error. Please log in again.');
+        return;
+      }
+      
+      console.log('Starting profile update with data:', formData);
+      const response = await updateUserProfile(formData);
+      console.log('Profile update response:', response);
+      
+      if (response && response.success) {
+        toast.success('Profile updated successfully!');
+        onComplete(formData);
+      } else {
+        console.error('Profile update failed - no success flag in response:', response);
+        toast.error(`Failed to update profile: ${response?.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Profile update exception:', error);
+      toast.error(`An error occurred: ${error instanceof Error ? error.message : 'Please try again.'}`);
+    }
   };
 
   return (

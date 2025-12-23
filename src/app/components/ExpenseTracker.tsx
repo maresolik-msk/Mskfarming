@@ -179,23 +179,29 @@ export function ExpenseTracker({ onSave, onClose, currentBudget, recentLabourTyp
 
   const renderMachineryForm = () => (
     <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-      <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-4">
-        <h4 className="font-semibold text-blue-800 flex items-center gap-2">
-          <Tractor className="w-5 h-5" /> Machinery Details
-        </h4>
+      <div className="bg-card/40 backdrop-blur-sm p-5 sm:p-6 rounded-3xl border border-border/50 space-y-6 shadow-sm">
+        <div className="flex items-center gap-4 pb-4 border-b border-border/40">
+           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 text-blue-600 flex items-center justify-center shadow-inner ring-1 ring-white/10">
+             <Tractor className="w-6 h-6" />
+           </div>
+           <div>
+             <h4 className="font-bold text-foreground text-lg">Machinery Details</h4>
+             <p className="text-xs text-muted-foreground font-medium">Record equipment usage & costs</p>
+           </div>
+        </div>
         
         {/* Operation Type */}
-        <div>
-          <label className="text-xs font-semibold text-blue-700 uppercase tracking-wider">Operation</label>
-          <div className="flex flex-wrap gap-2 mt-2">
+        <div className="space-y-3">
+          <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Operation Type</label>
+          <div className="flex flex-wrap gap-2.5">
             {['Plowing', 'Sowing', 'Harvesting', 'Spraying', 'Transport'].map(op => (
               <button
                 key={op}
                 onClick={() => setMachineryOp(op)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border relative overflow-hidden ${
                   machineryOp === op 
-                  ? 'bg-blue-600 text-white border-blue-600' 
-                  : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/25' 
+                  : 'bg-background hover:bg-muted text-muted-foreground border-border/60 hover:border-blue-200'
                 }`}
               >
                 {op}
@@ -204,174 +210,231 @@ export function ExpenseTracker({ onSave, onClose, currentBudget, recentLabourTyp
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-blue-700 uppercase tracking-wider">Machine</label>
-            <select 
-              value={machineryType} 
-              onChange={(e) => setMachineryType(e.target.value)}
-              className="w-full mt-1 p-2 rounded-lg border border-blue-200 bg-white text-sm"
-            >
-              <option>Tractor</option>
-              <option>Harvester</option>
-              <option>Rotavator</option>
-              <option>Sprayer</option>
-              <option>Drone</option>
-            </select>
+        <div className="grid grid-cols-2 gap-5">
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Machine</label>
+            <div className="relative group">
+                <select 
+                  value={machineryType} 
+                  onChange={(e) => setMachineryType(e.target.value)}
+                  className="w-full appearance-none bg-background/50 border border-border/60 rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-foreground cursor-pointer hover:bg-background/80"
+                >
+                  <option>Tractor</option>
+                  <option>Harvester</option>
+                  <option>Rotavator</option>
+                  <option>Sprayer</option>
+                  <option>Drone</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground group-hover:text-foreground transition-colors">
+                    <ChevronRight className="w-4 h-4 rotate-90" />
+                </div>
+            </div>
           </div>
-          <div>
-            <label className="text-xs font-semibold text-blue-700 uppercase tracking-wider">Owned?</label>
-            <div className="flex bg-white rounded-lg border border-blue-200 mt-1 overflow-hidden">
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Ownership</label>
+            <div className="flex bg-muted/30 p-1 rounded-xl border border-border/40 relative h-[46px]">
               <button 
                 onClick={() => setOwnership('owned')}
-                className={`flex-1 py-2 text-xs font-medium ${ownership === 'owned' ? 'bg-blue-600 text-white' : 'text-blue-600'}`}
+                className={`flex-1 rounded-[9px] text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                    ownership === 'owned' 
+                    ? 'bg-background text-blue-600 shadow-sm ring-1 ring-black/5 dark:ring-white/10' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
-                Yes
+                Owned
               </button>
               <button 
                 onClick={() => setOwnership('rented')}
-                className={`flex-1 py-2 text-xs font-medium ${ownership === 'rented' ? 'bg-blue-600 text-white' : 'text-blue-600'}`}
+                className={`flex-1 rounded-[9px] text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                    ownership === 'rented' 
+                    ? 'bg-background text-blue-600 shadow-sm ring-1 ring-black/5 dark:ring-white/10' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
-                No
+                Rented
               </button>
             </div>
           </div>
         </div>
 
+        <motion.div 
+            key={ownership}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            className="pt-2"
+        >
         {ownership === 'rented' ? (
-          <div className="space-y-3 pt-2 border-t border-blue-200">
-             <div className="flex gap-4">
-               <div className="flex-1">
-                 <label className="text-xs text-blue-700">Rent Type</label>
-                 <select 
-                   value={rentalType} 
-                   onChange={(e) => setRentalType(e.target.value as any)}
-                   className="w-full p-2 rounded-lg border border-blue-200 text-sm mt-1"
-                 >
-                   <option value="hour">Per Hour</option>
-                   <option value="acre">Per Acre</option>
-                 </select>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+               <div className="space-y-2">
+                 <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Rent Type</label>
+                 <div className="relative">
+                    <select 
+                        value={rentalType} 
+                        onChange={(e) => setRentalType(e.target.value as any)}
+                        className="w-full appearance-none bg-background/50 border border-border/60 rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none cursor-pointer"
+                        >
+                        <option value="hour">Per Hour</option>
+                        <option value="acre">Per Acre</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                        <ChevronRight className="w-4 h-4 rotate-90" />
+                    </div>
+                 </div>
                </div>
-               <div className="flex-1">
-                 <label className="text-xs text-blue-700">Quantity</label>
-                 <input 
-                    type="number" 
-                    value={rentalQty}
-                    onChange={(e) => setRentalQty(e.target.value)}
-                    placeholder={rentalType === 'hour' ? 'Hours' : 'Acres'}
-                    className="w-full p-2 rounded-lg border border-blue-200 text-sm mt-1"
-                 />
+               <div className="space-y-2">
+                 <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Quantity</label>
+                 <div className="relative">
+                    <input 
+                        type="number" 
+                        value={rentalQty}
+                        onChange={(e) => setRentalQty(e.target.value)}
+                        placeholder="0.0"
+                        className="w-full bg-background/50 border border-border/60 rounded-xl py-3 pl-4 pr-9 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                    />
+                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium pointer-events-none">
+                        {rentalType === 'hour' ? 'Hrs' : 'Ac'}
+                     </span>
+                 </div>
                </div>
-               <div className="flex-1">
-                 <label className="text-xs text-blue-700">Rate (₹)</label>
-                 <input 
-                    type="number" 
-                    value={rentalRate}
-                    onChange={(e) => setRentalRate(e.target.value)}
-                    placeholder="Rate"
-                    className="w-full p-2 rounded-lg border border-blue-200 text-sm mt-1"
-                 />
+               <div className="space-y-2">
+                 <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Rate</label>
+                 <div className="relative">
+                    <input 
+                        type="number" 
+                        value={rentalRate}
+                        onChange={(e) => setRentalRate(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full bg-background/50 border border-border/60 rounded-xl py-3 pl-9 pr-4 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                    />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                        <BadgeIndianRupee className="w-4 h-4" />
+                    </div>
+                 </div>
                </div>
-             </div>
           </div>
         ) : (
-          <div className="space-y-3 pt-2 border-t border-blue-200">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-blue-700">Fuel Used (L)</label>
-                <input 
-                  type="number" 
-                  value={fuelLitres}
-                  onChange={(e) => setFuelLitres(e.target.value)}
-                  className="w-full p-2 rounded-lg border border-blue-200 text-sm mt-1"
-                />
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Fuel Used</label>
+                <div className="relative">
+                    <input 
+                    type="number" 
+                    value={fuelLitres}
+                    onChange={(e) => setFuelLitres(e.target.value)}
+                    placeholder="0.0"
+                    className="w-full bg-background/50 border border-border/60 rounded-xl py-3 pl-10 pr-9 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                    />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                        <Fuel className="w-4 h-4" />
+                    </div>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium pointer-events-none">L</span>
+                </div>
               </div>
-              <div>
-                <label className="text-xs text-blue-700">Fuel Cost (₹)</label>
-                <input 
-                  type="number" 
-                  value={fuelCost}
-                  onChange={(e) => { setFuelCost(e.target.value); setAmount(e.target.value); }}
-                  className="w-full p-2 rounded-lg border border-blue-200 text-sm mt-1"
-                />
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Fuel Cost</label>
+                <div className="relative">
+                    <input 
+                    type="number" 
+                    value={fuelCost}
+                    onChange={(e) => { setFuelCost(e.target.value); setAmount(e.target.value); }}
+                    placeholder="0.00"
+                    className="w-full bg-background/50 border border-border/60 rounded-xl py-3 pl-10 pr-4 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                    />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                        <BadgeIndianRupee className="w-4 h-4" />
+                    </div>
+                </div>
               </div>
             </div>
-          </div>
         )}
+        </motion.div>
       </div>
     </div>
   );
 
   const renderInputForm = () => (
     <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-      <div className="bg-green-50 p-4 rounded-xl border border-green-100 space-y-4">
-        <h4 className="font-semibold text-green-800 flex items-center gap-2">
-          <Leaf className="w-5 h-5" /> Input Details
-        </h4>
-
-        {/* Type */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {['Fertiliser', 'Pesticide', 'Herbicide', 'Seeds'].map(type => (
-            <button
-              key={type}
-              onClick={() => setInputType(type)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap ${
-                inputType === type 
-                ? 'bg-green-600 text-white border-green-600' 
-                : 'bg-white text-green-600 border-green-200'
-              }`}
-            >
-              {type}
-            </button>
-          ))}
+      <div className="bg-card/40 backdrop-blur-sm p-5 sm:p-6 rounded-3xl border border-border/50 space-y-6 shadow-sm">
+        <div className="flex items-center gap-4 pb-4 border-b border-border/40">
+           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 text-green-600 flex items-center justify-center shadow-inner ring-1 ring-white/10">
+             <Leaf className="w-6 h-6" />
+           </div>
+           <div>
+             <h4 className="font-bold text-foreground text-lg">Input Details</h4>
+             <p className="text-xs text-muted-foreground font-medium">Record materials & crop protection</p>
+           </div>
         </div>
 
+        {/* Type */}
         <div className="space-y-3">
-          <div>
-            <label className="text-xs font-semibold text-green-700 uppercase">Product Name</label>
+          <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Category</label>
+          <div className="flex flex-wrap gap-2.5">
+            {['Fertiliser', 'Pesticide', 'Herbicide', 'Seeds'].map(type => (
+              <button
+                key={type}
+                onClick={() => setInputType(type)}
+                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border relative overflow-hidden ${
+                  inputType === type 
+                  ? 'bg-green-600 text-white border-green-600 shadow-lg shadow-green-500/25' 
+                  : 'bg-background hover:bg-muted text-muted-foreground border-border/60 hover:border-green-200'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Product Name</label>
             <input 
               type="text" 
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
               placeholder="e.g. Urea, DAP, Monocrotophos"
-              className="w-full p-2 rounded-lg border border-green-200 mt-1"
+              className="w-full bg-background/50 border border-border/60 rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all outline-none"
             />
           </div>
-          <div>
-             <label className="text-xs font-semibold text-green-700 uppercase">Target Issue / Crop</label>
-             <input 
-               type="text" 
-               value={targetIssue}
-               onChange={(e) => setTargetIssue(e.target.value)}
-               placeholder="e.g. Stem borer, Nitrogen deficiency"
-               className="w-full p-2 rounded-lg border border-green-200 mt-1"
-             />
-          </div>
-          <div>
-             <label className="text-xs font-semibold text-green-700 uppercase">Quantity</label>
-             <input 
-               type="text" 
-               value={inputQty}
-               onChange={(e) => setInputQty(e.target.value)}
-               placeholder="e.g. 50 kg, 500 ml"
-               className="w-full p-2 rounded-lg border border-green-200 mt-1"
-             />
+          <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-2">
+                 <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Target / Crop</label>
+                 <input 
+                   type="text" 
+                   value={targetIssue}
+                   onChange={(e) => setTargetIssue(e.target.value)}
+                   placeholder="e.g. Stem borer"
+                   className="w-full bg-background/50 border border-border/60 rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all outline-none"
+                 />
+              </div>
+              <div className="space-y-2">
+                 <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Quantity</label>
+                 <input 
+                   type="text" 
+                   value={inputQty}
+                   onChange={(e) => setInputQty(e.target.value)}
+                   placeholder="e.g. 50 kg"
+                   className="w-full bg-background/50 border border-border/60 rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all outline-none"
+                 />
+              </div>
           </div>
         </div>
 
         {/* Safety */}
-        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-green-200">
-           <ShieldAlert className="w-5 h-5 text-amber-500" />
-           <div className="flex-1">
-             <div className="text-sm font-medium">Safety Check</div>
-             <div className="text-xs text-muted-foreground">Did you wear masks/gloves?</div>
+        <div className="flex items-center gap-4 p-4 bg-amber-500/5 rounded-2xl border border-amber-500/20 transition-colors hover:bg-amber-500/10 cursor-pointer" onClick={() => setPpeUsed(!ppeUsed)}>
+           <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 flex items-center justify-center shrink-0">
+                <ShieldAlert className="w-5 h-5" />
            </div>
-           <input 
-             type="checkbox" 
-             checked={ppeUsed}
-             onChange={(e) => setPpeUsed(e.target.checked)}
-             className="w-5 h-5 accent-green-600"
-           />
+           <div className="flex-1">
+             <div className="text-sm font-bold text-foreground">Safety Protocol</div>
+             <div className="text-xs text-muted-foreground">Protective gear (mask/gloves) used?</div>
+           </div>
+           <div 
+             className={`w-12 h-7 rounded-full transition-colors duration-200 ease-in-out relative ${ppeUsed ? 'bg-green-600' : 'bg-muted border border-border/50'}`}
+           >
+             <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${ppeUsed ? 'translate-x-5' : 'translate-x-0'}`} />
+           </div>
         </div>
       </div>
     </div>
@@ -379,21 +442,27 @@ export function ExpenseTracker({ onSave, onClose, currentBudget, recentLabourTyp
 
   const renderLabourForm = () => (
     <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-      <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 space-y-4">
-        <h4 className="font-semibold text-orange-800 flex items-center gap-2">
-          <Users className="w-5 h-5" /> Labour Details
-        </h4>
+      <div className="bg-card/40 backdrop-blur-sm p-5 sm:p-6 rounded-3xl border border-border/50 space-y-6 shadow-sm">
+        <div className="flex items-center gap-4 pb-4 border-b border-border/40">
+           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500/20 to-amber-500/20 text-orange-600 flex items-center justify-center shadow-inner ring-1 ring-white/10">
+             <Users className="w-6 h-6" />
+           </div>
+           <div>
+             <h4 className="font-bold text-foreground text-lg">Labour Details</h4>
+             <p className="text-xs text-muted-foreground font-medium">Manage workforce & wages</p>
+           </div>
+        </div>
         
         {/* Recent Types */}
         {recentLabourTypes.length > 0 && (
-          <div>
-             <div className="text-xs text-orange-700 mb-2">Recent Activities:</div>
+          <div className="space-y-2.5">
+             <div className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Recent Activities</div>
              <div className="flex flex-wrap gap-2">
                 {recentLabourTypes.map(type => (
                   <button 
                     key={type}
                     onClick={() => setLabourType(type)}
-                    className="px-2 py-1 bg-white border border-orange-200 rounded text-xs text-orange-800"
+                    className="px-3 py-1.5 bg-orange-500/5 hover:bg-orange-500/15 border border-orange-500/10 hover:border-orange-500/30 rounded-lg text-xs font-semibold text-orange-700 transition-all duration-200"
                   >
                     {type}
                   </button>
@@ -402,36 +471,50 @@ export function ExpenseTracker({ onSave, onClose, currentBudget, recentLabourTyp
           </div>
         )}
 
-        <div>
-          <label className="text-xs font-semibold text-orange-700 uppercase">Work Type</label>
-          <input 
-             type="text"
-             value={labourType}
-             onChange={(e) => setLabourType(e.target.value)} 
-             placeholder="e.g. Weeding, Harvesting"
-             className="w-full p-2 rounded-lg border border-orange-200 mt-1"
-          />
-        </div>
+        <div className="space-y-5">
+            <div className="space-y-2">
+            <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Work Type</label>
+            <input 
+                type="text"
+                value={labourType}
+                onChange={(e) => setLabourType(e.target.value)} 
+                placeholder="e.g. Weeding, Harvesting"
+                className="w-full bg-background/50 border border-border/60 rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all outline-none"
+            />
+            </div>
 
-        <div className="grid grid-cols-2 gap-4">
-           <div>
-             <label className="text-xs font-semibold text-orange-700 uppercase">Workers</label>
-             <input 
-                type="number"
-                value={workerCount}
-                onChange={(e) => setWorkerCount(e.target.value)}
-                className="w-full p-2 rounded-lg border border-orange-200 mt-1"
-             />
-           </div>
-           <div>
-             <label className="text-xs font-semibold text-orange-700 uppercase">Wage (₹)</label>
-             <input 
-                type="number"
-                value={dailyWage}
-                onChange={(e) => setDailyWage(e.target.value)}
-                className="w-full p-2 rounded-lg border border-orange-200 mt-1"
-             />
-           </div>
+            <div className="grid grid-cols-2 gap-5">
+            <div className="space-y-2">
+                <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Workers</label>
+                <div className="relative">
+                    <input 
+                        type="number"
+                        value={workerCount}
+                        onChange={(e) => setWorkerCount(e.target.value)}
+                        placeholder="0"
+                        className="w-full bg-background/50 border border-border/60 rounded-xl py-3 pl-10 pr-4 text-sm font-medium focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all outline-none"
+                    />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                        <Users className="w-4 h-4" />
+                    </div>
+                </div>
+            </div>
+            <div className="space-y-2">
+                <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Daily Wage</label>
+                <div className="relative">
+                    <input 
+                        type="number"
+                        value={dailyWage}
+                        onChange={(e) => setDailyWage(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full bg-background/50 border border-border/60 rounded-xl py-3 pl-9 pr-4 text-sm font-medium focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all outline-none"
+                    />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                        <BadgeIndianRupee className="w-4 h-4" />
+                    </div>
+                </div>
+            </div>
+            </div>
         </div>
       </div>
     </div>
@@ -560,85 +643,106 @@ export function ExpenseTracker({ onSave, onClose, currentBudget, recentLabourTyp
   );
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4">
+    <div 
+      className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-end sm:items-center justify-center z-50 sm:p-6 transition-all duration-500"
+      onClick={(e) => {
+        // Close when clicking on backdrop
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        className="bg-card w-full max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[90vh] flex flex-col shadow-2xl"
+        initial={{ y: '20%', opacity: 0, scale: 0.95 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: '20%', opacity: 0, scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 350, damping: 35 }}
+        className="bg-background/95 backdrop-blur-xl w-full max-w-lg rounded-t-[2rem] sm:rounded-[2rem] max-h-[90vh] flex flex-col shadow-2xl border border-white/10 dark:border-white/5 ring-1 ring-black/5"
       >
         {/* Header */}
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex-shrink-0 px-6 py-5 border-b border-border/40 flex items-center justify-between bg-gradient-to-b from-white/5 to-transparent">
+          <div className="flex items-center gap-4">
              {step !== 'category' && step !== 'success' && (
-               <button onClick={handleBack} className="p-1 hover:bg-muted rounded-full">
-                 <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+               <button onClick={handleBack} className="p-2 -ml-2 hover:bg-muted/80 rounded-full transition-colors group">
+                 <ArrowLeft className="w-5 h-5 text-muted-foreground group-hover:text-foreground" />
                </button>
              )}
              <div>
-                <h3 className="font-semibold text-lg">
+                <motion.h3 
+                  key={step}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="font-bold text-xl tracking-tight text-foreground"
+                >
                   {step === 'category' ? 'Add Expense' : 
-                   step === 'details' ? 'Enter Details' : 
-                   step === 'payment' ? 'Payment' : 'Success'}
-                </h3>
+                   step === 'details' ? 'Details' : 
+                   step === 'payment' ? 'Payment' : 'Complete'}
+                </motion.h3>
                 {step !== 'success' && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <div className={`h-1 w-6 rounded-full ${step === 'category' ? 'bg-primary' : 'bg-primary/30'}`} />
-                    <div className={`h-1 w-6 rounded-full ${step === 'details' ? 'bg-primary' : 'bg-primary/30'}`} />
-                    <div className={`h-1 w-6 rounded-full ${step === 'payment' ? 'bg-primary' : 'bg-primary/30'}`} />
+                  <div className="flex items-center gap-1.5 mt-2">
+                    {['category', 'details', 'payment'].map((s, i) => {
+                         const steps = ['category', 'details', 'payment'];
+                         const stepIndex = steps.indexOf(step);
+                         const isActive = i <= stepIndex;
+                         const isCurrent = i === stepIndex;
+                         return (
+                            <div 
+                              key={s} 
+                              className={`h-1.5 rounded-full transition-all duration-500 ease-out ${isActive ? 'bg-primary shadow-sm shadow-primary/30' : 'bg-muted-foreground/10'} ${isCurrent ? 'w-8' : isActive ? 'w-3' : 'w-2'}`} 
+                            />
+                         )
+                    })}
                   </div>
                 )}
              </div>
           </div>
-          <div className="flex items-center gap-3">
-             {step !== 'success' && (
-                <button 
-                  onClick={handleNext}
-                  disabled={step === 'category' && !selectedCategory}
-                  className="mr-2 text-sm font-semibold text-primary disabled:opacity-50 flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors"
-                >
-                  {step === 'payment' ? 'Save' : 'Next'} <ChevronRight className="w-4 h-4" />
-                </button>
-             )}
-            <button onClick={onClose} className="p-2 hover:bg-muted rounded-full text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={onClose} 
+              className="w-10 h-10 flex items-center justify-center hover:bg-red-500/10 hover:text-red-600 rounded-full text-muted-foreground transition-all duration-200"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
         {/* Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+        <div className="p-6 sm:p-8 overflow-y-auto flex-1 scrollbar-hide">
            {step === 'category' && renderCategorySelection()}
            
            {step === 'details' && (
-             <>
+             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
                {selectedCategory === 'machinery' && renderMachineryForm()}
                {selectedCategory === 'input' && renderInputForm()}
                {selectedCategory === 'labor' && renderLabourForm()}
                {(selectedCategory === 'irrigation' || selectedCategory === 'other') && (
-                 <div className="text-center py-8 text-muted-foreground">
-                   Simple form for {selectedCategory} coming soon. 
-                   <br/>Proceed to payment to enter amount.
+                 <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                   <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                     <Wrench className="w-8 h-8 text-muted-foreground" />
+                   </div>
+                   <p className="text-muted-foreground font-medium">Simplified entry for {selectedCategory}.<br/>Proceed to payment.</p>
                  </div>
                )}
-             </>
+             </motion.div>
            )}
 
-           {step === 'payment' && renderPaymentForm()}
+           {step === 'payment' && (
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
+                {renderPaymentForm()}
+              </motion.div>
+           )}
            
            {step === 'success' && renderSuccess()}
         </div>
 
         {/* Footer */}
         {step !== 'success' && (
-          <div className="p-4 border-t border-border bg-muted/20">
+          <div className="flex-shrink-0 p-6 border-t border-border/40 bg-background/95 backdrop-blur-xl z-50 relative">
              <button
                onClick={handleNext}
                disabled={step === 'category' && !selectedCategory}
-               className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/20"
+               className="w-full py-4 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-2xl font-bold text-lg flex items-center justify-center gap-3 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-primary/25 active:scale-[0.98] ring-offset-2 focus:ring-2 ring-primary"
              >
-               {step === 'payment' ? 'Save Expense' : 'Continue'}
-               <ChevronRight className="w-5 h-5" />
+               {step === 'payment' ? 'Save & Record' : 'Continue'}
+               <ChevronRight className="w-5 h-5 stroke-[3]" />
              </button>
           </div>
         )}

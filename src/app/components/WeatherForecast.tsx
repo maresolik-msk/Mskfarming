@@ -1,5 +1,8 @@
 import { motion } from 'motion/react';
 import { Cloud, CloudRain, Sun, Wind, Droplets, AlertTriangle, ChevronRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { getWeather } from '../../lib/api';
+import { toast } from 'sonner';
 
 interface WeatherDay {
   day: string;
@@ -17,72 +20,208 @@ interface WeatherForecastProps {
 }
 
 export function WeatherForecast({ location = 'Nashik, Maharashtra', compact = true }: WeatherForecastProps) {
-  // Mock weather data
-  const forecast: WeatherDay[] = [
-    {
-      day: 'Today',
-      date: 'Dec 21',
-      temp: { min: 18, max: 28 },
-      condition: 'sunny',
-      rainfall: 0,
-      humidity: 65,
-      wind: 12,
-    },
-    {
-      day: 'Tom',
-      date: 'Dec 22',
-      temp: { min: 19, max: 29 },
-      condition: 'sunny',
-      rainfall: 0,
-      humidity: 60,
-      wind: 10,
-    },
-    {
-      day: 'Mon',
-      date: 'Dec 23',
-      temp: { min: 20, max: 30 },
-      condition: 'cloudy',
-      rainfall: 0,
-      humidity: 70,
-      wind: 15,
-    },
-    {
-      day: 'Tue',
-      date: 'Dec 24',
-      temp: { min: 21, max: 28 },
-      condition: 'rainy',
-      rainfall: 15,
-      humidity: 85,
-      wind: 20,
-    },
-    {
-      day: 'Wed',
-      date: 'Dec 25',
-      temp: { min: 20, max: 26 },
-      condition: 'rainy',
-      rainfall: 25,
-      humidity: 90,
-      wind: 18,
-    },
-    {
-      day: 'Thu',
-      date: 'Dec 26',
-      temp: { min: 19, max: 27 },
-      condition: 'cloudy',
-      rainfall: 5,
-      humidity: 75,
-      wind: 14,
-    },
-    {
-      day: 'Fri',
-      date: 'Dec 27',
-      temp: { min: 18, max: 28 },
-      condition: 'sunny',
-      rainfall: 0,
-      humidity: 68,
-      wind: 12,
-    },
-  ];
+  const [forecast, setForecast] = useState<WeatherDay[]>([]);
+  const [currentWeather, setCurrentWeather] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchWeather() {
+      // Start with a small delay to ensure auth is ready
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      try {
+        // Default to Nashik coordinates if geolocation fails
+        let lat = 19.9975;
+        let lon = 73.7898;
+
+        // Try to get user's location
+        if (navigator.geolocation) {
+          try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                timeout: 5000,
+              });
+            });
+            lat = position.coords.latitude;
+            lon = position.coords.longitude;
+          } catch (error) {
+            console.log('Geolocation failed, using default location (Nashik)');
+          }
+        }
+
+        console.log('Fetching weather for coordinates:', lat, lon);
+        const weatherData = await getWeather(lat, lon);
+        
+        console.log('Weather data received:', weatherData);
+        
+        // Check if we got mock data from backend or real data
+        if (weatherData.isMock || !weatherData.forecast || !weatherData.forecast.list || weatherData.forecast.list.length === 0) {
+          console.log('Using local fallback weather data (live weather unavailable)');
+          // Don't throw error, just use fallback data
+          setIsLoading(false);
+          return; // Use the default fallback data already set in state
+        }
+        
+        setCurrentWeather(weatherData.current);
+
+        // Process forecast data
+        const forecastDays: WeatherDay[] = [];
+        const dailyForecasts: { [key: string]: any[] } = {};
+
+        // Group forecast by day
+        if (weatherData.forecast.list && Array.isArray(weatherData.forecast.list)) {
+          weatherData.forecast.list.forEach((item: any) => {
+            const date = new Date(item.dt * 1000);
+            const dayKey = date.toLocaleDateString();
+
+            if (!dailyForecasts[dayKey]) {
+              dailyForecasts[dayKey] = [];
+            }
+            dailyForecasts[dayKey].push(item);
+          });
+
+          // Convert to our format
+          Object.keys(dailyForecasts).slice(0, 5).forEach((dayKey, index) => {
+            const dayData = dailyForecasts[dayKey];
+            // Use the first item's timestamp to get the correct date
+            const timestamp = dayData[0].dt * 1000;
+            const date = new Date(timestamp);
+            
+            // Calculate min/max temps
+            const temps = dayData.map((d: any) => d.main.temp);
+            const minTemp = Math.round(Math.min(...temps));
+            const maxTemp = Math.round(Math.max(...temps));
+
+            // Get average humidity and wind
+            const avgHumidity = Math.round(
+              dayData.reduce((sum: number, d: any) => sum + d.main.humidity, 0) / dayData.length
+            );
+            const avgWind = Math.round(
+              dayData.reduce((sum: number, d: any) => sum + d.wind.speed, 0) / dayData.length
+            );
+
+            // Get rainfall
+            const rainfall = dayData.reduce(
+              (sum: number, d: any) => sum + (d.rain?.['3h'] || 0),
+              0
+            );
+
+            // Determine condition
+            const mainWeather = dayData[Math.floor(dayData.length / 2)].weather[0].main.toLowerCase();
+            let condition: 'sunny' | 'cloudy' | 'rainy' | 'stormy' = 'sunny';
+            
+            if (mainWeather.includes('rain') || mainWeather.includes('drizzle')) {
+              condition = 'rainy';
+            } else if (mainWeather.includes('storm') || mainWeather.includes('thunder')) {
+              condition = 'stormy';
+            } else if (mainWeather.includes('cloud')) {
+              condition = 'cloudy';
+            }
+
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const dayName = index === 0 ? 'Today' : index === 1 ? 'Tom' : dayNames[date.getDay()];
+
+            forecastDays.push({
+              day: dayName,
+              date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              temp: { min: minTemp, max: maxTemp },
+              condition,
+              rainfall: Math.round(rainfall),
+              humidity: avgHumidity,
+              wind: avgWind,
+            });
+          });
+
+          if (forecastDays.length > 0) {
+            setForecast(forecastDays);
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        // If we get here, use fallback data
+        throw new Error('No forecast data available');
+        
+      } catch (error: any) {
+        console.error('Weather fetch error:', error);
+        
+        // Only show toast if it's not an API key issue (which is expected in demo)
+        if (!error.message?.includes('API key')) {
+          console.log('Using fallback weather data');
+        }
+        
+        // Fallback to mock data
+        const mockData: WeatherDay[] = [
+          {
+            day: 'Today',
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            temp: { min: 18, max: 28 },
+            condition: 'sunny',
+            rainfall: 0,
+            humidity: 65,
+            wind: 12,
+          },
+          {
+            day: 'Tom',
+            date: new Date(Date.now() + 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            temp: { min: 19, max: 29 },
+            condition: 'sunny',
+            rainfall: 0,
+            humidity: 60,
+            wind: 10,
+          },
+          {
+            day: 'Mon',
+            date: new Date(Date.now() + 172800000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            temp: { min: 20, max: 30 },
+            condition: 'cloudy',
+            rainfall: 0,
+            humidity: 70,
+            wind: 15,
+          },
+          {
+            day: 'Tue',
+            date: new Date(Date.now() + 259200000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            temp: { min: 21, max: 28 },
+            condition: 'rainy',
+            rainfall: 15,
+            humidity: 85,
+            wind: 20,
+          },
+          {
+            day: 'Wed',
+            date: new Date(Date.now() + 345600000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            temp: { min: 19, max: 27 },
+            condition: 'cloudy',
+            rainfall: 0,
+            humidity: 75,
+            wind: 18,
+          },
+        ];
+        
+        setForecast(mockData);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchWeather();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="bg-card/40 backdrop-blur-sm rounded-2xl p-6 border border-border">
+        <div className="flex items-center justify-between mb-4">
+          <div className="h-6 w-32 bg-muted animate-pulse rounded"></div>
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="min-w-[100px] p-4 bg-muted animate-pulse rounded-xl h-32"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const getWeatherIcon = (condition: string, size = "w-6 h-6") => {
     switch (condition) {
@@ -168,7 +307,7 @@ export function WeatherForecast({ location = 'Nashik, Maharashtra', compact = tr
 
           {forecast.map((day, index) => (
             <div
-              key={day.date}
+              key={`${day.date}-${index}`}
               className={`min-w-[85px] snap-start rounded-xl p-3 flex flex-col items-center justify-between border transition-colors ${
                 index === 0
                   ? 'bg-primary/5 border-primary/20'

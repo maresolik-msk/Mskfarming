@@ -1,46 +1,38 @@
-import { useState } from 'react';
-import { motion } from 'motion/react';
-import {
-  Menu,
-  Settings,
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  ChevronDown, 
+  CheckCircle2, 
+  Menu, 
+  LayoutDashboard, 
+  History, 
+  Calculator, 
+  User, 
+  Sprout, 
+  FlaskConical, 
+  Satellite, 
+  Mic, 
+  Camera, 
+  Wallet, 
+  FileText, 
   LogOut,
-  Mic,
-  Camera,
-  Wallet,
-  HelpCircle,
   Volume2,
-  CheckCircle2,
-  Circle,
-  Sprout,
+  Calendar,
   Home,
   BookOpen,
-  TrendingUp,
-  User,
   Plus,
-  ChevronDown,
-  LayoutDashboard,
-  History,
-  Calculator,
-  FileText,
-  FlaskConical,
+  TrendingUp,
+  Leaf
 } from 'lucide-react';
-import { ExpenseCard } from './ExpenseCard';
-import { SeedSelectionModal } from './seed-selection/SeedSelectionModal';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetClose,
-  SheetDescription,
-} from './ui/sheet';
+import { WeeklySummary } from './WeeklySummary';
+import { HomeView } from './HomeView';
+import { CropDetailView } from './CropDetailView';
+import { FieldManagement } from './FieldManagement';
+import { SatelliteMonitoring } from './SatelliteMonitoring';
 import { VoiceJournalEntry } from './VoiceJournalEntry';
 import { PhotoCapture } from './PhotoCapture';
 import { ExpenseTracker } from './ExpenseTracker';
-import { WeatherForecast } from './WeatherForecast';
-import { DemoHelper } from './DemoHelper';
-import { SoilHealthCard } from './SoilHealthCard';
+import { ExpenseCard } from './ExpenseCard';
 import { SoilTestSelection } from './SoilTestSelection';
 import { SampleCollectionGuide } from './SampleCollectionGuide';
 import { SampleSubmission } from './SampleSubmission';
@@ -50,9 +42,24 @@ import { SoilHealthSummary } from './SoilHealthSummary';
 import { FarmingJournal } from './FarmingJournal';
 import { JournalHistory } from './JournalHistory';
 import { JournalEntryView } from './JournalEntryView';
-import { WeeklySummary } from './WeeklySummary';
-import { HomeView } from './HomeView';
+import { SeedSelectionModal } from './seed-selection/SeedSelectionModal';
+import { DemoHelper } from './DemoHelper';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetClose } from './ui/sheet';
 import { toast } from 'sonner';
+import { 
+  getTasks, 
+  createTask, 
+  toggleTask as apiToggleTask, 
+  deleteTask,
+  getExpenses,
+  createExpense,
+  getJournalEntries,
+  createJournalEntry,
+  getFields,
+  createField,
+  updateField,
+  deleteField as apiDeleteField,
+} from '../../lib/api';
 
 interface MainDashboardProps {
   farmerName: string;
@@ -132,6 +139,12 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   const [showJournalHistory, setShowJournalHistory] = useState(false);
   const [showJournalEntry, setShowJournalEntry] = useState(false);
   const [showWeeklySummary, setShowWeeklySummary] = useState(false);
+  const [showLogMenu, setShowLogMenu] = useState(false);
+  const [showCropDetails, setShowCropDetails] = useState(false);
+  
+  // Field Monitoring State
+  const [showFieldMonitoring, setShowFieldMonitoring] = useState(false);
+  
   const [farmingJournalEntries, setFarmingJournalEntries] = useState<any[]>([
     {
       id: '1',
@@ -217,11 +230,27 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
     progress: currentField.progress,
   };
 
-  const toggleTask = (id: string) => {
-    setTasks(tasks.map(task =>
-      task.id === id ? { ...task, completed: !task.completed } : task
+  const toggleTask = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    
+    const newCompleted = !task.completed;
+    
+    // Optimistically update UI
+    setTasks(tasks.map(t =>
+      t.id === id ? { ...t, completed: newCompleted } : t
     ));
-    toast.success('Task updated');
+    
+    try {
+      await apiToggleTask(id, newCompleted);
+      toast.success('Task updated');
+    } catch (error) {
+      // Revert on error
+      setTasks(tasks.map(t =>
+        t.id === id ? { ...t, completed: task.completed } : t
+      ));
+      toast.error('Failed to update task');
+    }
   };
 
   const playGuidance = () => {
@@ -336,30 +365,92 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
     setShowWeeklySummary(true);
   };
 
+  useEffect(() => {
+    // Fetch tasks from API
+    getTasks()
+      .then(data => {
+        if (data && Array.isArray(data)) {
+          setTasks(data);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load tasks:', err);
+        // Keep default tasks on error
+      });
+  }, []);
+
+  useEffect(() => {
+    // Fetch expenses from API and calculate budget
+    getExpenses()
+      .then(data => {
+        if (data && Array.isArray(data)) {
+          setExpenses(data);
+          // Calculate total used from all expenses
+          const totalUsed = data.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+          setBudget(prev => ({ ...prev, used: totalUsed }));
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load expenses:', err);
+        // Keep default expenses on error
+      });
+  }, []);
+
+  useEffect(() => {
+    // Fetch journal entries from API
+    getJournalEntries()
+      .then(data => {
+        if (data && Array.isArray(data)) {
+          setJournalEntries(data);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load journal entries:', err);
+        // Keep default journal entries on error
+      });
+  }, []);
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="bg-card border-b border-border sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-xl shrink-0">
-                🌾
+          {/* Header Bar */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <div className="relative group cursor-pointer">
+                <div className="absolute inset-0 bg-primary/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative w-11 h-11 rounded-full bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center text-xl shrink-0 text-white shadow-lg border border-white/10">
+                  🌾
+                </div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Monitoring</div>
-                <div className="relative">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Active Field</div>
+                <div className="relative group">
                   <button 
                     onClick={() => setShowFieldSelector(!showFieldSelector)}
-                    className="flex items-center gap-1 text-foreground font-semibold hover:opacity-80 transition-opacity"
+                    className="flex items-center gap-2 text-foreground font-bold text-lg hover:text-primary transition-colors"
                   >
                     {currentField.name}
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                       <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
                   </button>
                   
-                  {/* Field Selector Dropdown */}
+                  {/* Premium Field Selector Dropdown */}
+                  <AnimatePresence>
                   {showFieldSelector && (
-                    <div className="absolute top-full left-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+                    <>
+                    <div 
+                      className="fixed inset-0 z-40 bg-black/5 backdrop-blur-[1px]"
+                      onClick={() => setShowFieldSelector(false)} 
+                    />
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute top-full left-0 mt-3 w-64 bg-card/95 backdrop-blur-xl border border-white/10 dark:border-white/5 rounded-2xl shadow-2xl z-50 overflow-hidden ring-1 ring-black/5 p-1"
+                    >
                       {availableFields.map(field => (
                         <button
                           key={field.id}
@@ -368,170 +459,208 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                             setShowFieldSelector(false);
                             toast.success(`Switched to ${field.name}`);
                           }}
-                          className={`w-full text-left px-4 py-3 text-sm hover:bg-muted transition-colors ${
-                            selectedFieldId === field.id ? 'bg-primary/5 text-primary font-medium' : 'text-foreground'
+                          className={`w-full text-left px-4 py-3.5 rounded-xl transition-all mb-1 flex items-center justify-between group ${
+                            selectedFieldId === field.id 
+                                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' 
+                                : 'hover:bg-muted/80 text-foreground'
                           }`}
                         >
-                          <div className="font-medium">{field.name}</div>
-                          <div className="text-xs text-muted-foreground">{field.crop}</div>
+                          <div>
+                              <div className={`font-bold text-sm ${selectedFieldId === field.id ? 'text-white' : 'text-foreground'}`}>{field.name}</div>
+                              <div className={`text-xs ${selectedFieldId === field.id ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{field.crop} • Day {field.day}</div>
+                          </div>
+                          {selectedFieldId === field.id && (
+                              <CheckCircle2 className="w-4 h-4 text-white" />
+                          )}
                         </button>
                       ))}
-                    </div>
+                    </motion.div>
+                    </>
                   )}
-                  {/* Backdrop to close dropdown */}
-                  {showFieldSelector && (
-                    <div 
-                      className="fixed inset-0 z-40 bg-transparent"
-                      onClick={() => setShowFieldSelector(false)} 
-                    />
-                  )}
+                  </AnimatePresence>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button className="w-9 h-9 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
-                <Settings className="w-5 h-5" />
-              </button>
+            
+            <div className="flex items-center gap-3">
+      
               
               <Sheet>
                 <SheetTrigger asChild>
                   <button
-                    className="w-9 h-9 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
+                    className="w-10 h-10 rounded-full bg-card/50 backdrop-blur-sm border border-border/50 hover:bg-muted hover:border-border transition-all flex items-center justify-center text-muted-foreground hover:text-foreground shadow-sm"
                   >
                     <Menu className="w-5 h-5" />
                   </button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[300px] sm:w-[350px]">
-                  <SheetHeader>
-                    <SheetTitle className="flex items-center gap-2">
-                      <span className="text-2xl">🌾</span>
-                      <span>Menu</span>
+                <SheetContent side="right" className="w-[300px] sm:w-[350px] border-l border-white/10 bg-card/95 backdrop-blur-xl overflow-y-auto">
+                  <SheetHeader className="mb-8">
+                    <SheetTitle className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center text-2xl text-white shadow-xl shadow-primary/25">
+                         🌾
+                      </div>
+                      <span className="text-2xl font-bold">Menu</span>
                     </SheetTitle>
                     <SheetDescription className="hidden">
                       Access dashboard navigation and quick actions
                     </SheetDescription>
                   </SheetHeader>
                   
-                  <div className="flex flex-col gap-1 mt-6">
-                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
+                  <div className="flex flex-col gap-2 pb-8">
+                    <div className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-[0.15em] mb-4 px-3">
                       Navigation
                     </div>
                     
                     <SheetClose asChild>
                       <button 
                         onClick={() => setActiveView('dashboard')}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${activeView === 'dashboard' ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground'}`}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'dashboard' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
                       >
                         <LayoutDashboard className="w-5 h-5" />
-                        <span>Home Dashboard</span>
+                        <span className="font-semibold text-[15px]">Home Dashboard</span>
+                        {activeView === 'dashboard' && <div className="w-2 h-2 rounded-full bg-white ml-auto shadow-sm" />}
                       </button>
                     </SheetClose>
 
                     <SheetClose asChild>
                       <button 
                         onClick={() => setShowJournalHistory(true)}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted text-foreground transition-colors"
+                        className="flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
                       >
-                        <History className="w-5 h-5" />
-                        <span>Journal History</span>
+                        <History className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <span className="font-medium text-[15px]">Journal History</span>
                       </button>
                     </SheetClose>
 
                     <SheetClose asChild>
                       <button 
                         onClick={() => setActiveView('expenses')}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${activeView === 'expenses' ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground'}`}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'expenses' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
                       >
                         <Calculator className="w-5 h-5" />
-                        <span>Budget & Expenses</span>
+                        <span className="font-semibold text-[15px]">Budget & Expenses</span>
+                        {activeView === 'expenses' && <div className="w-2 h-2 rounded-full bg-white ml-auto shadow-sm" />}
                       </button>
                     </SheetClose>
 
                     <SheetClose asChild>
                       <button 
                         onClick={() => setActiveView('profile')}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${activeView === 'profile' ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground'}`}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'profile' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
                       >
                         <User className="w-5 h-5" />
-                        <span>My Profile</span>
+                        <span className="font-semibold text-[15px]">My Profile</span>
+                        {activeView === 'profile' && <div className="w-2 h-2 rounded-full bg-white ml-auto shadow-sm" />}
                       </button>
                     </SheetClose>
 
-                    <div className="h-px bg-border my-2" />
+                    <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-6" />
                     
-                    <SheetClose asChild>
-                      <button 
-                        onClick={() => setShowSeedSelection(true)}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted text-foreground transition-colors"
-                      >
-                        <Sprout className="w-5 h-5" />
-                        <span>Smart Seed Selection</span>
-                      </button>
-                    </SheetClose>
-
-                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2">
-                      Quick Actions
+                    <div className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-[0.15em] mb-4 px-3">
+                      Farming Tools
                     </div>
 
                     <SheetClose asChild>
                       <button 
-                        onClick={() => setShowVoiceJournal(true)}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted text-foreground transition-colors"
+                        onClick={() => setShowSeedSelection(true)}
+                        className="flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
                       >
-                        <Mic className="w-5 h-5" />
-                        <span>Record Voice Note</span>
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-500/20 transition-all duration-300 group-hover:scale-110">
+                           <Sprout className="w-5 h-5" />
+                        </div>
+                        <span className="font-medium text-[15px]">Smart Seed Selection</span>
                       </button>
                     </SheetClose>
 
                     <SheetClose asChild>
                       <button 
-                        onClick={() => setShowPhotoCapture(true)}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted text-foreground transition-colors"
+                          onClick={() => setShowSoilTestSelection(true)}
+                          className="flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
                       >
-                        <Camera className="w-5 h-5" />
-                        <span>Take Photo</span>
+                          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-600 flex items-center justify-center group-hover:bg-amber-500/20 transition-all duration-300 group-hover:scale-110">
+                            <FlaskConical className="w-5 h-5" />
+                          </div>
+                          <span className="font-medium text-[15px]">Schedule Soil Test</span>
                       </button>
                     </SheetClose>
 
                     <SheetClose asChild>
                       <button 
-                        onClick={() => setShowExpenseTracker(true)}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted text-foreground transition-colors"
+                          onClick={() => setShowFieldMonitoring(true)}
+                          className="flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
                       >
-                        <Wallet className="w-5 h-5" />
-                        <span>Add Expense</span>
+                          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center group-hover:bg-blue-500/20 transition-all duration-300 group-hover:scale-110">
+                            <Satellite className="w-5 h-5" />
+                          </div>
+                          <span className="font-medium text-[15px]">Satellite Monitoring</span>
                       </button>
                     </SheetClose>
 
-                    <SheetClose asChild>
-                      <button 
-                        onClick={() => setShowFarmingJournal(true)}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted text-foreground transition-colors"
-                      >
-                        <FileText className="w-5 h-5" />
-                        <span>Daily Log</span>
-                      </button>
-                    </SheetClose>
+                    <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-6" />
 
-                    <SheetClose asChild>
-                      <button 
-                        onClick={() => setShowSoilTestSelection(true)}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted text-foreground transition-colors"
-                      >
-                        <FlaskConical className="w-5 h-5" />
-                        <span>Soil Testing</span>
-                      </button>
-                    </SheetClose>
+                    <div className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-[0.15em] mb-4 px-3">
+                      Quick Actions
+                    </div>
 
-                    <div className="h-px bg-border my-2" />
+                    <div className="grid grid-cols-2 gap-3">
+                        <SheetClose asChild>
+                          <button 
+                            onClick={() => setShowVoiceJournal(true)}
+                            className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-card/40 hover:bg-card/80 border border-border/40 text-foreground transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+                              <Mic className="w-5 h-5" />
+                            </div>
+                            <span className="text-xs font-medium">Voice Note</span>
+                          </button>
+                        </SheetClose>
+
+                        <SheetClose asChild>
+                          <button 
+                            onClick={() => setShowPhotoCapture(true)}
+                            className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-card/40 hover:bg-card/80 border border-border/40 text-foreground transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
+                              <Camera className="w-5 h-5" />
+                            </div>
+                            <span className="text-xs font-medium">Take Photo</span>
+                          </button>
+                        </SheetClose>
+
+                        <SheetClose asChild>
+                          <button 
+                            onClick={() => setShowExpenseTracker(true)}
+                            className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-card/40 hover:bg-card/80 border border-border/40 text-foreground transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-green-500/10 text-green-500 flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
+                              <Wallet className="w-5 h-5" />
+                            </div>
+                            <span className="text-xs font-medium">Add Expense</span>
+                          </button>
+                        </SheetClose>
+
+                        <SheetClose asChild>
+                          <button 
+                            onClick={() => setShowFarmingJournal(true)}
+                            className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-card/40 hover:bg-card/80 border border-border/40 text-foreground transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                          >
+                            <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center group-hover:bg-orange-500/20 transition-colors">
+                              <FileText className="w-5 h-5" />
+                            </div>
+                            <span className="text-xs font-medium">Daily Log</span>
+                          </button>
+                        </SheetClose>
+                    </div>
+
+                    <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-8" />
 
                     <SheetClose asChild>
                       <button 
                         onClick={onLogout}
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                        className="flex items-center justify-center gap-3 px-5 py-4 rounded-2xl bg-red-500/5 hover:bg-red-500/10 text-red-600 transition-all duration-300 border border-red-500/20 hover:border-red-500/40 group hover:scale-[1.02]"
                       >
-                        <LogOut className="w-5 h-5" />
-                        <span>Log Out</span>
+                        <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                        <span className="font-semibold text-[15px]">Log Out</span>
                       </button>
                     </SheetClose>
                   </div>
@@ -540,19 +669,30 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
             </div>
           </div>
 
-          {/* Quick Stats */}
-          <div className="mt-3 grid grid-cols-3 gap-3">
-            <div className="bg-muted rounded-lg p-2.5">
-              <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Current Crop</div>
-              <div className="text-sm font-medium text-foreground">{cropInfo.name}</div>
+          {/* Quick Stats - Glassmorphic Cards */}
+          <div className="mt-2 grid grid-cols-3 gap-3">
+            <div className="bg-card/40 backdrop-blur-sm border border-white/10 dark:border-white/5 rounded-2xl p-3 shadow-sm relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-2 opacity-5">
+                  <Sprout className="w-12 h-12" />
+               </div>
+               <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Current Crop</div>
+               <div className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{cropInfo.name}</div>
             </div>
-            <div className="bg-muted rounded-lg p-2.5">
-              <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Stage</div>
-              <div className="text-sm font-medium text-foreground">Day {cropInfo.day}</div>
+            
+            <div className="bg-card/40 backdrop-blur-sm border border-white/10 dark:border-white/5 rounded-2xl p-3 shadow-sm relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-2 opacity-5">
+                  <Calendar className="w-12 h-12" />
+               </div>
+               <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Growth Stage</div>
+               <div className="text-sm font-bold text-foreground">Day {cropInfo.day}</div>
             </div>
-            <div className="bg-muted rounded-lg p-2.5">
-              <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Status</div>
-              <div className="text-sm font-medium text-green-600">Healthy</div>
+
+            <div className="bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/20 rounded-2xl p-3 shadow-sm relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-2 opacity-10">
+                  <CheckCircle2 className="w-12 h-12 text-emerald-600" />
+               </div>
+               <div className="text-[10px] font-bold text-emerald-600/70 uppercase tracking-wider mb-1">Status</div>
+               <div className="text-sm font-bold text-emerald-700">Healthy</div>
             </div>
           </div>
         </div>
@@ -560,7 +700,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
 
       {/* Menu Dropdown - REMOVED since we use Sheet now */}
       
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-8 pb-32">
         {/* Dashboard View */}
         {activeView === 'dashboard' && (
           <HomeView 
@@ -577,49 +717,69 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
               if (action === 'guidance') playGuidance();
               if (action === 'soil-test') setShowSoilTestSelection(true);
               if (action === 'seed-selection') setShowSeedSelection(true);
+              if (action === 'crop-details') setShowCropDetails(true);
             }}
           />
         )}
 
         {/* Budget/Expenses View */}
         {activeView === 'expenses' && (
-          <>
-            <div className="bg-card rounded-2xl p-6 border border-border min-h-[80vh]">
-              <div className="mb-6">
-                <h2 className="text-2xl text-foreground mb-4">Budget & Expenses</h2>
-                <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl p-5 border border-primary/10">
-                   <div className="flex justify-between items-end mb-2">
-                     <div>
-                       <p className="text-sm text-muted-foreground mb-1">Total Spent</p>
-                       <h3 className="text-3xl font-bold text-foreground">₹{budget.used.toLocaleString()}</h3>
-                     </div>
-                     <div className="text-right">
-                       <p className="text-xs text-muted-foreground mb-1">Budget</p>
-                       <p className="font-medium">₹{budget.total.toLocaleString()}</p>
-                     </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-card/40 backdrop-blur-xl rounded-[2.5rem] p-6 sm:p-8 border border-white/10 dark:border-white/5 shadow-2xl min-h-[80vh] ring-1 ring-black/5"
+          >
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-foreground mb-6 tracking-tight">Budget & Expenses</h2>
+                <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-[2rem] p-6 border border-primary/20 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-8 opacity-10">
+                      <Wallet className="w-32 h-32 text-primary" />
                    </div>
-                   <div className="h-2 bg-background/50 rounded-full overflow-hidden">
-                     <div 
-                       className="h-full bg-primary rounded-full transition-all duration-500" 
-                       style={{ width: `${Math.min((budget.used / budget.total) * 100, 100)}%` }} 
-                     />
+                   <div className="relative z-10">
+                       <div className="flex justify-between items-end mb-4">
+                         <div>
+                           <p className="text-sm font-bold text-primary/80 uppercase tracking-widest mb-1">Total Spent</p>
+                           <h3 className="text-4xl font-bold text-foreground tracking-tight">₹{budget.used.toLocaleString()}</h3>
+                         </div>
+                         <div className="text-right">
+                           <p className="text-xs font-medium text-muted-foreground mb-1">Total Budget</p>
+                           <div className="px-3 py-1 rounded-full bg-background/50 border border-primary/10 text-sm font-bold">
+                             ₹{budget.total.toLocaleString()}
+                           </div>
+                         </div>
+                       </div>
+                       <div className="h-4 bg-background/50 rounded-full overflow-hidden p-1 box-content ring-1 ring-white/20">
+                         <div 
+                           className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-1000 ease-out shadow-lg shadow-primary/20 relative" 
+                           style={{ width: `${Math.min((budget.used / budget.total) * 100, 100)}%` }} 
+                         >
+                            <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]" />
+                         </div>
+                       </div>
+                       <div className="mt-3 flex justify-between text-xs font-medium text-muted-foreground">
+                          <span>0%</span>
+                          <span>{Math.round((budget.used / budget.total) * 100)}% Used</span>
+                       </div>
                    </div>
                 </div>
               </div>
 
               <button
                 onClick={() => setShowExpenseTracker(true)}
-                className="w-full mb-8 px-4 py-4 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 font-semibold shadow-lg shadow-primary/25"
+                className="w-full mb-10 py-5 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-2xl hover:opacity-95 transition-all flex items-center justify-center gap-3 font-bold text-lg shadow-xl shadow-primary/25 active:scale-[0.99] ring-offset-2 focus:ring-2 ring-primary group"
               >
-                <Plus className="w-5 h-5" />
+                <div className="p-1 rounded-full bg-white/20 group-hover:bg-white/30 transition-colors">
+                    <Plus className="w-5 h-5 stroke-[3]" />
+                </div>
                 Record New Expense
               </button>
               
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {expenses.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground bg-muted/30 rounded-xl border border-dashed border-border">
-                    <div className="text-4xl mb-3">💰</div>
-                    <p>No expenses recorded yet.</p>
+                  <div className="flex flex-col items-center justify-center py-16 text-muted-foreground bg-muted/20 rounded-[2rem] border border-dashed border-border/50">
+                    <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mb-4 text-4xl shadow-inner">💰</div>
+                    <p className="font-medium text-lg">No expenses recorded yet</p>
+                    <p className="text-sm opacity-60">Tap the button above to start tracking</p>
                   </div>
                 ) : (
                   Object.entries(
@@ -640,69 +800,98 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                     }, {} as Record<string, typeof expenses>)
                   )
                   .sort((a, b) => {
-                     const getDate = (str: string) => {
-                       if (str === 'Today') return new Date();
-                       if (str === 'Yesterday') { const d = new Date(); d.setDate(d.getDate()-1); return d; }
-                       return new Date(str + ' ' + new Date().getFullYear()); // Append year for parsing if needed
-                     };
-                     // Simple sort might fail if dateLabel doesn't have year.
-                     // Better to rely on the FIRST item in the group for sorting.
+                     // Sort logic remains same: compare first items of each group
                      return new Date(b[1][0].date).getTime() - new Date(a[1][0].date).getTime();
                   })
                   .map(([dateLabel, groupExpenses]) => (
                     <div key={dateLabel}>
-                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 ml-1">{dateLabel}</h3>
+                      <div className="flex items-center gap-4 mb-4">
+                          <h3 className="text-xs font-bold text-muted-foreground/70 uppercase tracking-[0.2em] ml-1">{dateLabel}</h3>
+                          <div className="h-px flex-1 bg-gradient-to-r from-border/50 to-transparent" />
+                      </div>
                       <div className="space-y-3">
                         {groupExpenses.map(expense => (
-                          <ExpenseCard key={expense.id} expense={expense} />
+                          <div key={expense.id} className="transform transition-all hover:scale-[1.01]">
+                             <ExpenseCard expense={expense} />
+                          </div>
                         ))}
                       </div>
                     </div>
                   ))
                 )}
               </div>
-            </div>
-          </>
+          </motion.div>
         )}
 
         {/* Profile View */}
         {activeView === 'profile' && (
-          <>
-            <div className="bg-card rounded-2xl p-6 border border-border">
-              <h2 className="text-2xl text-foreground mb-6">Profile</h2>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-card/40 backdrop-blur-xl rounded-[2.5rem] p-6 sm:p-8 border border-white/10 dark:border-white/5 shadow-2xl min-h-[80vh] ring-1 ring-black/5"
+          >
+            <h2 className="text-3xl font-bold text-foreground mb-8 tracking-tight">My Profile</h2>
               
-              {/* Profile Info */}
-              <div className="flex items-center gap-4 mb-6 p-5 bg-muted rounded-xl">
-                <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-3xl">
+            {/* Profile Info */}
+            <div className="relative mb-10 group cursor-pointer">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-indigo-500/20 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
+              <div className="relative flex items-center gap-6 p-6 bg-background/60 backdrop-blur-md border border-white/10 rounded-[2rem] shadow-lg transition-transform group-hover:-translate-y-1">
+                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center text-4xl shadow-xl shadow-primary/20 ring-4 ring-background">
                   🌾
                 </div>
                 <div>
-                  <h3 className="text-xl text-foreground mb-1">{farmerName}</h3>
-                  <p className="text-sm text-muted-foreground">Farmer</p>
+                  <h3 className="text-2xl font-bold text-foreground mb-1">{farmerName}</h3>
+                  <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider border border-primary/20">
+                    Premium Member
+                  </div>
                 </div>
               </div>
-
-              {/* Settings Options */}
-              <div className="space-y-2">
-                <h3 className="text-lg text-foreground mb-3">Settings</h3>
-                <button className="w-full flex items-center justify-between p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
-                  <span className="text-foreground">Language</span>
-                  <span className="text-muted-foreground">English</span>
-                </button>
-                <button className="w-full flex items-center justify-between p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
-                  <span className="text-foreground">Notifications</span>
-                  <span className="text-muted-foreground">Enabled</span>
-                </button>
-                <button
-                  onClick={onLogout}
-                  className="w-full flex items-center justify-center gap-2 p-4 bg-red-500/10 text-red-600 rounded-lg hover:bg-red-500/20 transition-colors border border-red-500/20"
-                >
-                  <LogOut className="w-5 h-5" />
-                  Logout
-                </button>
-              </div>
             </div>
-          </>
+
+            {/* Settings Options */}
+            <div className="space-y-6">
+                <div>
+                    <h3 className="text-xs font-bold text-muted-foreground/70 uppercase tracking-[0.2em] mb-4 ml-2">Preferences</h3>
+                    <div className="space-y-3">
+                        <button className="w-full flex items-center justify-between p-5 bg-card/50 hover:bg-card/80 backdrop-blur-sm border border-border/40 rounded-2xl transition-all hover:shadow-md group">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Volume2 className="w-5 h-5" />
+                                </div>
+                                <span className="font-semibold text-foreground">Language</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <span className="text-sm font-medium">English</span>
+                                <ChevronDown className="w-4 h-4 -rotate-90 opacity-50" />
+                            </div>
+                        </button>
+                        <button className="w-full flex items-center justify-between p-5 bg-card/50 hover:bg-card/80 backdrop-blur-sm border border-border/40 rounded-2xl transition-all hover:shadow-md group">
+                             <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <CheckCircle2 className="w-5 h-5" />
+                                </div>
+                                <span className="font-semibold text-foreground">Notifications</span>
+                            </div>
+                             <div className="flex items-center gap-2 text-muted-foreground">
+                                <span className="text-sm font-medium">On</span>
+                                <ChevronDown className="w-4 h-4 -rotate-90 opacity-50" />
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                     <h3 className="text-xs font-bold text-muted-foreground/70 uppercase tracking-[0.2em] mb-4 ml-2">Account</h3>
+                     <button
+                        onClick={onLogout}
+                        className="w-full flex items-center justify-center gap-3 p-5 bg-red-500/5 hover:bg-red-500/10 text-red-600 rounded-2xl transition-all border border-red-500/10 hover:border-red-500/30 group"
+                        >
+                        <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                        <span className="font-bold">Log Out</span>
+                    </button>
+                </div>
+            </div>
+          </motion.div>
         )}
       </div>
 
@@ -818,6 +1007,21 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
         />
       )}
 
+      {/* Crop Detail View */}
+      {showCropDetails && (
+        <CropDetailView
+          cropInfo={cropInfo}
+          onBack={() => setShowCropDetails(false)}
+        />
+      )}
+
+      {/* Satellite Monitoring */}
+      {showFieldMonitoring && (
+        <SatelliteMonitoring
+          onClose={() => setShowFieldMonitoring(false)}
+        />
+      )}
+
       {/* Demo Helper */}
       <DemoHelper />
 
@@ -849,13 +1053,75 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
 
             {/* Add Entry (Central FAB-like) */}
             <div className="relative -top-5">
+              
+              {/* Log Menu Popup */}
+              <AnimatePresence>
+                {showLogMenu && (
+                  <>
+                    <div 
+                      className="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-40" 
+                      onClick={() => setShowLogMenu(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-6 w-64 bg-card/95 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-2xl rounded-2xl p-2 flex flex-col gap-1 z-50 ring-1 ring-black/5 dark:ring-white/10"
+                    >
+                       <div className="px-2 py-2 text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest text-center">
+                         Select one
+                       </div>
+                       
+                       <button
+                         onClick={() => {
+                           setShowFarmingJournal(true);
+                           setShowLogMenu(false);
+                         }}
+                         className="flex items-center gap-4 p-3 text-left hover:bg-muted/50 rounded-xl transition-all group relative overflow-hidden"
+                       >
+                         <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                         <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-600 text-white flex items-center justify-center shadow-lg shadow-green-500/20 group-hover:scale-105 transition-transform duration-300">
+                           <FileText className="w-6 h-6" />
+                         </div>
+                         <div className="relative flex-1">
+                           <div className="font-bold text-sm text-foreground group-hover:text-green-700 dark:group-hover:text-green-400 transition-colors">Farming Journal</div>
+                           <div className="text-[11px] text-muted-foreground font-medium">Log daily activities</div>
+                         </div>
+                       </button>
+                       
+                       <button
+                         onClick={() => {
+                           setShowExpenseTracker(true);
+                           setShowLogMenu(false);
+                         }}
+                         className="flex items-center gap-4 p-3 text-left hover:bg-muted/50 rounded-xl transition-all group relative overflow-hidden"
+                       >
+                         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                         <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
+                           <Wallet className="w-6 h-6" />
+                         </div>
+                         <div className="relative flex-1">
+                           <div className="font-bold text-sm text-foreground group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">Add Expenses</div>
+                           <div className="text-[11px] text-muted-foreground font-medium">Track costs & bills</div>
+                         </div>
+                       </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+
               <button
-                onClick={() => setShowFarmingJournal(true)}
-                className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30 hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95 border-4 border-background"
+                onClick={() => setShowLogMenu(!showLogMenu)}
+                className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 border-4 border-background z-50 relative ${
+                  showLogMenu 
+                    ? 'bg-muted text-foreground rotate-45' 
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95'
+                }`}
               >
                 <Plus className="w-7 h-7" />
               </button>
-              <div className="text-[10px] text-center mt-1 text-muted-foreground font-medium">Log</div>
+              <div className="text-[10px] text-center mt-1 text-muted-foreground font-medium"></div>
             </div>
 
             {/* Budget */}
