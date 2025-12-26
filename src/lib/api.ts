@@ -3,43 +3,10 @@ import { projectId, publicAnonKey } from '../../utils/supabase/info';
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-6fdef95d`;
 
 let authToken: string | null = null;
-let runtimeAnonKey: string | null = publicAnonKey; // Start with static key
 
-// Fetch the actual anon key from server
-async function fetchRuntimeConfig() {
-  try {
-    console.log('Fetching runtime config from server...');
-    // Use the static key for this initial request
-    const response = await fetch(`${API_URL}/config`, {
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-        'apikey': publicAnonKey,
-      },
-    });
-    
-    if (response.ok) {
-      const config = await response.json();
-      if (config.publicAnonKey) {
-        runtimeAnonKey = config.publicAnonKey;
-        console.log('Runtime anon key fetched successfully');
-        console.log('Keys match:', publicAnonKey === runtimeAnonKey);
-        return true;
-      }
-    } else {
-      console.warn('Config fetch failed with status:', response.status);
-    }
-  } catch (error) {
-    console.warn('Failed to fetch runtime config, using static key:', error);
-  }
-  return false;
-}
-
-// Initialize config - but don't block
-const configPromise = fetchRuntimeConfig();
-
-// Get the correct anon key (runtime if available, fallback to static)
+// Get the correct anon key
 function getAnonKey(): string {
-  return runtimeAnonKey || publicAnonKey;
+  return publicAnonKey;
 }
 
 export function setAuthToken(token: string | null) {
@@ -72,10 +39,22 @@ export function getAuthToken() {
 
 async function apiRequest(endpoint: string, options: RequestInit = {}) {
   // Get the current auth token (with localStorage fallback)
+  // Force reload from localStorage if memory is empty to prevent race conditions
+  if (!authToken) {
+    const stored = localStorage.getItem('authToken');
+    if (stored) authToken = stored;
+  }
   const currentToken = getAuthToken();
   
   // Public endpoints that don't require user authentication - DON'T send Authorization header at all
-  const publicEndpoints = ['/auth/login', '/auth/signup', '/config', '/weather'];
+  const publicEndpoints = [
+    '/auth/login', 
+    '/auth/signup', 
+    '/auth/otp/send',
+    '/auth/otp/verify',
+    '/config', 
+    '/weather'
+  ];
   const isPublicEndpoint = publicEndpoints.some(path => endpoint.startsWith(path));
   
   // Build headers conditionally
@@ -90,9 +69,14 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
     // Public endpoints still need the anon key for Supabase Edge Functions
     headers['Authorization'] = `Bearer ${getAnonKey()}`;
   } else {
-    const tokenToUse = currentToken || getAnonKey();
-    headers['Authorization'] = `Bearer ${tokenToUse}`;
+    // ALWAYS use the Anon Key for Authorization header to pass Supabase Gateway
+    headers['Authorization'] = `Bearer ${getAnonKey()}`;
     headers['apikey'] = getAnonKey();
+    
+    // Pass custom token in a separate header
+    if (currentToken) {
+      headers['X-Access-Token'] = currentToken;
+    }
   }
 
   // Only log for non-session endpoints to reduce noise
@@ -125,6 +109,36 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
       try {
         const errorData = await response.json();
         errorMessage = errorData.error || errorMessage;
+        
+        // Handle Token Expiry / Invalid Token / Invalid JWT
+        if (response.status === 401) {
+           const isAuthError = 
+              errorMessage === 'Invalid token' || 
+              errorMessage === 'Invalid JWT' || 
+              errorMessage === 'Token has expired' ||
+              errorMessage === 'Invalid session token' ||
+              errorMessage === 'User not found' ||
+              errorMessage === 'User account is disabled' ||
+              errorMessage === 'Authorization required' ||
+              (errorData.message === 'Invalid JWT') ||
+              (errorData.code === 401);
+           
+           if (isAuthError) {
+               console.warn(`Auth Error detected (${errorMessage}). Clearing session to force re-login.`);
+               
+               // Clear all auth data
+               setAuthToken(null);
+               localStorage.removeItem('current_session');
+               localStorage.removeItem('authToken');
+               localStorage.removeItem('app_users');
+               localStorage.removeItem('currentUser'); // Critical: Prevent App.tsx from resurrecting legacy sessions
+               localStorage.removeItem('user');
+               localStorage.removeItem('hasOnboarded'); // Reset onboarding state to be safe
+               
+               // Dispatch event so UI can react immediately (if listening)
+               window.dispatchEvent(new CustomEvent('auth:logout'));
+           }
+        }
         
         // Only log error details for non-session endpoints
         if (!endpoint.includes('/auth/session')) {
@@ -164,7 +178,7 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
 // ============= AUTH API =============
 
 // Client-side only auth (bypasses backend due to JWT issues)
-const CLIENT_SIDE_AUTH = true; // Toggle to use client-side auth
+const CLIENT_SIDE_AUTH = false; // Toggle to use client-side auth
 
 // Initialize demo account in localStorage
 function initializeDemoAccount() {
@@ -825,7 +839,12 @@ export async function getFields() {
     return fields;
   }
   const response = await apiRequest('/fields');
-  return response.fields;
+  // Map server 'area' to client 'size'
+  return response.map((f: any) => ({
+    ...f,
+    size: f.area,
+    sizeUnit: f.area_unit,
+  }));
 }
 
 export async function createField(fieldData: any) {
@@ -845,11 +864,25 @@ export async function createField(fieldData: any) {
     console.log('Field created locally:', newField);
     return newField;
   }
+  
+  // Map client 'size' to server 'area'
+  const payload = {
+    ...fieldData,
+    area: fieldData.size || fieldData.area,
+    area_unit: fieldData.sizeUnit || fieldData.area_unit,
+  };
+  
   const response = await apiRequest('/fields', {
     method: 'POST',
-    body: JSON.stringify(fieldData),
+    body: JSON.stringify(payload),
   });
-  return response.field;
+  
+  const createdField = response.field || response;
+  return {
+    ...createdField,
+    size: createdField.area,
+    sizeUnit: createdField.area_unit,
+  };
 }
 
 export async function updateField(fieldId: string, fieldData: any) {
@@ -867,11 +900,23 @@ export async function updateField(fieldId: string, fieldData: any) {
     }
     throw new Error('Field not found');
   }
+  
+  // Map 'size' to 'area' for consistency
+  const payload = { ...fieldData };
+  if (payload.size) payload.area = payload.size;
+  if (payload.sizeUnit) payload.area_unit = payload.sizeUnit;
+  
   const response = await apiRequest(`/fields/${fieldId}`, {
     method: 'PUT',
-    body: JSON.stringify(fieldData),
+    body: JSON.stringify(payload),
   });
-  return response.field;
+  
+  const updatedField = response.field || response;
+  return {
+    ...updatedField,
+    size: updatedField.area,
+    sizeUnit: updatedField.area_unit,
+  };
 }
 
 export async function deleteField(fieldId: string) {

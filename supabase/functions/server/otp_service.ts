@@ -8,7 +8,7 @@ import * as kv from "./kv_store.tsx";
 // OTP Configuration
 const OTP_LENGTH = 6;
 const OTP_EXPIRY_MINUTES = 5;
-const MAX_OTP_ATTEMPTS_PER_HOUR = 5;
+const MAX_OTP_ATTEMPTS_PER_HOUR = 100;
 const OTP_RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
 
 interface OTPRecord {

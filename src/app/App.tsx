@@ -41,30 +41,19 @@ function App() {
           setIsLoggedIn(true);
           setHasCompletedOnboarding(true);
         } else {
-          // Fallback: Check for legacy 'currentUser' in localStorage
-          const storedUser = localStorage.getItem('currentUser');
-          if (storedUser) {
-            console.log('Restored legacy user from storage');
-            const user = JSON.parse(storedUser);
-            
-            // MIGRATION: Create a proper session for legacy users
-            // This ensures api.ts functions like getCurrentUserId() work correctly
-            const userId = user.id || `user_legacy_${Date.now()}`;
-            const migratedUser = { ...user, id: userId };
-            const sessionToken = `session_${userId}_${Date.now()}`;
-            
-            const newSession = {
-                access_token: sessionToken,
-                user: migratedUser
-            };
-            
-            localStorage.setItem('current_session', JSON.stringify(newSession));
-            console.log('Migrated legacy user to session-based auth');
-            
-            setCurrentUser(migratedUser);
-            setIsLoggedIn(true);
-            setHasCompletedOnboarding(true);
-          }
+          // No valid session found on server.
+          // We strictly require server-side validation now.
+          // Legacy client-side sessions are no longer supported as they cause "Invalid Token" errors.
+          console.log('No valid session found. User must log in.');
+          setIsLoggedIn(false);
+          setHasCompletedOnboarding(false);
+          setCurrentUser(null);
+          
+          // Clear any stale auth data to prevent confusion
+          localStorage.removeItem('current_session');
+          localStorage.removeItem('authToken');
+          // We intentionally do NOT clear 'currentUser' so we can potentially pre-fill email/phone later if needed,
+          // but for now we force a fresh login.
         }
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -74,6 +63,23 @@ function App() {
     }
 
     checkAuth();
+    
+    // Listen for global logout events from api.ts (e.g. on 401 Unauthorized)
+    const handleGlobalLogout = () => {
+      console.log('App: Received global logout event');
+      setIsLoggedIn(false);
+      setHasCompletedOnboarding(false);
+      setCurrentUser(null);
+      // Clear legacy storage just in case
+      localStorage.removeItem('hasOnboarded');
+      localStorage.removeItem('currentUser');
+    };
+    
+    window.addEventListener('auth:logout', handleGlobalLogout);
+    
+    return () => {
+      window.removeEventListener('auth:logout', handleGlobalLogout);
+    };
   }, [setUser]);
 
   const handleLogin = (user: any) => {

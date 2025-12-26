@@ -18,7 +18,7 @@ app.use(
   "/*",
   cors({
     origin: "*",
-    allowHeaders: ["Content-Type", "Authorization", "X-Supabase-Key", "apikey"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Supabase-Key", "apikey", "X-Access-Token"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
@@ -50,25 +50,36 @@ app.use('*', async (c, next) => {
   await next();
 });
 
+// Helper function to extract access token from headers
+function getAccessTokenFromRequest(c: any): string | undefined {
+  const xToken = c.req.header('X-Access-Token');
+  if (xToken) return xToken;
+  
+  const authHeader = c.req.header('Authorization');
+  const token = authHeader?.split(' ')[1];
+  
+  // Ignore Supabase Anon Key if it's passed as Bearer token
+  if (token === Deno.env.get('SUPABASE_ANON_KEY')) {
+    return undefined;
+  }
+  
+  // Ignore tokens that don't match our custom token format (session_ or access_)
+  // This prevents the Gateway's JWT (Anon Key) from being treated as a user token
+  if (token && !token.startsWith('session_') && !token.startsWith('access_')) {
+    return undefined;
+  }
+  
+  return token;
+}
+
 // Helper function to get user from session token
 async function getUserFromToken(accessToken: string | undefined) {
   if (!accessToken) {
     return null;
   }
   
-  // Check if it's a custom session token
-  if (accessToken.startsWith('session_')) {
-    const session = await kv.get(`session:${accessToken}`);
-    if (session && session.userId) {
-      const user = await kv.get(`user:id:${session.userId}`);
-      if (user) {
-        const { password: _, ...userWithoutPassword } = user;
-        return userWithoutPassword;
-      }
-    }
-  }
-  
-  return null;
+  const verification = await authService.verifyAccessToken(accessToken);
+  return verification.valid ? verification.user : null;
 }
 
 // Health check endpoint
@@ -290,10 +301,10 @@ app.post("/make-server-6fdef95d/auth/login", async (c) => {
 // Get current session
 app.get("/make-server-6fdef95d/auth/session", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const accessToken = getAccessTokenFromRequest(c);
     
     // If no token or token is the public anon key, return null session
-    if (!accessToken || accessToken === Deno.env.get('SUPABASE_ANON_KEY')) {
+    if (!accessToken) {
       return c.json({ session: null, user: null }, 200);
     }
     
@@ -313,7 +324,7 @@ app.get("/make-server-6fdef95d/auth/session", async (c) => {
 // Logout
 app.post("/make-server-6fdef95d/auth/logout", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const accessToken = getAccessTokenFromRequest(c);
     
     if (!accessToken) {
       return c.json({ success: true });
@@ -355,6 +366,10 @@ app.post("/make-server-6fdef95d/auth/otp/send", async (c) => {
     const formattedMobile = authService.formatMobileNumber(mobile_number);
     console.log('Formatted mobile:', formattedMobile);
     
+    // Check if user exists
+    const existingUser = await authService.getUserByMobile(formattedMobile);
+    const isNewUser = !existingUser;
+    
     // Create OTP
     const result = await otpService.createOTP(formattedMobile);
     
@@ -368,14 +383,16 @@ app.post("/make-server-6fdef95d/auth/otp/send", async (c) => {
     }
     
     console.log('✅ OTP created successfully. OTP:', result.otp);
+    console.log('Is new user:', isNewUser);
     
     // Return OTP in response (for development - always 123456 until SMS is implemented)
     return c.json({ 
       status: 'OTP_SENT',
+      isNewUser: isNewUser,
       expires_in: 300, // 5 minutes
       otp: result.otp, // Development mode - always returns 123456
       remainingAttempts: result.remainingAttempts,
-      message: 'OTP is 123456 (development mode until SMS service is configured)',
+      message: isNewUser ? 'OTP sent for signup' : 'OTP sent for login',
     });
   } catch (error) {
     console.error('Send OTP error:', error);
@@ -501,10 +518,8 @@ app.post("/make-server-6fdef95d/onboarding/complete", async (c) => {
     console.log('========================================');
     
     // Get user from auth token
-    const authHeader = c.req.header('Authorization');
-    console.log('Authorization header:', authHeader ? authHeader.substring(0, 30) + '...' : 'NONE');
+    const accessToken = getAccessTokenFromRequest(c);
     
-    const accessToken = authHeader?.split(' ')[1];
     console.log('Access token extracted:', accessToken ? `${accessToken.substring(0, 30)}...` : 'NONE');
     
     if (!accessToken) {
@@ -654,8 +669,7 @@ app.post("/make-server-6fdef95d/onboarding/complete", async (c) => {
 // Get user dashboard data (Fields, Onboarding, etc.)
 app.get("/make-server-6fdef95d/me/dashboard", async (c) => {
   try {
-    const authHeader = c.req.header('Authorization');
-    const accessToken = authHeader?.split(' ')[1];
+    const accessToken = getAccessTokenFromRequest(c);
     
     if (!accessToken) {
       return c.json({ error: 'Authorization required' }, 401);
@@ -704,8 +718,7 @@ app.get("/make-server-6fdef95d/me/dashboard", async (c) => {
 // Get user fields
 app.get("/make-server-6fdef95d/fields", async (c) => {
   try {
-    const authHeader = c.req.header('Authorization');
-    const accessToken = authHeader?.split(' ')[1];
+    const accessToken = getAccessTokenFromRequest(c);
     
     if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
     
@@ -730,8 +743,7 @@ app.get("/make-server-6fdef95d/fields", async (c) => {
 // Create new field
 app.post("/make-server-6fdef95d/fields", async (c) => {
   try {
-    const authHeader = c.req.header('Authorization');
-    const accessToken = authHeader?.split(' ')[1];
+    const accessToken = getAccessTokenFromRequest(c);
     
     if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
     
@@ -775,21 +787,86 @@ app.post("/make-server-6fdef95d/fields", async (c) => {
   }
 });
 
+// Update field
+app.put("/make-server-6fdef95d/fields/:id", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const id = c.req.param('id');
+    const updates = await c.req.json();
+    const userId = verification.user.id;
+    
+    // Validate required fields if they are present in updates
+    // Note: If updates contains 'size', map it to 'area' if needed, but assuming client handles it now.
+    // However, for safety, let's allow 'size' to update 'area'
+    if (updates.size) {
+      updates.area = updates.size;
+      delete updates.size;
+    }
+    if (updates.sizeUnit) {
+      updates.area_unit = updates.sizeUnit;
+      delete updates.sizeUnit;
+    }
+    
+    const field = await kv.get(id);
+    if (!field) return c.json({ error: 'Field not found' }, 404);
+    if (field.user_id !== userId) return c.json({ error: 'Unauthorized' }, 403);
+    
+    const updatedField = { ...field, ...updates, updated_at: new Date().toISOString() };
+    await kv.set(id, updatedField);
+    
+    return c.json({ success: true, field: updatedField });
+  } catch (error) {
+    console.error('Update field error:', error);
+    return c.json({ error: 'Failed to update field' }, 500);
+  }
+});
+
+// Delete field
+app.delete("/make-server-6fdef95d/fields/:id", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const id = c.req.param('id');
+    const userId = verification.user.id;
+    
+    const field = await kv.get(id);
+    if (!field) return c.json({ error: 'Field not found' }, 404);
+    if (field.user_id !== userId) return c.json({ error: 'Unauthorized' }, 403);
+    
+    await kv.del(id);
+    
+    // Remove from user's field list
+    const userFieldsKey = `user:${userId}:fields`;
+    const userFields = await kv.get(userFieldsKey) || [];
+    const newUserFields = userFields.filter((fId: string) => fId !== id);
+    await kv.set(userFieldsKey, newUserFields);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error('Delete field error:', error);
+    return c.json({ error: 'Failed to delete field' }, 500);
+  }
+});
+
 // ==================== AI ROUTES ====================
 
 // Generate Crop Calendar
 app.post("/make-server-6fdef95d/ai/generate-calendar", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const accessToken = getAccessTokenFromRequest(c);
     
-    // We should probably check auth, but the prompt implies this is for the demo user too.
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
+    const user = await getUserFromToken(accessToken);
     
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    if (!user || error) {
+    if (!user) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
@@ -957,16 +1034,13 @@ Generate 5-7 actionable tasks for the upcoming period.
 // Chatbot Endpoint
 app.post("/make-server-6fdef95d/ai/chat", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const accessToken = getAccessTokenFromRequest(c);
     
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
+    // Check auth
+    const user = await getUserFromToken(accessToken);
     
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    // Allow demo user to use chat as well, or just public for now if needed.
-    // For now, let's just check if user exists or if it's the public key (simple auth)
+    // Optional: Allow chat without strict auth if needed, but for now log it
+    console.log('Chat request from user:', user ? user.id : 'Anonymous/Invalid');
     
     const { message, context } = await c.req.json();
     const apiKey = Deno.env.get('OPENAI_API_KEY');
@@ -1134,26 +1208,10 @@ app.post("/make-server-6fdef95d/crop/calculate-status", async (c) => {
 // Get crop progress
 app.get("/make-server-6fdef95d/crop/progress", async (c) => {
   try {
-    const authHeader = c.req.header('Authorization');
-    const accessToken = authHeader?.split(' ')[1];
+    const accessToken = getAccessTokenFromRequest(c);
     
     // Get user from token
-    let user = null;
-    if (accessToken) {
-      user = await getUserFromToken(accessToken);
-    }
-    
-    // Fallback to Supabase auth check if custom token fails
-    if (!user && accessToken) {
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      );
-      const { data, error } = await supabase.auth.getUser(accessToken);
-      if (data && data.user) {
-        user = { id: data.user.id };
-      }
-    }
+    const user = await getUserFromToken(accessToken);
     
     if (!user) {
       return c.json({ error: 'Unauthorized' }, 401);
@@ -1184,26 +1242,10 @@ app.get("/make-server-6fdef95d/crop/progress", async (c) => {
 // Save crop progress
 app.post("/make-server-6fdef95d/crop/progress", async (c) => {
   try {
-    const authHeader = c.req.header('Authorization');
-    const accessToken = authHeader?.split(' ')[1];
+    const accessToken = getAccessTokenFromRequest(c);
     
     // Get user from token
-    let user = null;
-    if (accessToken) {
-      user = await getUserFromToken(accessToken);
-    }
-    
-    // Fallback to Supabase auth check
-    if (!user && accessToken) {
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      );
-      const { data, error } = await supabase.auth.getUser(accessToken);
-      if (data && data.user) {
-        user = { id: data.user.id };
-      }
-    }
+    const user = await getUserFromToken(accessToken);
     
     if (!user) {
       return c.json({ error: 'Unauthorized' }, 401);
@@ -1228,6 +1270,317 @@ app.post("/make-server-6fdef95d/crop/progress", async (c) => {
   } catch (error) {
     console.error('Save progress error:', error);
     return c.json({ error: 'Failed to save progress' }, 500);
+  }
+});
+
+// ==================== MISSING APP ROUTES ====================
+
+// --- User Profile ---
+
+app.get("/make-server-6fdef95d/user/profile", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    return c.json({ profile: verification.user });
+  } catch (error) {
+    return c.json({ error: 'Failed to fetch profile' }, 500);
+  }
+});
+
+app.put("/make-server-6fdef95d/user/profile", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const updates = await c.req.json();
+    const updatedUser = await authService.updateUser(verification.user.id, updates);
+    
+    return c.json({ success: true, profile: updatedUser });
+  } catch (error) {
+    return c.json({ error: 'Failed to update profile' }, 500);
+  }
+});
+
+// --- Tasks ---
+
+app.get("/make-server-6fdef95d/tasks", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const tasks = await kv.get(`user:${verification.user.id}:tasks`) || [];
+    return c.json(tasks);
+  } catch (error) {
+    return c.json({ error: 'Failed to fetch tasks' }, 500);
+  }
+});
+
+app.post("/make-server-6fdef95d/tasks", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const task = await c.req.json();
+    const userId = verification.user.id;
+    
+    const newTask = {
+      ...task,
+      id: task.id || `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      user_id: userId,
+      created_at: new Date().toISOString()
+    };
+    
+    const tasks = await kv.get(`user:${userId}:tasks`) || [];
+    tasks.push(newTask);
+    await kv.set(`user:${userId}:tasks`, tasks);
+    
+    return c.json(newTask);
+  } catch (error) {
+    return c.json({ error: 'Failed to create task' }, 500);
+  }
+});
+
+app.put("/make-server-6fdef95d/tasks/:id", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const id = c.req.param('id');
+    const updates = await c.req.json();
+    const userId = verification.user.id;
+    
+    const tasks = await kv.get(`user:${userId}:tasks`) || [];
+    const index = tasks.findIndex((t: any) => t.id === id);
+    
+    if (index === -1) return c.json({ error: 'Task not found' }, 404);
+    
+    tasks[index] = { ...tasks[index], ...updates, updated_at: new Date().toISOString() };
+    await kv.set(`user:${userId}:tasks`, tasks);
+    
+    return c.json(tasks[index]);
+  } catch (error) {
+    return c.json({ error: 'Failed to update task' }, 500);
+  }
+});
+
+app.delete("/make-server-6fdef95d/tasks/:id", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const id = c.req.param('id');
+    const userId = verification.user.id;
+    
+    const tasks = await kv.get(`user:${userId}:tasks`) || [];
+    const newTasks = tasks.filter((t: any) => t.id !== id);
+    await kv.set(`user:${userId}:tasks`, newTasks);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({ error: 'Failed to delete task' }, 500);
+  }
+});
+
+// --- Expenses ---
+
+app.get("/make-server-6fdef95d/expenses", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const expenses = await kv.get(`user:${verification.user.id}:expenses`) || [];
+    return c.json(expenses);
+  } catch (error) {
+    return c.json({ error: 'Failed to fetch expenses' }, 500);
+  }
+});
+
+app.post("/make-server-6fdef95d/expenses", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const expense = await c.req.json();
+    const userId = verification.user.id;
+    
+    const newExpense = {
+      ...expense,
+      id: expense.id || `expense_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      user_id: userId,
+      created_at: new Date().toISOString()
+    };
+    
+    const expenses = await kv.get(`user:${userId}:expenses`) || [];
+    expenses.push(newExpense);
+    await kv.set(`user:${userId}:expenses`, expenses);
+    
+    return c.json(newExpense);
+  } catch (error) {
+    return c.json({ error: 'Failed to create expense' }, 500);
+  }
+});
+
+app.put("/make-server-6fdef95d/expenses/:id", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const id = c.req.param('id');
+    const updates = await c.req.json();
+    const userId = verification.user.id;
+    
+    const expenses = await kv.get(`user:${userId}:expenses`) || [];
+    const index = expenses.findIndex((e: any) => e.id === id);
+    
+    if (index === -1) return c.json({ error: 'Expense not found' }, 404);
+    
+    expenses[index] = { ...expenses[index], ...updates, updated_at: new Date().toISOString() };
+    await kv.set(`user:${userId}:expenses`, expenses);
+    
+    return c.json(expenses[index]);
+  } catch (error) {
+    return c.json({ error: 'Failed to update expense' }, 500);
+  }
+});
+
+app.delete("/make-server-6fdef95d/expenses/:id", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const id = c.req.param('id');
+    const userId = verification.user.id;
+    
+    const expenses = await kv.get(`user:${userId}:expenses`) || [];
+    const newExpenses = expenses.filter((e: any) => e.id !== id);
+    await kv.set(`user:${userId}:expenses`, newExpenses);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({ error: 'Failed to delete expense' }, 500);
+  }
+});
+
+// --- Journal ---
+
+app.get("/make-server-6fdef95d/journal", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const entries = await kv.get(`user:${verification.user.id}:journal`) || [];
+    return c.json(entries);
+  } catch (error) {
+    return c.json({ error: 'Failed to fetch journal' }, 500);
+  }
+});
+
+app.post("/make-server-6fdef95d/journal", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const entry = await c.req.json();
+    const userId = verification.user.id;
+    
+    const newEntry = {
+      ...entry,
+      id: entry.id || `journal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      user_id: userId,
+      created_at: new Date().toISOString()
+    };
+    
+    const entries = await kv.get(`user:${userId}:journal`) || [];
+    entries.push(newEntry);
+    await kv.set(`user:${userId}:journal`, entries);
+    
+    return c.json(newEntry);
+  } catch (error) {
+    return c.json({ error: 'Failed to create journal entry' }, 500);
+  }
+});
+
+app.put("/make-server-6fdef95d/journal/:id", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const id = c.req.param('id');
+    const updates = await c.req.json();
+    const userId = verification.user.id;
+    
+    const entries = await kv.get(`user:${userId}:journal`) || [];
+    const index = entries.findIndex((e: any) => e.id === id);
+    
+    if (index === -1) return c.json({ error: 'Entry not found' }, 404);
+    
+    entries[index] = { ...entries[index], ...updates, updated_at: new Date().toISOString() };
+    await kv.set(`user:${userId}:journal`, entries);
+    
+    return c.json(entries[index]);
+  } catch (error) {
+    return c.json({ error: 'Failed to update journal entry' }, 500);
+  }
+});
+
+app.delete("/make-server-6fdef95d/journal/:id", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const id = c.req.param('id');
+    const userId = verification.user.id;
+    
+    const entries = await kv.get(`user:${userId}:journal`) || [];
+    const newEntries = entries.filter((e: any) => e.id !== id);
+    await kv.set(`user:${userId}:journal`, newEntries);
+    
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({ error: 'Failed to delete journal entry' }, 500);
   }
 });
 

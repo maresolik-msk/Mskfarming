@@ -272,43 +272,68 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
     toast.success('Playing today\'s guidance...');
   };
 
-  const handleVoiceJournalSave = (entry: any) => {
-    setJournalEntries([
-      {
-        id: Date.now().toString(),
-        text: entry.text,
-        timestamp: entry.timestamp,
-        type: 'voice',
-      },
-      ...journalEntries,
-    ]);
+  const handleVoiceJournalSave = async (entry: any) => {
+    const newEntry = {
+      text: entry.text,
+      timestamp: entry.timestamp,
+      type: 'voice',
+    };
+    
+    // Optimistic update
+    const tempEntry = { ...newEntry, id: Date.now().toString() };
+    setJournalEntries([tempEntry, ...journalEntries]);
+
+    try {
+      await createJournalEntry(newEntry);
+      toast.success('Voice journal saved');
+    } catch (error) {
+      console.error('Failed to save journal:', error);
+      toast.error('Failed to save to cloud');
+    }
   };
 
-  const handlePhotoSave = (photo: any) => {
-    setJournalEntries([
-      {
-        id: Date.now().toString(),
-        text: `Photo: ${photo.category} - ${photo.notes || 'No notes'}`,
-        timestamp: photo.timestamp,
-        type: 'photo',
-      },
-      ...journalEntries,
-    ]);
+  const handlePhotoSave = async (photo: any) => {
+    const newEntry = {
+      text: `Photo: ${photo.category} - ${photo.notes || 'No notes'}`,
+      timestamp: photo.timestamp,
+      type: 'photo',
+    };
+    
+    // Optimistic update
+    const tempEntry = { ...newEntry, id: Date.now().toString() };
+    setJournalEntries([tempEntry, ...journalEntries]);
+    
+    try {
+      await createJournalEntry(newEntry);
+      toast.success('Photo saved to journal');
+    } catch (error) {
+      console.error('Failed to save photo journal:', error);
+      toast.error('Failed to save to cloud');
+    }
   };
 
-  const handleExpenseSave = (expense: any) => {
-    const newExpense = {
+  const handleExpenseSave = async (expense: any) => {
+    // Optimistic update
+    const tempExpense = {
       id: Date.now().toString(),
       ...expense,
     };
     
-    setExpenses([newExpense, ...expenses]);
+    setExpenses([tempExpense, ...expenses]);
     
     // Update budget with new expense
     setBudget({
       ...budget,
       used: budget.used + expense.amount,
     });
+    
+    try {
+      await createExpense(expense);
+      toast.success('Expense saved');
+    } catch (error) {
+      console.error('Failed to save expense:', error);
+      toast.error('Failed to save to cloud');
+    }
   };
 
   // Soil Testing Handlers
@@ -363,10 +388,22 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   };
 
   // Farming Journal Handlers
-  const handleFarmingJournalSave = (entry: any) => {
+  const handleFarmingJournalSave = async (entry: any) => {
     setFarmingJournalEntries([entry, ...farmingJournalEntries]);
     setShowFarmingJournal(false);
-    toast.success('Journal entry saved!');
+    
+    try {
+      await createJournalEntry({
+        text: entry.activities ? `Activities: ${entry.activities.join(', ')}` : 'Daily Log',
+        timestamp: new Date(),
+        type: 'log',
+        details: entry
+      });
+      toast.success('Journal entry saved!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to save to cloud');
+    }
   };
 
   const handleViewJournalEntry = (entry: any) => {

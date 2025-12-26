@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Leaf, ArrowRight, Check, AlertCircle, Loader2, Phone, Hash, CheckCircle, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
+import { setAuthToken } from '../../lib/api';
 
 // Import Supabase config
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
@@ -56,6 +57,7 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [otpSentMessage, setOtpSentMessage] = useState('');
+  const [isNewUser, setIsNewUser] = useState(false);
   const [isDevelopment, setIsDevelopment] = useState(false);
 
   const SERVER_URL = `https://${projectId}.supabase.co/functions/v1/make-server-6fdef95d`;
@@ -83,11 +85,6 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
       return;
     }
 
-    if (!consent) {
-      setError('Please accept the Terms & Conditions and Privacy Policy');
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -111,6 +108,7 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
       }
 
       console.log('✅ OTP sent successfully:', data);
+      setIsNewUser(data.isNewUser);
       
       // In development, the OTP is returned in the response (REMOVE IN PRODUCTION!)
       if (data.otp) {
@@ -178,12 +176,12 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
       // Store auth tokens - CRITICAL for authentication!
       if (data.session?.access_token) {
         console.log('💾 Storing authentication tokens in localStorage...');
-        localStorage.setItem('auth_token', data.session.access_token);
+        setAuthToken(data.session.access_token);
         localStorage.setItem('refresh_token', data.session.refresh_token);
         localStorage.setItem('user', JSON.stringify(data.user));
         
         // Verify storage
-        const storedToken = localStorage.getItem('auth_token');
+        const storedToken = localStorage.getItem('authToken');
         console.log('✅ Token stored successfully:', storedToken ? 'YES' : 'NO');
         console.log('Token preview:', storedToken ? storedToken.substring(0, 30) + '...' : 'NONE');
       } else {
@@ -294,83 +292,9 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
                   </p>
                 </div>
 
-                {/* Role Selection */}
-                <div>
-                  <label className="block mb-2 text-sm text-foreground">I am a *</label>
-                  <div className="space-y-2">
-                    {ROLES.map((r) => (
-                      <label
-                        key={r.value}
-                        className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                          role === r.value
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="role"
-                          value={r.value}
-                          checked={role === r.value}
-                          onChange={(e) => setRole(e.target.value as UserRole)}
-                          className="sr-only"
-                        />
-                        <div className="text-2xl">{r.icon}</div>
-                        <div className="flex-1">
-                          <div className="text-sm text-foreground">{r.label}</div>
-                          <div className="text-xs text-muted-foreground">{r.description}</div>
-                        </div>
-                        {role === r.value && (
-                          <Check className="w-5 h-5 text-primary" />
-                        )}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Language Selection */}
-                <div>
-                  <label className="block mb-2 text-sm text-foreground">Preferred Language *</label>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value as Language)}
-                    className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
-                  >
-                    {LANGUAGES.map((lang) => (
-                      <option key={lang.code} value={lang.code}>
-                        {lang.label} ({lang.native})
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    AI recommendations will be in this language
-                  </p>
-                </div>
-
-                {/* Consent Checkbox */}
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={consent}
-                    onChange={(e) => setConsent(e.target.checked)}
-                    className="mt-1 w-4 h-4 rounded border-border focus:ring-2 focus:ring-primary"
-                  />
-                  <span className="text-xs text-muted-foreground">
-                    I agree to the{' '}
-                    <a href="#" className="text-primary hover:underline">
-                      Terms & Conditions
-                    </a>{' '}
-                    and{' '}
-                    <a href="#" className="text-primary hover:underline">
-                      Privacy Policy
-                    </a>
-                    . I consent to receiving AI-powered agronomic advice based on my data.
-                  </span>
-                </label>
-
                 <button
                   type="submit"
-                  disabled={loading || !isValidMobile(mobileNumber) || !consent}
+                  disabled={loading || !isValidMobile(mobileNumber)}
                   className="w-full py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {loading ? (
@@ -380,7 +304,7 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
                     </>
                   ) : (
                     <>
-                      Send OTP
+                      Get OTP
                       <ArrowRight className="w-5 h-5" />
                     </>
                   )}
@@ -392,7 +316,9 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
             {step === 'otp' && (
               <form onSubmit={handleVerifyOTP} className="space-y-6">
                 <div>
-                  <h2 className="text-2xl mb-2 text-foreground">Enter OTP</h2>
+                  <h2 className="text-2xl mb-2 text-foreground">
+                    {isNewUser ? 'Complete Signup' : 'Enter OTP'}
+                  </h2>
                   <p className="text-sm text-muted-foreground">
                     Sent to {mobileNumber}
                     <button
@@ -437,19 +363,90 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
                   </p>
                 </div>
 
-                {/* Show selected role and language */}
-                <div className="p-3 bg-muted/50 rounded-lg border border-border space-y-1">
-                  <p className="text-xs text-muted-foreground">
-                    Role: <span className="text-foreground">{ROLES.find(r => r.value === role)?.label}</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Language: <span className="text-foreground">{LANGUAGES.find(l => l.code === language)?.label}</span>
-                  </p>
-                </div>
+                {/* New User: Role & Language & Consent */}
+                {isNewUser && (
+                  <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="h-px bg-border my-4" />
+                    
+                    {/* Role Selection */}
+                    <div>
+                      <label className="block mb-2 text-sm text-foreground">I am a *</label>
+                      <div className="space-y-2">
+                        {ROLES.map((r) => (
+                          <label
+                            key={r.value}
+                            className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                              role === r.value
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="role"
+                              value={r.value}
+                              checked={role === r.value}
+                              onChange={(e) => setRole(e.target.value as UserRole)}
+                              className="sr-only"
+                            />
+                            <div className="text-2xl">{r.icon}</div>
+                            <div className="flex-1">
+                              <div className="text-sm text-foreground">{r.label}</div>
+                              <div className="text-xs text-muted-foreground">{r.description}</div>
+                            </div>
+                            {role === r.value && (
+                              <Check className="w-5 h-5 text-primary" />
+                            )}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Language Selection */}
+                    <div>
+                      <label className="block mb-2 text-sm text-foreground">Preferred Language *</label>
+                      <select
+                        value={language}
+                        onChange={(e) => setLanguage(e.target.value as Language)}
+                        className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
+                      >
+                        {LANGUAGES.map((lang) => (
+                          <option key={lang.code} value={lang.code}>
+                            {lang.label} ({lang.native})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        AI recommendations will be in this language
+                      </p>
+                    </div>
+
+                    {/* Consent Checkbox */}
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={consent}
+                        onChange={(e) => setConsent(e.target.checked)}
+                        className="mt-1 w-4 h-4 rounded border-border focus:ring-2 focus:ring-primary"
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        I agree to the{' '}
+                        <a href="#" className="text-primary hover:underline">
+                          Terms & Conditions
+                        </a>{' '}
+                        and{' '}
+                        <a href="#" className="text-primary hover:underline">
+                          Privacy Policy
+                        </a>
+                        . I consent to receiving AI-powered agronomic advice based on my data.
+                      </span>
+                    </label>
+                  </div>
+                )}
 
                 <button
                   type="submit"
-                  disabled={loading || otp.length !== 6}
+                  disabled={loading || otp.length !== 6 || (isNewUser && !consent)}
                   className="w-full py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {loading ? (
@@ -459,7 +456,7 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
                     </>
                   ) : (
                     <>
-                      Verify & Login
+                      {isNewUser ? 'Create Account' : 'Verify & Login'}
                       <ArrowRight className="w-5 h-5" />
                     </>
                   )}
