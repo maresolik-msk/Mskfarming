@@ -1,8 +1,31 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Sprout, Droplets, Heart, BookOpen, TrendingUp, Shield } from 'lucide-react';
 
 export function HomePage() {
+  const navigate = useNavigate();
+  
+  const handleGetStartedClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Check if user is logged in
+    const storedUser = localStorage.getItem('currentUser');
+    const hasOnboarded = localStorage.getItem('hasOnboarded');
+    
+    if (storedUser) {
+      // User is logged in - check if they've completed onboarding
+      if (hasOnboarded) {
+        navigate('/dashboard');
+      } else {
+        // User needs to complete onboarding
+        window.location.href = '/';
+      }
+    } else {
+      // Not logged in - go to login page
+      navigate('/login');
+    }
+  };
+  
   const problems = [
     { icon: Sprout, text: 'No soil clarity' },
     { icon: Droplets, text: 'Guess-based fertilizers' },
@@ -45,12 +68,12 @@ export function HomePage() {
                 From soil to selling — one AI that walks with the farmer.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <a
-                  href="?prototype=true"
+                <button
+                  onClick={handleGetStartedClick}
                   className="px-8 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-center shadow-lg"
                 >
-                  Try Working Prototype
-                </a>
+                  Get Started
+                </button>
                 <Link
                   to="/get-started"
                   className="px-8 py-4 bg-card border-2 border-border text-foreground rounded-lg hover:border-primary transition-colors text-center"
@@ -59,7 +82,7 @@ export function HomePage() {
                 </Link>
               </div>
               <p className="mt-4 text-sm text-muted-foreground">
-                ✨ Click "Try Working Prototype" to experience the full app flow
+                ✨ Click "Get Started" to experience the full app flow
               </p>
             </motion.div>
 
@@ -188,12 +211,12 @@ export function HomePage() {
             <h2 className="text-3xl sm:text-4xl mb-6 text-primary-foreground">
               Start your next season with clarity.
             </h2>
-            <Link
-              to="/get-started"
-              className="inline-block px-8 py-4 bg-primary-foreground text-primary rounded-lg hover:bg-primary-foreground/90 transition-colors"
+            <button
+              onClick={handleGetStartedClick}
+              className="inline-block px-8 py-4 bg-primary-foreground text-primary rounded-lg hover:bg-primary-foreground/90 transition-colors cursor-pointer"
             >
               Get Started
-            </Link>
+            </button>
           </motion.div>
         </div>
       </section>

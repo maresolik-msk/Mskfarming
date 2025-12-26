@@ -33,10 +33,10 @@ export function PrototypeWelcome() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="bg-card rounded-2xl p-8 max-w-2xl w-full shadow-2xl"
+            className="bg-card rounded-2xl p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-start justify-between mb-6">
+            <div className="flex items-start justify-between mb-6 flex-shrink-0">
               <div>
                 <h2 className="text-3xl mb-2 text-foreground">Welcome to the Prototype! 🌾</h2>
                 <p className="text-muted-foreground">
@@ -51,102 +51,105 @@ export function PrototypeWelcome() {
               </button>
             </div>
 
-            {/* Quick Guide */}
-            <div className="space-y-4 mb-8">
-              <div className="flex items-start gap-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
-                  1
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto flex-1 mb-6 pr-2">
+              {/* Quick Guide */}
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start gap-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
+                    1
+                  </div>
+                  <div>
+                    <h4 className="text-foreground mb-1">Login</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Use the <strong>Login with Demo Account</strong> button or email: <span className="text-primary">demo@farmerdemo.com</span> / password: <span className="text-primary">demo123</span>
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-foreground mb-1">Login</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Use demo phone: <span className="text-primary">9876543210</span> and any 6-digit OTP
-                  </p>
+
+                <div className="flex items-start gap-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
+                    2
+                  </div>
+                  <div>
+                    <h4 className="text-foreground mb-1">Complete Onboarding</h4>
+                    <p className="text-sm text-muted-foreground">
+                      5 simple steps to set up your farm profile (3-5 minutes)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
+                    3
+                  </div>
+                  <div>
+                    <h4 className="text-foreground mb-1">Explore Features</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Try voice journal, photo analysis, expense tracking, and daily tasks
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
-                  2
-                </div>
-                <div>
-                  <h4 className="text-foreground mb-1">Complete Onboarding</h4>
-                  <p className="text-sm text-muted-foreground">
-                    5 simple steps to set up your farm profile (3-5 minutes)
-                  </p>
+              {/* Key Features */}
+              <div className="mb-8">
+                <h3 className="text-lg mb-4 text-foreground">What You Can Try:</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                      ✓
+                    </div>
+                    Voice Journal
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                      ✓
+                    </div>
+                    Photo Analysis
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                      ✓
+                    </div>
+                    Expense Tracking
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                      ✓
+                    </div>
+                    Daily Tasks
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                      ✓
+                    </div>
+                    Budget Overview
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                      ✓
+                    </div>
+                    AI Recommendations
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
-                  3
-                </div>
-                <div>
-                  <h4 className="text-foreground mb-1">Explore Features</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Try voice journal, photo analysis, expense tracking, and daily tasks
-                  </p>
-                </div>
+              {/* Documentation */}
+              <div className="p-4 bg-muted rounded-lg">
+                <h4 className="text-sm mb-2 text-foreground flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Documentation Available
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Check <span className="text-primary">PROTOTYPE_GUIDE.md</span> and{' '}
+                  <span className="text-primary">POST_LOGIN_FLOW.md</span> for detailed information
+                </p>
               </div>
-            </div>
-
-            {/* Key Features */}
-            <div className="mb-8">
-              <h3 className="text-lg mb-4 text-foreground">What You Can Try:</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2 text-sm text-foreground">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                    ✓
-                  </div>
-                  Voice Journal
-                </div>
-                <div className="flex items-center gap-2 text-sm text-foreground">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                    ✓
-                  </div>
-                  Photo Analysis
-                </div>
-                <div className="flex items-center gap-2 text-sm text-foreground">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                    ✓
-                  </div>
-                  Expense Tracking
-                </div>
-                <div className="flex items-center gap-2 text-sm text-foreground">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                    ✓
-                  </div>
-                  Daily Tasks
-                </div>
-                <div className="flex items-center gap-2 text-sm text-foreground">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                    ✓
-                  </div>
-                  Budget Overview
-                </div>
-                <div className="flex items-center gap-2 text-sm text-foreground">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                    ✓
-                  </div>
-                  AI Recommendations
-                </div>
-              </div>
-            </div>
-
-            {/* Documentation */}
-            <div className="mb-8 p-4 bg-muted rounded-lg">
-              <h4 className="text-sm mb-2 text-foreground flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Documentation Available
-              </h4>
-              <p className="text-xs text-muted-foreground">
-                Check <span className="text-primary">PROTOTYPE_GUIDE.md</span> and{' '}
-                <span className="text-primary">POST_LOGIN_FLOW.md</span> for detailed information
-              </p>
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-shrink-0">
               <button
                 onClick={handleSkip}
                 className="flex-1 py-3 rounded-lg border-2 border-border hover:bg-muted transition-colors text-sm"
@@ -163,7 +166,7 @@ export function PrototypeWelcome() {
             </div>
 
             {/* Mobile Tip */}
-            <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground flex-shrink-0">
               <Smartphone className="w-4 h-4" />
               Best experienced on mobile or narrow browser window
             </div>

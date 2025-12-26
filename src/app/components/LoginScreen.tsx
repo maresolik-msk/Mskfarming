@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { User, Lock, Phone, Mail } from 'lucide-react';
+import { User, Lock, Phone, Mail, RefreshCw } from 'lucide-react';
 import { PrototypeWelcome } from './PrototypeWelcome';
-import { login, signup, setAuthToken, getAuthToken } from '../../lib/api';
+import { MobileAuthScreen } from './MobileAuthScreen';
+import { DebugPanel } from './DebugPanel';
+import { login, signup, setAuthToken, getAuthToken, resetDemoAccount, clearAllAuthData } from '../../lib/api';
 import { toast } from 'sonner';
 
 interface LoginScreenProps {
@@ -15,6 +17,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [name, setName] = useState('');
   const [isSignup, setIsSignup] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [authMode, setAuthMode] = useState<'email' | 'mobile'>('mobile'); // Default to mobile OTP
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -36,6 +39,30 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       onLogin(response.user);
     } catch (error: any) {
       console.error('Login error:', error);
+      
+      // Auto-fix demo account if login failed
+      if (email === 'demo@farmerdemo.com' && password === 'demo123') {
+        console.log('Demo login failed, attempting to repair account...');
+        try {
+          await signup({
+            email: 'demo@farmerdemo.com',
+            password: 'demo123',
+            name: 'Demo Farmer',
+            phone: '9876543210',
+            language: 'English',
+            location: 'Punjab, India',
+          });
+          
+          // Retry login
+          const response = await login(email, password);
+          toast.success('Login successful (account repaired)!');
+          onLogin(response.user);
+          return;
+        } catch (repairError) {
+          console.error('Failed to repair demo account:', repairError);
+        }
+      }
+
       toast.error(error.message || 'Failed to login');
     } finally {
       setIsLoading(false);
@@ -111,13 +138,13 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   const handleDemoLogin = async () => {
-    setEmail('demo@farmcompanion.com');
-    setPassword('demo123456');
+    setEmail('demo@farmerdemo.com');
+    setPassword('demo123');
     setIsLoading(true);
     
     try {
       // Try to login with demo account
-      const response = await login('demo@farmcompanion.com', 'demo123456');
+      const response = await login('demo@farmerdemo.com', 'demo123');
       toast.success('Demo login successful!');
       onLogin(response.user);
       setAuthToken(response.session?.access_token);
@@ -125,14 +152,15 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       // If demo account doesn't exist, create it
       try {
         await signup({
-          email: 'demo@farmcompanion.com',
-          password: 'demo123456',
-          name: 'Rajesh Kumar',
+          email: 'demo@farmerdemo.com',
+          password: 'demo123',
+          name: 'Demo Farmer',
+          phone: '9876543210',
           language: 'English',
-          location: 'Maharashtra, India',
+          location: 'Punjab, India',
         });
         
-        const response = await login('demo@farmcompanion.com', 'demo123456');
+        const response = await login('demo@farmerdemo.com', 'demo123');
         toast.success('Demo account created and logged in!');
         onLogin(response.user);
         setAuthToken(response.session?.access_token);
@@ -145,8 +173,65 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     }
   };
 
+  const handleResetDemoAccount = async () => {
+    setIsLoading(true);
+    try {
+      await resetDemoAccount();
+      toast.success('Demo account reset successfully!');
+    } catch (error: any) {
+      console.error('Failed to reset demo account:', error);
+      toast.error('Failed to reset demo account');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClearAllAuthData = async () => {
+    setIsLoading(true);
+    try {
+      await clearAllAuthData();
+      toast.success('All authentication data cleared successfully!');
+    } catch (error: any) {
+      console.error('Failed to clear all authentication data:', error);
+      toast.error('Failed to clear all authentication data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-background via-primary/5 to-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Important Notice Banner */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-full px-4">
+        <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 backdrop-blur-sm">
+          <p className="text-xs text-center text-foreground">
+            <span className="font-semibold">⚠️ Important:</span> Please use <span className="font-semibold">Mobile OTP Authentication</span> for the full experience. Email/password login is for demo only and has limited features.
+          </p>
+        </div>
+      </div>
+
+      {/* Show Mobile Auth Screen if mobile mode is selected */}
+      {authMode === 'mobile' ? (
+        <MobileAuthScreen 
+          onAuthSuccess={onLogin}
+        />
+      ) : (
+        <>
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
+      </div>
+
+      {/* MVP Notice Banner */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-full px-4">
+        <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 backdrop-blur-sm">
+          <p className="text-xs text-center text-foreground">
+            <span className="font-semibold">MVP Mode:</span> Authentication is client-side only (localStorage). Data persists locally in your browser.
+          </p>
+        </div>
+      </div>
+
       <PrototypeWelcome />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -230,26 +315,44 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 {isLoading ? 'Please wait...' : (isSignup ? 'Create Account' : 'Login')}
               </button>
 
-              <button
-                type="button"
-                onClick={() => setIsSignup(!isSignup)}
-                className="w-full py-2 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {isSignup ? 'Already have an account? Login' : "Don't have an account? Sign up"}
-              </button>
-
-              {/* Demo credentials */}
-              <div className="mt-6 p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground mb-2">Quick Demo Access:</p>
+              <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={handleDemoLogin}
-                  disabled={isLoading}
-                  className="text-sm text-primary hover:underline disabled:opacity-50"
+                  onClick={() => setIsSignup(!isSignup)}
+                  className="flex-1 py-2 text-muted-foreground hover:text-foreground transition-colors text-sm"
                 >
-                  Login with Demo Account
+                  {isSignup ? 'Login' : 'Sign up'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('mobile')}
+                  className="flex-1 py-2 text-primary hover:text-primary/80 transition-colors text-sm flex items-center justify-center gap-1"
+                >
+                  <Phone className="w-4 h-4" />
+                  Mobile OTP
                 </button>
               </div>
+
+              {/* Demo credentials */}
+              {!isSignup && (
+                <div className="mt-6 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                  <p className="text-sm mb-2">
+                    <span className="font-semibold text-foreground">Demo Account:</span>
+                  </p>
+                  <div className="space-y-1 text-sm text-muted-foreground mb-3">
+                    <p>Email: <span className="font-mono text-foreground">demo@farmerdemo.com</span></p>
+                    <p>Password: <span className="font-mono text-foreground">demo123</span></p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDemoLogin}
+                    disabled={isLoading}
+                    className="w-full py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  >
+                    Auto-fill Demo Login
+                  </button>
+                </div>
+              )}
             </form>
           </motion.div>
         </div>
@@ -258,7 +361,35 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         <p className="text-center mt-6 text-sm text-muted-foreground">
           By continuing, you agree to our Terms & Privacy Policy
         </p>
+
+        {/* Troubleshooting Section */}
+        {!isSignup && (
+          <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+            <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Having trouble logging in?
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={handleResetDemoAccount}
+                disabled={isLoading}
+                className="w-full text-xs py-2 px-3 bg-background hover:bg-background/80 text-foreground rounded border border-border transition-colors disabled:opacity-50 text-left"
+              >
+                Reset Demo Account (if corrupted)
+              </button>
+              <button
+                onClick={handleClearAllAuthData}
+                disabled={isLoading}
+                className="w-full text-xs py-2 px-3 bg-background hover:bg-background/80 text-foreground rounded border border-border transition-colors disabled:opacity-50 text-left"
+              >
+                Clear All Auth Data (fresh start)
+              </button>
+            </div>
+          </div>
+        )}
       </motion.div>
+      </>
+      )}
     </div>
   );
 }

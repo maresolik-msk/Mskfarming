@@ -6,9 +6,10 @@ interface WeeklySummaryProps {
   onClose: () => void;
 }
 
-export function WeeklySummary({ entries, onClose }: WeeklySummaryProps) {
+export function WeeklySummary({ entries = [], onClose }: WeeklySummaryProps) {
   // Get last 7 days of entries
   const getLastWeekEntries = () => {
+    if (!Array.isArray(entries)) return [];
     const today = new Date();
     const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
     return entries.filter(entry => {

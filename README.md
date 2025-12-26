@@ -20,8 +20,9 @@ Example: http://localhost:3000?prototype=true
 ```
 
 ### Demo Credentials
-- **Phone Number:** `9876543210` (or any 10-digit number)
-- **OTP:** Any 6-digit code (e.g., `123456`)
+- **Email:** `demo@farmerdemo.com`
+- **Password:** `demo123`
+- **Or use:** "Login with Demo Account" button on the login screen
 
 ---
 
@@ -35,7 +36,8 @@ Example: http://localhost:3000?prototype=true
 5. **Photo Analysis** - AI-powered disease detection
 6. **Expense Tracking** - Real-time budget management
 7. **Daily Guidance** - Task management system
-8. **Alerts & Notifications** - Important reminders
+8. **Satellite Monitoring** - Vegetation health visualization
+9. **Alerts & Notifications** - Important reminders
 
 ### ✅ **Core Features Demonstrated**
 
@@ -158,6 +160,7 @@ Take Photo → AI Analysis → Review Recommendations → Save
 
 - **`POST_LOGIN_FLOW.md`** - Detailed post-login user journey (6 phases)
 - **`PROTOTYPE_GUIDE.md`** - Complete prototype usage guide
+- **`SATELLITE_MONITORING.md`** - Satellite feature guide
 - **`README.md`** - This file
 
 ---

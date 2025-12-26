@@ -1,11 +1,63 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function Navigation() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
+  // Check if user is logged in
+  useEffect(() => {
+    const checkAuthState = () => {
+      const storedUser = localStorage.getItem('currentUser');
+      setIsLoggedIn(!!storedUser);
+    };
+    
+    // Check on mount
+    checkAuthState();
+    
+    // Listen for auth state changes
+    window.addEventListener('authStateChanged', checkAuthState);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('authStateChanged', checkAuthState);
+    };
+  }, []);
+  
+  const handleGetStartedClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Check if user is logged in
+    const storedUser = localStorage.getItem('currentUser');
+    const hasOnboarded = localStorage.getItem('hasOnboarded');
+    
+    console.log('[Navigation] Get Started clicked:', { 
+      isLoggedIn: !!storedUser, 
+      hasOnboarded: !!hasOnboarded 
+    });
+    
+    if (storedUser) {
+      // User is logged in - check if they've completed onboarding
+      if (hasOnboarded) {
+        console.log('[Navigation] Redirecting to dashboard');
+        navigate('/app');
+      } else {
+        // User needs to complete onboarding (or just go to app since we auto-complete now)
+        console.log('[Navigation] Redirecting to app');
+        navigate('/app');
+      }
+    } else {
+      // Not logged in - go to get-started page
+      console.log('[Navigation] Redirecting to get-started page');
+      navigate('/get-started');
+    }
+    
+    setMobileMenuOpen(false);
+  };
   
   const links = [
     { path: '/', label: 'Home' },
@@ -50,12 +102,12 @@ export function Navigation() {
                 )}
               </Link>
             ))}
-            <Link
-              to="/get-started"
+            <button
+              onClick={handleGetStartedClick}
               className="ml-4 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
-              Get Started
-            </Link>
+              {isLoggedIn ? 'Go to Dashboard' : 'Get Started'}
+            </button>
           </div>
 
           {/* Mobile menu button */}
@@ -89,13 +141,12 @@ export function Navigation() {
                 {link.label}
               </Link>
             ))}
-            <Link
-              to="/get-started"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block px-4 py-3 bg-primary text-primary-foreground rounded-lg text-center mt-4"
+            <button
+              onClick={handleGetStartedClick}
+              className="w-full block px-4 py-3 bg-primary text-primary-foreground rounded-lg text-center mt-4"
             >
-              Get Started
-            </Link>
+              {isLoggedIn ? 'Go to Dashboard' : 'Get Started'}
+            </button>
           </motion.div>
         )}
       </div>

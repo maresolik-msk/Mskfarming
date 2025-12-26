@@ -25,15 +25,14 @@ https://your-app-url.com?prototype=true
 ### **PHASE 1: Authentication**
 
 **Login Screen**
-- Enter any 10-digit phone number (Demo: `9876543210`)
-- Click "Send OTP"
-- Enter any 6-digit code
-- Click "Verify & Login"
+- **Email:** `demo@farmerdemo.com`
+- **Password:** `demo123`
+- Or click "Login with Demo Account" button
 
 ✅ **What it demonstrates:**
-- Phone-based authentication
-- OTP verification flow
-- Simple, farmer-friendly UI
+- Secure authentication
+- Client-side persistence
+- Simple login flow
 
 ---
 
@@ -164,6 +163,20 @@ The dashboard is your farming command center with these key sections:
 - Context-aware responses
 - Local language support
 - Coming soon in prototype
+
+**5. 🛰️ Satellite Monitoring**
+- Click "Satellite Monitoring" button
+- Draw field boundary on map
+- Get simulated vegetation health (NDVI)
+- Manage multiple fields
+- View health legends
+
+**Try this:**
+1. Open Satellite Monitoring
+2. Use polygon tool to draw a field
+3. Save it as "North Field"
+4. Click "Get Vegetation Data"
+5. See health status update
 
 #### **Alerts Section**
 - Important notifications
@@ -336,6 +349,11 @@ The dashboard is your farming command center with these key sections:
 **Farmer Benefit:** Know exactly where money goes, plan better  
 **Technical Demo:** Real-time calculations, budget alerts, categorization
 
+### **Satellite Monitoring**
+**Purpose:** Visualize crop health from space
+**Farmer Benefit:** Spot issues in large fields without walking everywhere
+**Technical Demo:** Map interface, drawing tools, data visualization
+
 ### **Daily Guidance**
 **Purpose:** Remove guesswork from farming  
 **Farmer Benefit:** Know exactly what to do each day  
@@ -391,7 +409,7 @@ The dashboard is your farming command center with these key sections:
 
 ### **For Product Demo**
 1. **Start fresh:** Clear localStorage to show onboarding
-2. **Use demo data:** Phone: 9876543210
+2. **Use demo data:** `demo@farmerdemo.com` / `demo123`
 3. **Show key flows:** Voice journal → Photo → Expense
 4. **Highlight AI:** Demonstrate photo analysis
 5. **Emphasize simplicity:** Point out large buttons, minimal text

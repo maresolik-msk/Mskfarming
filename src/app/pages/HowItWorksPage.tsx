@@ -1,10 +1,34 @@
 import { motion } from 'motion/react';
-import { Sprout, Target, Droplets, Bug, Wallet, BarChart3 } from 'lucide-react';
+import { Sprout, Search, MessageCircle, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function HowItWorksPage() {
+  const navigate = useNavigate();
+  
+  const handleGetStartedClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Check if user is logged in
+    const storedUser = localStorage.getItem('currentUser');
+    const hasOnboarded = localStorage.getItem('hasOnboarded');
+    
+    if (storedUser) {
+      // User is logged in - check if they've completed onboarding
+      if (hasOnboarded) {
+        navigate('/dashboard');
+      } else {
+        // User needs to complete onboarding
+        window.location.href = '/';
+      }
+    } else {
+      // Not logged in - go to get-started page
+      navigate('/get-started');
+    }
+  };
+
   const steps = [
     {
-      icon: Target,
+      icon: Search,
       title: 'Create your field profile',
       description: 'Tell us about your land, water access, and experience',
     },
@@ -14,24 +38,14 @@ export function HowItWorksPage() {
       description: 'Get soil health insights and improvement suggestions',
     },
     {
-      icon: Droplets,
+      icon: MessageCircle,
       title: 'Choose the right crop & seed',
       description: 'Recommendations based on your soil, season, and market',
     },
     {
-      icon: Bug,
+      icon: TrendingUp,
       title: 'Get daily guidance',
       description: 'Watering, fertilizer, pest alerts — in your language',
-    },
-    {
-      icon: Wallet,
-      title: 'Track work & expenses',
-      description: 'Voice notes, photos, and automatic budget tracking',
-    },
-    {
-      icon: BarChart3,
-      title: 'Harvest and sell smart',
-      description: 'Know your costs, profits, and best selling times',
     },
   ];
 
@@ -90,12 +104,12 @@ export function HowItWorksPage() {
           <p className="text-lg text-muted-foreground mb-6">
             Ready to start your journey?
           </p>
-          <a
-            href="/get-started"
-            className="inline-block px-8 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          <button
+            onClick={handleGetStartedClick}
+            className="inline-block px-8 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
           >
             Get Started Today
-          </a>
+          </button>
         </motion.div>
       </div>
     </div>

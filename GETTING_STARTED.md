@@ -15,8 +15,9 @@ Add `?prototype=true` to your URL
 ## What You'll Experience
 
 ### **1. Login (30 seconds)**
-- Phone: `9876543210` (or any 10-digit)
-- OTP: Any 6-digit code (e.g., `123456`)
+- Email: `demo@farmerdemo.com`
+- Password: `demo123`
+- OR Click "Login with Demo Account" button
 
 ### **2. Onboarding (3-5 minutes)**
 **5 Simple Steps:**

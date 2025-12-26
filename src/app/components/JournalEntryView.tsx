@@ -36,10 +36,13 @@ export function JournalEntryView({ entry, onClose }: JournalEntryViewProps) {
     windy: { icon: Wind, label: 'Windy', color: 'text-cyan-500' },
   };
 
-  const weatherInfo = weatherIcons[entry.weather];
+  if (!entry) return null;
+
+  const weatherInfo = entry.weather ? weatherIcons[entry.weather] : null;
   const WeatherIcon = weatherInfo?.icon;
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { 
       weekday: 'long', 
@@ -78,12 +81,12 @@ export function JournalEntryView({ entry, onClose }: JournalEntryViewProps) {
               Field
             </div>
             <div className="text-foreground font-medium capitalize">
-              {entry.field.replace('-', ' ')}
+              {entry.field ? entry.field.replace('-', ' ') : 'Unknown'}
             </div>
           </div>
           <div className="p-4 bg-muted rounded-lg">
             <div className="text-muted-foreground text-sm mb-1">Crop</div>
-            <div className="text-foreground font-medium capitalize">{entry.crop}</div>
+            <div className="text-foreground font-medium capitalize">{entry.crop || 'Unknown'}</div>
           </div>
         </div>
 
@@ -136,28 +139,30 @@ export function JournalEntryView({ entry, onClose }: JournalEntryViewProps) {
         )}
 
         {/* Weather */}
-        <div className="mb-6">
-          <h4 className="text-sm font-medium text-foreground mb-3">🌦️ Weather:</h4>
-          <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-            {WeatherIcon && (
-              <WeatherIcon className={`w-8 h-8 ${weatherInfo.color}`} />
-            )}
-            <div>
-              <div className="text-foreground font-medium">{weatherInfo?.label}</div>
-              <div className="text-sm text-muted-foreground">Temperature: 32°C</div>
+        {weatherInfo && (
+          <div className="mb-6">
+            <h4 className="text-sm font-medium text-foreground mb-3">🌦️ Weather:</h4>
+            <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+              {WeatherIcon && (
+                <WeatherIcon className={`w-8 h-8 ${weatherInfo.color}`} />
+              )}
+              <div>
+                <div className="text-foreground font-medium">{weatherInfo?.label}</div>
+                <div className="text-sm text-muted-foreground">Temperature: 32°C</div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Water Status */}
-        {(entry.waterStatus?.canal !== null || entry.waterStatus?.borewell !== null) && (
+        {entry.waterStatus && (entry.waterStatus.canal !== null || entry.waterStatus.borewell !== null) && (
           <div className="mb-6">
             <h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
               <Droplets className="w-4 h-4" />
               Water Status:
             </h4>
             <div className="space-y-2">
-              {entry.waterStatus?.canal !== null && (
+              {entry.waterStatus?.canal !== null && entry.waterStatus?.canal !== undefined && (
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <span className="text-sm text-foreground">Canal water</span>
                   <span
@@ -171,7 +176,7 @@ export function JournalEntryView({ entry, onClose }: JournalEntryViewProps) {
                   </span>
                 </div>
               )}
-              {entry.waterStatus?.borewell !== null && (
+              {entry.waterStatus?.borewell !== null && entry.waterStatus?.borewell !== undefined && (
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <span className="text-sm text-foreground">Borewell</span>
                   <span
@@ -200,11 +205,13 @@ export function JournalEntryView({ entry, onClose }: JournalEntryViewProps) {
         )}
 
         {/* Footer */}
-        <div className="pt-4 border-t border-border text-center">
-          <div className="text-xs text-muted-foreground">
-            Logged at {new Date(entry.timestamp).toLocaleTimeString()}
+        {entry.timestamp && (
+          <div className="pt-4 border-t border-border text-center">
+            <div className="text-xs text-muted-foreground">
+              Logged at {new Date(entry.timestamp).toLocaleTimeString()}
+            </div>
           </div>
-        </div>
+        )}
       </motion.div>
     </div>
   );

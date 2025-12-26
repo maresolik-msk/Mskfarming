@@ -33,6 +33,9 @@ interface HomeViewProps {
     day: number;
     totalDays: number;
     progress: number;
+    boundary?: any;
+    plantingDate?: string;
+    soilType?: string;
   };
   tasks: Task[];
   budget: {
@@ -40,24 +43,66 @@ interface HomeViewProps {
     used: number;
   };
   onToggleTask: (id: string) => void;
-  onAction: (action: 'voice' | 'photo' | 'expense' | 'journal' | 'guidance' | 'soil-test' | 'seed-selection') => void;
+  onAction: (action: 'voice' | 'photo' | 'expense' | 'journal' | 'guidance' | 'soil-test' | 'seed-selection' | 'crop-details') => void;
 }
 
 export function HomeView({ 
   farmerName, 
   cropInfo, 
   tasks, 
-  budget, 
+  budget = { total: 0, used: 0 }, 
   onToggleTask, 
   onAction 
 }: HomeViewProps) {
   
-  const criticalBudget = (budget.used / budget.total) > 0.9;
-  const warningBudget = (budget.used / budget.total) > 0.75;
+  const criticalBudget = budget.total > 0 ? (budget.used / budget.total) > 0.9 : false;
+  const warningBudget = budget.total > 0 ? (budget.used / budget.total) > 0.75 : false;
   
   // Get current date formatted nicely
   const today = new Date();
   const dateString = today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
+
+  // Helper to generate SVG path from GeoJSON
+  const getFieldPath = (boundary: any) => {
+    if (!boundary?.geometry?.coordinates?.[0]) return null;
+    
+    const coords = boundary.geometry.coordinates[0];
+    if (coords.length === 0) return null;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    coords.forEach((c: number[]) => {
+      minX = Math.min(minX, c[0]);
+      maxX = Math.max(maxX, c[0]);
+      minY = Math.min(minY, c[1]);
+      maxY = Math.max(maxY, c[1]);
+    });
+
+    const rangeX = maxX - minX;
+    const rangeY = maxY - minY;
+    
+    if (rangeX === 0 || rangeY === 0) return null;
+
+    // Add 10% padding
+    const padding = 10;
+    const scaleX = (100 - 2 * padding) / rangeX;
+    const scaleY = (100 - 2 * padding) / rangeY;
+    const scale = Math.min(scaleX, scaleY);
+    
+    // Center the shape
+    const offsetX = (100 - rangeX * scale) / 2;
+    const offsetY = (100 - rangeY * scale) / 2;
+
+    const points = coords.map((c: number[]) => {
+      const x = (c[0] - minX) * scale + offsetX;
+      // Flip Y axis for SVG (lat increases upwards, SVG Y increases downwards)
+      const y = (maxY - c[1]) * scale + offsetY;
+      return `${x},${y}`;
+    });
+
+    return `M ${points.join(' L ')} Z`;
+  };
+
+  const fieldPath = getFieldPath(cropInfo.boundary);
 
   const container = {
     hidden: { opacity: 0 },
@@ -74,12 +119,15 @@ export function HomeView({
     show: { opacity: 1, y: 0 }
   };
 
+  // Safe tasks array
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+
   return (
     <motion.div 
       variants={container}
       initial="hidden"
       animate="show"
-      className="space-y-6 pb-20"
+      className="space-y-6 pb-20 p-[0px]"
     >
       {/* Level 1: Context & Greeting */}
       <motion.div variants={item} className="flex flex-col gap-1">
@@ -164,11 +212,11 @@ export function HomeView({
             Today's Plan
           </h2>
           <span className="text-xs font-medium px-2 py-1 bg-primary/10 text-primary rounded-full">
-            {tasks.filter(t => !t.completed).length} Pending
+            {safeTasks.filter(t => !t.completed).length} Pending
           </span>
         </div>
         <div className="divide-y divide-border">
-          {tasks.map((task) => (
+          {safeTasks.map((task) => (
             <div 
               key={task.id}
               onClick={() => onToggleTask(task.id)}
@@ -195,15 +243,42 @@ export function HomeView({
         <h2 className="text-lg font-medium mb-3 text-foreground">Farm Status</h2>
         <div className="grid grid-cols-1 gap-4">
           {/* Crop Card */}
-          <div className="group relative overflow-hidden rounded-2xl shadow-lg transition-all hover:shadow-xl">
-            {/* Background Image with Gradient Overlay */}
+          <div className="group relative overflow-hidden rounded-2xl shadow-lg transition-all hover:shadow-xl bg-gradient-to-br from-slate-900 to-slate-800">
+            {/* Background Image or Field Shape */}
             <div className="absolute inset-0">
-              <img 
-                src="https://images.unsplash.com/photo-1607801219089-8dc5a700245d?auto=format&fit=crop&w=800&q=80" 
-                alt="Field" 
-                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
+              {fieldPath ? (
+                <div className="w-full h-full relative overflow-hidden bg-slate-900">
+                  {/* Grid Pattern Background */}
+                  <div className="absolute inset-0 opacity-20" 
+                    style={{ 
+                      backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', 
+                      backgroundSize: '20px 20px' 
+                    }} 
+                  />
+                  
+                  {/* Field SVG */}
+                  <div className="absolute inset-0 flex items-center justify-center p-8">
+                    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl filter">
+                      {/* Glow effect */}
+                      <path d={fieldPath} fill="none" stroke="rgba(74, 222, 128, 0.3)" strokeWidth="4" className="blur-sm" />
+                      {/* Main shape */}
+                      <path d={fieldPath} fill="rgba(74, 222, 128, 0.2)" stroke="#4ade80" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+                    </svg>
+                  </div>
+
+                  {/* Satellite texture overlay (optional, subtle) */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
+                </div>
+              ) : (
+                <>
+                  <img 
+                    src="https://images.unsplash.com/photo-1607801219089-8dc5a700245d?auto=format&fit=crop&w=800&q=80" 
+                    alt="Field" 
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/20" />
+                </>
+              )}
             </div>
 
             <div 

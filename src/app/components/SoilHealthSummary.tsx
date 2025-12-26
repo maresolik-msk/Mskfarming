@@ -20,6 +20,7 @@ interface SoilHealthSummaryProps {
 export function SoilHealthSummary({ testResults, onClose, onSaveProfile }: SoilHealthSummaryProps) {
   // AI Interpretation Logic
   const interpretResults = () => {
+    if (!testResults) return {};
     const { observation, testType } = testResults;
 
     // This would be replaced with actual AI/backend logic

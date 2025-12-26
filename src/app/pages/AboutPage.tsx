@@ -1,7 +1,31 @@
 import { motion } from 'motion/react';
-import { Heart, Target, Eye } from 'lucide-react';
+import { Heart, Users, Leaf, Globe } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function AboutPage() {
+  const navigate = useNavigate();
+  
+  const handleGetStartedClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Check if user is logged in
+    const storedUser = localStorage.getItem('currentUser');
+    const hasOnboarded = localStorage.getItem('hasOnboarded');
+    
+    if (storedUser) {
+      // User is logged in - check if they've completed onboarding
+      if (hasOnboarded) {
+        navigate('/dashboard');
+      } else {
+        // User needs to complete onboarding
+        window.location.href = '/';
+      }
+    } else {
+      // Not logged in - go to get-started page
+      navigate('/get-started');
+    }
+  };
+  
   return (
     <div className="min-h-screen py-20 px-4">
       <div className="max-w-4xl mx-auto">
@@ -55,7 +79,7 @@ export function AboutPage() {
         >
           <div className="flex items-start gap-6 mb-8">
             <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Target className="w-7 h-7 text-primary" />
+              <Users className="w-7 h-7 text-primary" />
             </div>
             <div>
               <h2 className="text-3xl mb-4 text-foreground">What we believe</h2>
@@ -83,7 +107,7 @@ export function AboutPage() {
         >
           <div className="flex items-start gap-6 mb-8">
             <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Eye className="w-7 h-7 text-primary" />
+              <Globe className="w-7 h-7 text-primary" />
             </div>
             <div>
               <h2 className="text-3xl mb-4 text-foreground">Long-term vision</h2>
@@ -112,12 +136,12 @@ export function AboutPage() {
           <p className="text-xl text-foreground mb-6">
             Ready to start your season with us?
           </p>
-          <a
-            href="/get-started"
-            className="inline-block px-8 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          <button
+            onClick={handleGetStartedClick}
+            className="inline-block px-8 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
           >
             Get Started Today
-          </a>
+          </button>
         </motion.div>
       </div>
     </div>

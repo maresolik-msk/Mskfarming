@@ -41,7 +41,7 @@ interface FieldManagementProps {
 }
 
 export function FieldManagement({
-  fields,
+  fields = [],
   activeFieldId,
   onClose,
   onAddField,
@@ -323,10 +323,10 @@ interface AddEditFieldFormProps {
   onCancel: () => void;
 }
 
-function AddEditFieldForm({ field, onSave, onCancel }: AddEditFieldFormProps) {
-  const [formData, setFormData] = useState<Omit<Field, 'id'>>({
+export function AddEditFieldForm({ field, onSave, onCancel }: AddEditFieldFormProps) {
+  const [formData, setFormData] = useState({
     name: field?.name || '',
-    size: field?.size || 1,
+    size: field?.size ? field.size.toString() : '1',
     sizeUnit: field?.sizeUnit || 'acres',
     crop: field?.crop || '',
     soilType: field?.soilType || '',
@@ -352,7 +352,10 @@ function AddEditFieldForm({ field, onSave, onCancel }: AddEditFieldFormProps) {
       return;
     }
 
-    onSave(formData);
+    onSave({
+      ...formData,
+      size: parseFloat(formData.size) || 0,
+    } as any);
   };
 
   return (
@@ -398,7 +401,7 @@ function AddEditFieldForm({ field, onSave, onCancel }: AddEditFieldFormProps) {
                 min="0.1"
                 step="0.1"
                 value={formData.size}
-                onChange={(e) => setFormData({ ...formData, size: parseFloat(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
                 className="w-full px-4 py-3 bg-background/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
@@ -424,16 +427,16 @@ function AddEditFieldForm({ field, onSave, onCancel }: AddEditFieldFormProps) {
               className="w-full px-4 py-3 bg-background/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
             >
               <option value="">Select soil type</option>
-              <option value="Clay">Clay</option>
-              <option value="Sandy">Sandy</option>
-              <option value="Loamy">Loamy</option>
-              <option value="Clay Loam">Clay Loam</option>
-              <option value="Sandy Loam">Sandy Loam</option>
-              <option value="Silt">Silt</option>
-              <option value="Silt Loam">Silt Loam</option>
+              <option value="Alluvial Soil">Alluvial Soil</option>
+              <option value="Black Soil (Regur)">Black Soil (Regur)</option>
               <option value="Red Soil">Red Soil</option>
-              <option value="Black Soil">Black Soil</option>
-              <option value="Alluvial">Alluvial</option>
+              <option value="Laterite Soil">Laterite Soil</option>
+              <option value="Arid / Desert Soil">Arid / Desert Soil</option>
+              <option value="Mountain / Forest Soil">Mountain / Forest Soil</option>
+              <option value="Saline Soil">Saline Soil</option>
+              <option value="Alkaline Soil">Alkaline Soil</option>
+              <option value="Peaty & Marshy Soil">Peaty & Marshy Soil</option>
+              <option value="Coastal Sandy Soil">Coastal Sandy Soil</option>
             </select>
           </div>
 

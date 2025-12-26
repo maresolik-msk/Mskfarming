@@ -3,6 +3,10 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as kv from "./kv_store.tsx";
+import { SOIL_MASTER_DATA } from "./soil_data.ts";
+import { CROP_CYCLES_DATABASE, getCropCycle, getCropsBySoil, getSoilsByCrop, processCropCycle } from "./crop_cycles_data.ts";
+import * as otpService from "./otp_service.ts";
+import * as authService from "./auth_service.ts";
 
 const app = new Hono();
 
@@ -24,13 +28,48 @@ app.use(
 // Middleware to log all incoming requests
 app.use('*', async (c, next) => {
   const path = new URL(c.req.url).pathname;
-  console.log(`Incoming request: ${c.req.method} ${path}`);
-  console.log('Headers:', {
-    authorization: c.req.header('Authorization') ? 'Present' : 'Missing',
-    apikey: c.req.header('apikey') ? 'Present' : 'Missing',
+  console.log(`\n========== INCOMING REQUEST ==========`);
+  console.log(`Method: ${c.req.method}`);
+  console.log(`Path: ${path}`);
+  console.log(`Full URL: ${c.req.url}`);
+  
+  // Log ALL headers
+  const headers: Record<string, string> = {};
+  c.req.raw.headers.forEach((value, key) => {
+    headers[key] = value;
   });
+  console.log('All Headers:', JSON.stringify(headers, null, 2));
+  
+  // Specifically check auth headers
+  const authHeader = c.req.header('Authorization');
+  const apikeyHeader = c.req.header('apikey');
+  console.log('Authorization header:', authHeader ? `${authHeader.substring(0, 50)}...` : 'MISSING');
+  console.log('apikey header:', apikeyHeader ? `${apikeyHeader.substring(0, 50)}...` : 'MISSING');
+  console.log(`======================================\n`);
+  
   await next();
 });
+
+// Helper function to get user from session token
+async function getUserFromToken(accessToken: string | undefined) {
+  if (!accessToken) {
+    return null;
+  }
+  
+  // Check if it's a custom session token
+  if (accessToken.startsWith('session_')) {
+    const session = await kv.get(`session:${accessToken}`);
+    if (session && session.userId) {
+      const user = await kv.get(`user:id:${session.userId}`);
+      if (user) {
+        const { password: _, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      }
+    }
+  }
+  
+  return null;
+}
 
 // Health check endpoint
 app.get("/make-server-6fdef95d/health", (c) => {
@@ -39,111 +78,212 @@ app.get("/make-server-6fdef95d/health", (c) => {
 
 // Get Supabase configuration (public info only)
 app.get("/make-server-6fdef95d/config", (c) => {
+  // Log that this endpoint was reached
+  console.log('CONFIG ENDPOINT REACHED!');
+  console.log('Environment variables available:', {
+    hasSupabaseUrl: !!Deno.env.get('SUPABASE_URL'),
+    hasAnonKey: !!Deno.env.get('SUPABASE_ANON_KEY'),
+    hasServiceRole: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+  });
+  
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  console.log('Anon key from env (first 50 chars):', anonKey.substring(0, 50));
+  
+  // This endpoint MUST NOT validate JWT - it's used to fetch the anon key!
+  // Simply return the public config without any auth checks
   return c.json({ 
     supabaseUrl: Deno.env.get('SUPABASE_URL') ?? '',
-    publicAnonKey: Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    publicAnonKey: anonKey,
   });
 });
+
+// Create demo account on first run (idempotent)
+async function ensureDemoAccount() {
+  const demoEmail = 'demo@farmerdemo.com';
+  const demoUser = await kv.get(`user:${demoEmail}`);
+  
+  if (!demoUser) {
+    console.log('Creating demo account...');
+    const userId = `user_demo_${Date.now()}`;
+    const user = {
+      id: userId,
+      email: demoEmail,
+      password: 'demo123', // Simple password for demo
+      name: 'Demo Farmer',
+      phone: '9876543210',
+      language: 'English',
+      location: 'Punjab, India',
+      created_at: new Date().toISOString(),
+    };
+    
+    await kv.set(`user:${demoEmail}`, user);
+    await kv.set(`user:id:${userId}`, user);
+    console.log('Demo account created successfully!');
+  }
+}
+
+// Initialize demo account
+ensureDemoAccount();
 
 // ============= AUTHENTICATION ROUTES =============
 
 // Sign up a new user
 app.post("/make-server-6fdef95d/auth/signup", async (c) => {
   try {
-    console.log('=== SIGNUP REQUEST ===');
-    const authHeader = c.req.header('Authorization');
-    console.log('Authorization header present:', !!authHeader);
+    console.log('=== SIGNUP REQUEST (CUSTOM AUTH) ===');
     
     const { email, password, name, phone, language, location } = await c.req.json();
     
-    console.log('Email:', email);
-    console.log('Name:', name);
+    console.log('Signup data received:');
+    console.log('- Email:', email);
+    console.log('- Name:', name);
+    console.log('- Phone:', phone);
+    console.log('- Language:', language);
+    console.log('- Location:', location);
     
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
-    
-    // Create the user with SERVICE_ROLE_KEY and auto-confirm email
-    const { data, error } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      user_metadata: { name, phone, language, location },
-      email_confirm: true, // Auto-confirm since no email server is configured
-    });
-    
-    if (error) {
-      console.error('Signup error during user creation:', error);
-      return c.json({ error: error.message }, 400);
+    // Validate required fields
+    if (!email || !password) {
+      console.log('ERROR: Missing email or password');
+      return c.json({ error: 'Email and password are required' }, 400);
     }
     
-    console.log('User created successfully!');
-    console.log('User ID:', data.user?.id);
-    console.log('User confirmed:', !!data.user?.email_confirmed_at);
+    // Check if user already exists
+    const existingUser = await kv.get(`user:${email}`);
+    console.log('Existing user check:', existingUser ? 'USER EXISTS' : 'NO EXISTING USER');
     
-    // Return the user (frontend will auto-login after signup)
-    return c.json({ user: data.user });
+    if (existingUser) {
+      console.log('ERROR: User already exists with email:', email);
+      return c.json({ error: 'User already exists' }, 400);
+    }
+    
+    // Create user object (in production, password should be hashed!)
+    const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const user = {
+      id: userId,
+      email,
+      password, // WARNING: In production, use bcrypt or similar to hash this!
+      name: name || 'Farmer',
+      phone: phone || '',
+      language: language || 'English',
+      location: location || '',
+      created_at: new Date().toISOString(),
+    };
+    
+    console.log('Creating user with ID:', userId);
+    
+    // Store user with both keys
+    await kv.set(`user:${email}`, user);
+    await kv.set(`user:id:${userId}`, user);
+    
+    console.log('User stored in KV with keys:');
+    console.log('- user:' + email);
+    console.log('- user:id:' + userId);
+    
+    // Verify the user was saved
+    const savedUser = await kv.get(`user:${email}`);
+    console.log('Verification - User saved successfully:', !!savedUser);
+    
+    // Create a session token immediately after signup
+    const sessionToken = `session_${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    await kv.set(`session:${sessionToken}`, {
+      userId: userId,
+      email: email,
+      created_at: new Date().toISOString(),
+    });
+    
+    console.log('Session created for new user:', sessionToken.substring(0, 30) + '...');
+    
+    // Return user without password and with session token
+    const { password: _, ...userWithoutPassword } = user;
+    return c.json({ 
+      session: { 
+        access_token: sessionToken,
+        user: userWithoutPassword
+      },
+      user: userWithoutPassword 
+    });
   } catch (error) {
-    console.error('Signup error in request processing:', error);
-    return c.json({ error: 'Failed to create account' }, 500);
+    console.error('Signup error:', error);
+    return c.json({ error: 'Failed to create account: ' + error.message }, 500);
   }
 });
 
 // Sign in with email/password
 app.post("/make-server-6fdef95d/auth/login", async (c) => {
   try {
-    console.log('=== LOGIN REQUEST RECEIVED ===');
-    const authHeader = c.req.header('Authorization');
-    const apikeyHeader = c.req.header('apikey');
-    console.log('Authorization header present:', !!authHeader);
-    console.log('apikey header present:', !!apikeyHeader);
+    console.log('=== LOGIN REQUEST (CUSTOM AUTH) ===');
     
-    // Log first 20 chars of each for debugging
-    if (authHeader) {
-      console.log('Authorization header preview:', authHeader.substring(0, 30) + '...');
+    const body = await c.req.json();
+    const { email, password } = body;
+    
+    console.log('Login attempt for email:', email);
+    console.log('Password provided:', password ? 'YES' : 'NO');
+    
+    // Validate required fields
+    if (!email || !password) {
+      console.log('ERROR: Missing email or password in request');
+      return c.json({ error: 'Email and password are required' }, 400);
     }
-    if (apikeyHeader) {
-      console.log('apikey header preview:', apikeyHeader.substring(0, 30) + '...');
+    
+    // Get user from KV store
+    console.log('Looking up user with key: user:' + email);
+    const user = await kv.get(`user:${email}`);
+    
+    console.log('User lookup result:', user ? 'FOUND' : 'NOT FOUND');
+    
+    if (!user) {
+      console.log('ERROR: No user found with email:', email);
+      return c.json({ error: 'Invalid email or password' }, 400);
     }
     
-    // Log what the server expects
-    const expectedAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    console.log('Expected SUPABASE_ANON_KEY preview:', expectedAnonKey?.substring(0, 30) + '...');
-    
-    const { email, password } = await c.req.json();
-    
-    console.log('Email:', email);
-    
-    // Create a fresh Supabase client for login (don't use any existing auth context)
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
-    
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    console.log('User found:', {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      hasPassword: !!user.password
     });
     
-    if (error) {
-      console.log('Login error during authentication:', {
-        message: error.message,
-        status: error.status,
-        name: error.name,
-        code: error.__isAuthError ? 'AuthError' : 'Unknown',
-      });
-      return c.json({ error: error.message || 'Invalid credentials' }, 400);
+    // Check password
+    console.log('Comparing passwords...');
+    console.log('Stored password:', user.password);
+    console.log('Provided password:', password);
+    console.log('Passwords match:', user.password === password);
+    
+    if (user.password !== password) {
+      console.log('ERROR: Password mismatch for user:', email);
+      return c.json({ error: 'Invalid email or password' }, 400);
     }
     
-    console.log('Login successful!');
-    console.log('Session exists:', !!data.session);
-    console.log('Access token exists:', !!data.session?.access_token);
-    console.log('User exists:', !!data.user);
+    console.log('✓ Password verified successfully');
     
-    return c.json({ session: data.session, user: data.user });
+    // Create a session token
+    const sessionToken = `session_${user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Store session
+    await kv.set(`session:${sessionToken}`, {
+      userId: user.id,
+      email: user.email,
+      created_at: new Date().toISOString(),
+    });
+    
+    console.log('✓ Session created:', sessionToken.substring(0, 30) + '...');
+    
+    // Return user without password and with session token
+    const { password: _, ...userWithoutPassword } = user;
+    
+    console.log('✓ Login successful for user:', user.email);
+    
+    return c.json({ 
+      session: { 
+        access_token: sessionToken,
+        user: userWithoutPassword
+      }, 
+      user: userWithoutPassword 
+    });
   } catch (error) {
-    console.log('Login error in request processing:', error);
-    return c.json({ error: 'Failed to log in' }, 500);
+    console.error('Login error:', error);
+    return c.json({ error: 'Failed to log in: ' + error.message }, 500);
   }
 });
 
@@ -157,18 +297,13 @@ app.get("/make-server-6fdef95d/auth/session", async (c) => {
       return c.json({ session: null, user: null }, 200);
     }
     
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
+    const user = await getUserFromToken(accessToken);
     
-    const { data, error } = await supabase.auth.getUser(accessToken);
-    
-    if (error || !data.user) {
-      return c.json({ session: null, user: null }, 200);
+    if (user) {
+      return c.json({ user });
     }
     
-    return c.json({ user: data.user });
+    return c.json({ session: null, user: null }, 200);
   } catch (error) {
     console.log('Session check error:', error);
     return c.json({ session: null, user: null }, 200);
@@ -198,581 +333,631 @@ app.post("/make-server-6fdef95d/auth/logout", async (c) => {
   }
 });
 
-// ============= USER PROFILE ROUTES =============
+// ============= OTP-BASED MOBILE AUTHENTICATION ROUTES =============
 
-// Get user profile
-app.get("/make-server-6fdef95d/user/profile", async (c) => {
+// Send OTP to mobile number
+app.post("/make-server-6fdef95d/auth/otp/send", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    console.log('=== SEND OTP REQUEST ===');
     
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
+    const { mobile_number } = await c.req.json();
     
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+    console.log('Mobile number:', mobile_number);
     
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
+    // Validate mobile number
+    const validation = authService.validateMobileNumber(mobile_number);
+    if (!validation.valid) {
+      console.log('Invalid mobile number:', validation.error);
+      return c.json({ error: validation.error }, 400);
     }
     
-    const profile = await kv.get(`user:${user.id}:profile`);
+    // Format mobile number
+    const formattedMobile = authService.formatMobileNumber(mobile_number);
+    console.log('Formatted mobile:', formattedMobile);
     
-    return c.json({ profile });
+    // Create OTP
+    const result = await otpService.createOTP(formattedMobile);
+    
+    if (!result.success) {
+      console.log('Failed to create OTP:', result.error);
+      return c.json({ 
+        error: result.error,
+        remainingAttempts: result.remainingAttempts,
+        resetTime: result.resetTime,
+      }, 429);
+    }
+    
+    console.log('✅ OTP created successfully. OTP:', result.otp);
+    
+    // Return OTP in response (for development - always 123456 until SMS is implemented)
+    return c.json({ 
+      status: 'OTP_SENT',
+      expires_in: 300, // 5 minutes
+      otp: result.otp, // Development mode - always returns 123456
+      remainingAttempts: result.remainingAttempts,
+      message: 'OTP is 123456 (development mode until SMS service is configured)',
+    });
   } catch (error) {
-    console.log('Get profile error:', error);
-    return c.json({ error: 'Failed to get profile' }, 500);
+    console.error('Send OTP error:', error);
+    return c.json({ error: 'Failed to send OTP: ' + error.message }, 500);
   }
 });
 
-// Update user profile
-app.put("/make-server-6fdef95d/user/profile", async (c) => {
+// Verify OTP and login/signup
+app.post("/make-server-6fdef95d/auth/otp/verify", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const profileData = await c.req.json();
+    console.log('=== VERIFY OTP REQUEST ===');
     
-    console.log('=== Profile Update Request ===');
-    console.log('Has Authorization header:', !!c.req.header('Authorization'));
-    console.log('Access token present:', !!accessToken);
-    console.log('Profile data received:', JSON.stringify(profileData).substring(0, 200));
+    const { mobile_number, otp, role, language } = await c.req.json();
     
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
+    console.log('Mobile number:', mobile_number);
+    console.log('OTP provided:', otp ? 'YES' : 'NO');
+    console.log('Role:', role);
+    console.log('Language:', language);
     
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (!user || error) {
-      console.log('Profile update - Unauthorized. Error:', error);
-      return c.json({ success: false, error: 'Unauthorized' }, 401);
+    // Validate required fields
+    if (!mobile_number || !otp) {
+      return c.json({ error: 'Mobile number and OTP are required' }, 400);
     }
     
-    console.log(`Updating profile for user ${user.id}`);
+    // Format mobile number
+    const formattedMobile = authService.formatMobileNumber(mobile_number);
     
-    // Add onboardingComplete flag and user ID to profile data
-    const completeProfileData = {
-      ...profileData,
-      userId: user.id,
-      onboardingComplete: true,
-      updatedAt: new Date().toISOString(),
+    // Verify OTP
+    const verification = await otpService.verifyOTPCode(formattedMobile, otp);
+    
+    if (!verification.success) {
+      console.log('OTP verification failed:', verification.error);
+      return c.json({ error: verification.error }, 400);
+    }
+    
+    console.log('✓ OTP verified successfully');
+    console.log('Is new user:', verification.isNewUser);
+    
+    let user: authService.User;
+    
+    if (verification.isNewUser) {
+      // Create new user with minimal data (Signup = Identity + Access)
+      console.log('Creating new user...');
+      user = await authService.createUser(
+        formattedMobile,
+        '', // No full_name during signup - collected later
+        (role as authService.UserRole) || 'farmer',
+        {
+          language: language || 'english',
+          profile_complete: false,
+        }
+      );
+      
+      console.log('✓ New user created:', user.id);
+    } else {
+      // Get existing user
+      console.log('Getting existing user...');
+      const existingUser = await authService.getUserByMobile(formattedMobile);
+      
+      if (!existingUser) {
+        return c.json({ error: 'User not found' }, 404);
+      }
+      
+      user = existingUser;
+      console.log('✓ Existing user found:', user.id);
+    }
+    
+    // Create auth tokens
+    const tokens = await authService.createAuthTokens(user);
+    
+    console.log('✓ Auth tokens created');
+    console.log('Access token:', tokens.access_token.substring(0, 30) + '...');
+    
+    // Return user without sensitive data
+    return c.json({
+      status: 'VERIFIED',
+      isNewUser: verification.isNewUser,
+      session: {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_in: tokens.expires_in,
+        user: user,
+      },
+      user: user,
+    });
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    return c.json({ error: 'Failed to verify OTP: ' + error.message }, 500);
+  }
+});
+
+// Refresh access token
+app.post("/make-server-6fdef95d/auth/refresh", async (c) => {
+  try {
+    const { refresh_token } = await c.req.json();
+    
+    if (!refresh_token) {
+      return c.json({ error: 'Refresh token required' }, 400);
+    }
+    
+    const tokens = await authService.refreshAccessToken(refresh_token);
+    
+    return c.json({
+      session: {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_in: tokens.expires_in,
+      }
+    });
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    return c.json({ error: 'Failed to refresh token: ' + error.message }, 401);
+  }
+});
+
+// ==================== ONBOARDING ROUTES ====================
+
+// Complete post-login onboarding
+app.post("/make-server-6fdef95d/onboarding/complete", async (c) => {
+  try {
+    console.log('\n========================================');
+    console.log('=== COMPLETE ONBOARDING REQUEST ===');
+    console.log('========================================');
+    
+    // Get user from auth token
+    const authHeader = c.req.header('Authorization');
+    console.log('Authorization header:', authHeader ? authHeader.substring(0, 30) + '...' : 'NONE');
+    
+    const accessToken = authHeader?.split(' ')[1];
+    console.log('Access token extracted:', accessToken ? `${accessToken.substring(0, 30)}...` : 'NONE');
+    
+    if (!accessToken) {
+      console.error('❌ ERROR: No access token provided');
+      return c.json({ error: 'Authorization required' }, 401);
+    }
+    
+    // Verify the access token using auth service
+    console.log('🔍 Verifying access token...');
+    console.log('Token starts with:', accessToken.substring(0, 20));
+    console.log('Token length:', accessToken.length);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    
+    console.log('Verification result:', {
+      valid: verification.valid,
+      hasUser: !!verification.user,
+      error: verification.error,
+    });
+    
+    if (!verification.valid || !verification.user) {
+      console.error('❌ Token verification failed:', verification.error);
+      return c.json({ error: verification.error || 'Invalid or expired token' }, 401);
+    }
+    
+    const userData = verification.user;
+    const userId = userData.id;
+    console.log('✅ Token verified successfully!');
+    console.log('User ID:', userId);
+    console.log('User mobile:', userData.mobile_number);
+    console.log('User role:', userData.role);
+    
+    const onboardingData = await c.req.json();
+    console.log('\n📋 Onboarding data received:');
+    console.log(JSON.stringify(onboardingData, null, 2));
+    
+    // Update user with onboarding data
+    const updatedUser = {
+      ...userData,
+      onboarding_status: {
+        completed: onboardingData.completed || true,
+        completed_steps: onboardingData.completed_steps || [],
+        skipped_steps: onboardingData.skipped_steps || [],
+        last_active_step: onboardingData.completed_steps?.[onboardingData.completed_steps.length - 1] || 'value',
+      },
+      profile_complete: true,
+      updated_at: new Date().toISOString(),
     };
     
-    await kv.set(`user:${user.id}:profile`, completeProfileData);
-    
-    console.log('Profile updated successfully');
-    return c.json({ success: true, profile: completeProfileData });
-  } catch (error) {
-    console.log('Update profile error:', error);
-    return c.json({ success: false, error: 'Failed to update profile' }, 500);
-  }
-});
-
-// ============= TASKS ROUTES =============
-
-// Get all tasks for user
-app.get("/make-server-6fdef95d/tasks", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
-    
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
+    // Add optional fields if provided
+    if (onboardingData.location) {
+      updatedUser.location = onboardingData.location;
     }
     
-    const tasks = await kv.get(`user:${user.id}:tasks`) || [];
+    console.log('\n💾 Saving user data...');
+    console.log('User ID:', userId);
     
-    return c.json({ tasks });
-  } catch (error) {
-    console.log('Get tasks error:', error);
-    return c.json({ error: 'Failed to get tasks' }, 500);
-  }
-});
-
-// Create new task
-app.post("/make-server-6fdef95d/tasks", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const taskData = await c.req.json();
+    // Save user
+    await kv.set(`user:id:${userId}`, updatedUser);
+    console.log('✅ User updated at key: user:id:' + userId);
     
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
-    
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
+    // Also update the mobile key if user has mobile_number
+    if (userData.mobile_number) {
+      const mobileKey = `user:mobile:${userData.mobile_number}`;
+      await kv.set(mobileKey, updatedUser);
+      console.log('✅ User also updated at key:', mobileKey);
     }
     
-    const tasks = await kv.get(`user:${user.id}:tasks`) || [];
-    const newTask = {
-      ...taskData,
-      id: Date.now().toString(),
-    };
-    tasks.push(newTask);
-    
-    await kv.set(`user:${user.id}:tasks`, tasks);
-    
-    return c.json({ task: newTask });
-  } catch (error) {
-    console.log('Create task error:', error);
-    return c.json({ error: 'Failed to create task' }, 500);
-  }
-});
-
-// Toggle task completion
-app.put("/make-server-6fdef95d/tasks/:id", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const taskId = c.req.param('id');
-    const { completed } = await c.req.json();
-    
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
-    
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
+    // Save field data if provided
+    if (onboardingData.field && onboardingData.field.name && onboardingData.field.area) {
+      console.log('\n🌾 Saving field data...');
+      const fieldId = `field:${userId}:${Date.now()}`;
+      const fieldData = {
+        id: fieldId,
+        user_id: userId,
+        name: onboardingData.field.name,
+        area: parseFloat(onboardingData.field.area),
+        area_unit: onboardingData.field.area_unit,
+        irrigation_type: onboardingData.field.irrigation_type || null,
+        is_primary: true, // First field is primary
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      await kv.set(fieldId, fieldData);
+      console.log('✅ Field created:', fieldId);
+      console.log('Field details:', fieldData);
+      
+      // Index field by user
+      const userFieldsKey = `user:${userId}:fields`;
+      const existingFields = await kv.get(userFieldsKey) || [];
+      await kv.set(userFieldsKey, [...existingFields, fieldId]);
+      console.log('✅ Field indexed under:', userFieldsKey);
+    } else {
+      console.log('\n⏭️  No field data to save (skipped or incomplete)');
     }
     
-    const tasks = await kv.get(`user:${user.id}:tasks`) || [];
-    const updatedTasks = tasks.map((task: any) => 
-      task.id === taskId ? { ...task, completed } : task
-    );
-    
-    await kv.set(`user:${user.id}:tasks`, updatedTasks);
-    
-    return c.json({ success: true });
-  } catch (error) {
-    console.log('Update task error:', error);
-    return c.json({ error: 'Failed to update task' }, 500);
-  }
-});
-
-// Delete task
-app.delete("/make-server-6fdef95d/tasks/:id", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const taskId = c.req.param('id');
-    
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
-    
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
+    // Save crop data if provided
+    if (onboardingData.crop && onboardingData.crop.crop_id) {
+      console.log('\n🌱 Saving crop data...');
+      const cropId = `crop:${userId}:${Date.now()}`;
+      const cropData = {
+        id: cropId,
+        user_id: userId,
+        crop_id: onboardingData.crop.crop_id,
+        crop_name: onboardingData.crop.crop_name,
+        season: onboardingData.crop.season,
+        status: onboardingData.season_status || 'planning',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      await kv.set(cropId, cropData);
+      console.log('✅ Crop created:', cropId);
+      console.log('Crop details:', cropData);
+      
+      // Index crop by user
+      const userCropsKey = `user:${userId}:crops`;
+      const existingCrops = await kv.get(userCropsKey) || [];
+      await kv.set(userCropsKey, [...existingCrops, cropId]);
+      console.log('✅ Crop indexed under:', userCropsKey);
+    } else {
+      console.log('\n⏭️  No crop data to save (skipped or incomplete)');
     }
     
-    const tasks = await kv.get(`user:${user.id}:tasks`) || [];
-    const updatedTasks = tasks.filter((task: any) => task.id !== taskId);
+    console.log('\n✅ ✅ ✅ ONBOARDING COMPLETE! ✅ ✅ ✅');
+    console.log('========================================\n');
     
-    await kv.set(`user:${user.id}:tasks`, updatedTasks);
+    return c.json({
+      success: true,
+      message: 'Onboarding completed successfully',
+      user: updatedUser,
+    });
     
-    return c.json({ success: true });
   } catch (error) {
-    console.log('Delete task error:', error);
-    return c.json({ error: 'Failed to delete task' }, 500);
+    console.error('\n❌ ❌ ❌ ONBOARDING ERROR ❌ ❌ ❌');
+    console.error('Error details:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('========================================\n');
+    return c.json({ error: 'Failed to complete onboarding: ' + error.message }, 500);
   }
 });
 
-// ============= JOURNAL ROUTES =============
+// ==================== USER DATA ROUTES ====================
 
-// Get all journal entries for user
-app.get("/make-server-6fdef95d/journal", async (c) => {
+// Get user dashboard data (Fields, Onboarding, etc.)
+app.get("/make-server-6fdef95d/me/dashboard", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const authHeader = c.req.header('Authorization');
+    const accessToken = authHeader?.split(' ')[1];
     
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
-    
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
+    if (!accessToken) {
+      return c.json({ error: 'Authorization required' }, 401);
     }
     
-    const entries = await kv.get(`user:${user.id}:journal`) || [];
-    
-    return c.json({ entries });
-  } catch (error) {
-    console.log('Get journal entries error:', error);
-    return c.json({ error: 'Failed to get journal entries' }, 500);
-  }
-});
-
-// Create journal entry
-app.post("/make-server-6fdef95d/journal", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const entryData = await c.req.json();
-    
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
-    
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
+    // Verify token
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) {
+      return c.json({ error: verification.error || 'Invalid token' }, 401);
     }
     
-    const entries = await kv.get(`user:${user.id}:journal`) || [];
-    const newEntry = {
-      ...entryData,
-      id: Date.now().toString(),
-      timestamp: new Date().toISOString(),
-    };
-    entries.unshift(newEntry);
+    const userId = verification.user.id;
     
-    await kv.set(`user:${user.id}:journal`, entries);
-    
-    return c.json({ entry: newEntry });
-  } catch (error) {
-    console.log('Create journal entry error:', error);
-    return c.json({ error: 'Failed to create journal entry' }, 500);
-  }
-});
-
-// ============= EXPENSES ROUTES =============
-
-// Get all expenses for user
-app.get("/make-server-6fdef95d/expenses", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
-    
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
+    // Fetch fields
+    const fieldIds = await kv.get(`user:${userId}:fields`) || [];
+    let fields = [];
+    if (fieldIds.length > 0) {
+      const fieldsData = await kv.mget(fieldIds);
+      fields = fieldsData.filter(f => f); // Remove nulls
     }
     
-    const expenses = await kv.get(`user:${user.id}:expenses`) || [];
-    
-    return c.json({ expenses });
-  } catch (error) {
-    console.log('Get expenses error:', error);
-    return c.json({ error: 'Failed to get expenses' }, 500);
-  }
-});
-
-// Create expense
-app.post("/make-server-6fdef95d/expenses", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const expenseData = await c.req.json();
-    
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
-    
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
+    // Fetch crops
+    const cropIds = await kv.get(`user:${userId}:crops`) || [];
+    let crops = [];
+    if (cropIds.length > 0) {
+      const cropsData = await kv.mget(cropIds);
+      crops = cropsData.filter(c => c);
     }
+
+    // Onboarding status from user profile
+    const onboarding = verification.user.onboarding_status || null;
     
-    const expenses = await kv.get(`user:${user.id}:expenses`) || [];
-    const newExpense = {
-      ...expenseData,
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-    };
-    expenses.unshift(newExpense);
+    return c.json({
+      fields,
+      crops,
+      onboarding,
+      user: verification.user // Helpful for frontend to sync state
+    });
     
-    await kv.set(`user:${user.id}:expenses`, expenses);
-    
-    return c.json({ expense: newExpense });
   } catch (error) {
-    console.log('Create expense error:', error);
-    return c.json({ error: 'Failed to create expense' }, 500);
+    console.error('Dashboard fetch error:', error);
+    return c.json({ error: 'Failed to fetch dashboard data' }, 500);
   }
 });
 
-// ============= FIELDS ROUTES =============
-
-// Get all fields for user
+// Get user fields
 app.get("/make-server-6fdef95d/fields", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+    const authHeader = c.req.header('Authorization');
+    const accessToken = authHeader?.split(' ')[1];
     
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
     
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
     
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
+    const userId = verification.user.id;
+    const fieldIds = await kv.get(`user:${userId}:fields`) || [];
+    let fields = [];
+    if (fieldIds.length > 0) {
+      const fieldsData = await kv.mget(fieldIds);
+      fields = fieldsData.filter(f => f);
     }
     
-    const fields = await kv.get(`user:${user.id}:fields`) || [];
-    
-    return c.json({ fields });
+    return c.json(fields);
   } catch (error) {
-    console.log('Get fields error:', error);
-    return c.json({ error: 'Failed to get fields' }, 500);
+    console.error('Fetch fields error:', error);
+    return c.json({ error: 'Failed to fetch fields' }, 500);
   }
 });
 
 // Create new field
 app.post("/make-server-6fdef95d/fields", async (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const fieldData = await c.req.json();
+    const authHeader = c.req.header('Authorization');
+    const accessToken = authHeader?.split(' ')[1];
     
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
     
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
     
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
+    const userId = verification.user.id;
+    const { name, area, irrigation_type, area_unit } = await c.req.json();
+    
+    if (!name || !area) {
+      return c.json({ error: 'Name and area are required' }, 400);
     }
     
-    const fields = await kv.get(`user:${user.id}:fields`) || [];
-    
-    // Calculate progress if crop is planted
-    let calculatedField = { ...fieldData };
-    if (fieldData.plantingDate && fieldData.expectedHarvestDate) {
-      const plantDate = new Date(fieldData.plantingDate);
-      const harvestDate = new Date(fieldData.expectedHarvestDate);
-      const today = new Date();
-      
-      const totalDays = Math.ceil((harvestDate.getTime() - plantDate.getTime()) / (1000 * 60 * 60 * 24));
-      const currentDay = Math.ceil((today.getTime() - plantDate.getTime()) / (1000 * 60 * 60 * 24));
-      const progress = Math.min(Math.round((currentDay / totalDays) * 100), 100);
-      
-      calculatedField = {
-        ...fieldData,
-        day: Math.max(currentDay, 0),
-        totalDays,
-        progress: Math.max(progress, 0),
-      };
-    }
-    
-    const newField = {
-      ...calculatedField,
-      id: Date.now().toString(),
+    const fieldId = `field:${userId}:${Date.now()}`;
+    const fieldData = {
+      id: fieldId,
+      user_id: userId,
+      name,
+      area: parseFloat(area),
+      area_unit: area_unit || 'acres',
+      irrigation_type: irrigation_type || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
     
-    fields.push(newField);
-    await kv.set(`user:${user.id}:fields`, fields);
+    // Save field
+    await kv.set(fieldId, fieldData);
     
-    return c.json({ field: newField });
+    // Index field
+    const userFieldsKey = `user:${userId}:fields`;
+    const existingFields = await kv.get(userFieldsKey) || [];
+    await kv.set(userFieldsKey, [...existingFields, fieldId]);
+    
+    console.log(`Field created: ${fieldId} for user ${userId}`);
+    
+    return c.json({ success: true, field: fieldData });
+    
   } catch (error) {
-    console.log('Create field error:', error);
+    console.error('Create field error:', error);
     return c.json({ error: 'Failed to create field' }, 500);
   }
 });
 
-// Update field
-app.put("/make-server-6fdef95d/fields/:id", async (c) => {
+// ==================== AI ROUTES ====================
+
+// Generate Crop Calendar
+app.post("/make-server-6fdef95d/ai/generate-calendar", async (c) => {
   try {
     const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const fieldId = c.req.param('id');
-    const fieldData = await c.req.json();
     
+    // We should probably check auth, but the prompt implies this is for the demo user too.
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     );
     
     const { data: { user }, error } = await supabase.auth.getUser(accessToken);
-    
     if (!user || error) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
-    
-    const fields = await kv.get(`user:${user.id}:fields`) || [];
-    const fieldIndex = fields.findIndex((f: any) => f.id === fieldId);
-    
-    if (fieldIndex === -1) {
-      return c.json({ error: 'Field not found' }, 404);
-    }
-    
-    // Calculate progress if crop is planted
-    let calculatedData = { ...fieldData };
-    if (fieldData.plantingDate && fieldData.expectedHarvestDate) {
-      const plantDate = new Date(fieldData.plantingDate);
-      const harvestDate = new Date(fieldData.expectedHarvestDate);
-      const today = new Date();
-      
-      const totalDays = Math.ceil((harvestDate.getTime() - plantDate.getTime()) / (1000 * 60 * 60 * 24));
-      const currentDay = Math.ceil((today.getTime() - plantDate.getTime()) / (1000 * 60 * 60 * 24));
-      const progress = Math.min(Math.round((currentDay / totalDays) * 100), 100);
-      
-      calculatedData = {
-        ...fieldData,
-        day: Math.max(currentDay, 0),
-        totalDays,
-        progress: Math.max(progress, 0),
-      };
-    }
-    
-    fields[fieldIndex] = { ...fields[fieldIndex], ...calculatedData };
-    await kv.set(`user:${user.id}:fields`, fields);
-    
-    return c.json({ field: fields[fieldIndex] });
-  } catch (error) {
-    console.log('Update field error:', error);
-    return c.json({ error: 'Failed to update field' }, 500);
-  }
-});
 
-// Delete field
-app.delete("/make-server-6fdef95d/fields/:id", async (c) => {
-  try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const fieldId = c.req.param('id');
+    const { cropName, plantingDate, location, fieldName, soilType } = await c.req.json();
     
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
+    console.log('=== CROP CALENDAR GENERATION REQUEST ===');
+    console.log('Crop:', cropName);
+    console.log('Soil Type:', soilType);
+    console.log('Planting Date:', plantingDate);
+    console.log('Location:', location);
     
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+    const apiKey = Deno.env.get('OPENAI_API_KEY');
     
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
-    }
+    // Normalize crop name to crop_id (e.g., "Paddy" -> "paddy", "Cotton" -> "cotton")
+    const cropId = cropName.toLowerCase().replace(/\s+/g, '_');
     
-    const fields = await kv.get(`user:${user.id}:fields`) || [];
-    const updatedFields = fields.filter((f: any) => f.id !== fieldId);
+    // Get the specific crop cycle for this soil-crop combination
+    const cropCycle = getCropCycle(soilType, cropId);
     
-    await kv.set(`user:${user.id}:fields`, updatedFields);
+    // Get all suitable crops for this soil type
+    const suitableCrops = getCropsBySoil(soilType);
     
-    return c.json({ success: true });
-  } catch (error) {
-    console.log('Delete field error:', error);
-    return c.json({ error: 'Failed to delete field' }, 500);
-  }
-});
-
-// ============= WEATHER ROUTES =============
-
-// Get weather data from OpenWeatherMap API
-app.get("/make-server-6fdef95d/weather", async (c) => {
-  try {
-    const lat = c.req.query('lat');
-    const lon = c.req.query('lon');
-    
-    if (!lat || !lon) {
-      console.log('Weather request missing coordinates');
-      return c.json({ error: 'Latitude and longitude are required' }, 400);
-    }
-    
-    const apiKey = Deno.env.get('OPENWEATHER_API_KEY');
+    console.log('Crop ID:', cropId);
+    console.log('Crop Cycle Found:', !!cropCycle);
+    console.log('Suitable crops for', soilType, ':', suitableCrops.map(c => c.crop_name).join(', '));
     
     if (!apiKey) {
-      console.log('OpenWeather API key not configured');
-      // Return mock data if API key is not configured
+      console.log('OpenAI API key not configured');
+      // Fallback mock response
       return c.json({ 
-        current: {
-          temp: 28,
-          humidity: 65,
-          weather: [{ main: 'Clear', description: 'clear sky', icon: '01d' }],
-          wind_speed: 3.5,
-          clouds: 20
-        },
-        forecast: {
-          list: []
-        },
-        isMock: true
+        tasks: [
+          { id: 1, title: 'Apply NPK Fertilizer', date: 'Tomorrow', type: 'Nutrients', urgent: true, reason: 'Mock generated due to missing API key' },
+          { id: 2, title: 'Irrigation Cycle 4', date: 'In 3 days', type: 'Watering', urgent: false },
+          { id: 3, title: 'Pest Inspection', date: 'In 5 days', type: 'Health', urgent: false },
+        ]
       });
     }
-    
-    console.log(`Fetching weather data for coordinates: ${lat}, ${lon}`);
-    
-    // Fetch current weather
-    const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
-    const currentResponse = await fetch(currentUrl);
-    
-    if (!currentResponse.ok) {
-      console.log('Failed to fetch current weather:', currentResponse.status, currentResponse.statusText);
-      throw new Error(`Weather API returned ${currentResponse.status}`);
-    }
-    
-    const currentWeather = await currentResponse.json();
-    console.log('Current weather fetched successfully');
-    
-    // Fetch 5-day forecast
-    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
-    const forecastResponse = await fetch(forecastUrl);
-    
-    if (!forecastResponse.ok) {
-      console.log('Failed to fetch forecast, using current weather only');
-      // Return current weather but empty forecast
-      return c.json({ 
-        current: currentWeather,
-        forecast: {
-          list: []
-        },
-        isMock: false
-      });
-    }
-    
-    const forecastData = await forecastResponse.json();
-    
-    console.log('Weather data fetched successfully');
-    return c.json({ 
-      current: currentWeather,
-      forecast: forecastData,
-      isMock: false
+
+    // Build enhanced prompt with crop cycle data
+    const systemPrompt = `You are an expert Indian agricultural AI with deep knowledge of soil-specific crop cycles.
+
+CRITICAL INSTRUCTIONS:
+1. You MUST use the provided crop cycle data to generate recommendations
+2. All recommendations MUST be soil-specific based on the Indian Soil Master Data
+3. Generate tasks that align with the crop's growth stages
+4. Consider soil constraints, nutrient profiles, and regional practices
+5. Use agronomically accurate advice for Indian conditions
+
+VALIDATION RULES:
+- Do NOT recommend crops unsuitable for the given soil type
+- Flag risks at sensitive growth stages
+- Prioritize soil-specific actions (e.g., "Deep ploughing to reduce cracking in black soil")
+- Consider the typical duration and critical stages for this crop-soil combination`;
+
+    const userPrompt = `
+Generate a crop calendar for the following field:
+
+FIELD INFORMATION:
+- Crop: ${cropName}
+- Planting Date: ${plantingDate}
+- Location: ${location}
+- Field Name: ${fieldName}
+- Soil Type: ${soilType}
+- Today's Date: ${new Date().toLocaleDateString()}
+
+INDIAN SOIL MASTER DATA:
+${JSON.stringify(SOIL_MASTER_DATA, null, 2)}
+
+${cropCycle ? `
+SOIL-SPECIFIC CROP CYCLE DATA FOR ${cropCycle.crop_name} IN ${cropCycle.soil_id.toUpperCase().replace(/_/g, ' ')}:
+
+Crop Cycle Duration: ${cropCycle.crop_cycle_duration_days} days
+
+UNIVERSAL 10-STAGE CROP CYCLE:
+${JSON.stringify(cropCycle.stages, null, 2)}
+
+INSTRUCTIONS:
+1. Use the above crop cycle stages to determine current growth stage based on planting date
+2. Generate tasks based on the key_actions, risk_factors, and ai_alerts for upcoming stages
+3. Prioritize soil-specific notes (e.g., irrigation needs, nutrient management, soil preparation)
+4. Generate 5-7 tasks covering the next 2-3 growth stages
+5. Each task should reference the specific stage it belongs to
+` : `
+WARNING: No specific crop cycle data found for ${cropName} in ${soilType}.
+
+SUITABLE CROPS FOR ${soilType}:
+${suitableCrops.map(c => `- ${c.crop_name} (${c.crop_cycle_duration_days} days)`).join('\n')}
+
+FALLBACK INSTRUCTIONS:
+1. Verify if ${cropName} is suitable for ${soilType}
+2. If not suitable, suggest alternative crops from the list above
+3. If suitable but data missing, infer from general agronomic knowledge for Indian conditions
+4. Still prioritize soil-specific constraints from SOIL_MASTER_DATA
+`}
+
+Calculate days since planting: ${Math.floor((new Date().getTime() - new Date(plantingDate).getTime()) / (1000 * 60 * 60 * 24))} days
+
+REQUIRED OUTPUT FORMAT:
+Return a JSON object with a "tasks" array. Each task MUST have:
+- id: number
+- title: string (short action title)
+- date: string (relative date like "Tomorrow", "In 3 days", or absolute like "Oct 15")
+- type: string (one of: Land Preparation, Seed Treatment, Sowing, Irrigation, Nutrients, Pest Control, Watering, Health, Harvesting, Soil Care, Maintenance)
+- urgent: boolean
+- reason: string (short explanation referencing soil type and growth stage)
+- stage_id: number (optional, 1-10 if applicable)
+- stage_name: string (optional, from the 10 universal stages)
+
+Generate 5-7 actionable tasks for the upcoming period.
+    `;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      })
     });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      // Check for quota/rate limit issues
+      const isQuotaError = 
+        response.status === 429 || 
+        (data.error && (data.error.code === 'insufficient_quota' || data.error.type === 'insufficient_quota'));
+
+      if (isQuotaError) {
+        console.warn('OpenAI Quota Exceeded (Calendar) - Using Fallback:', data.error?.message || 'Rate limit hit');
+        return c.json({ 
+          tasks: [
+            { id: 1, title: 'Check Soil Moisture', date: 'Tomorrow', type: 'Watering', urgent: true, reason: 'Mock generated due to OpenAI Quota Exceeded' },
+            { id: 2, title: 'Inspect for Early Pests', date: 'In 3 days', type: 'Health', urgent: false, reason: 'Mock generated due to OpenAI Quota Exceeded' },
+            { id: 3, title: 'Apply Basal Fertilizer', date: 'In 5 days', type: 'Nutrients', urgent: false, reason: 'Mock generated due to OpenAI Quota Exceeded' },
+          ]
+        });
+      }
+
+      console.error('OpenAI API Error (Calendar):', data);
+      throw new Error(`OpenAI API returned ${response.status}: ${JSON.stringify(data)}`);
+    }
+
+    const content = JSON.parse(data.choices[0].message.content);
+    
+    console.log('=== AI GENERATED TASKS ===');
+    console.log(JSON.stringify(content.tasks, null, 2));
+    
+    return c.json({ tasks: content.tasks });
+
   } catch (error) {
-    console.log('Weather fetch error:', error);
-    
-    // Return mock data instead of error
-    return c.json({ 
-      current: {
-        temp: 28,
-        humidity: 65,
-        weather: [{ main: 'Clear', description: 'clear sky', icon: '01d' }],
-        wind_speed: 3.5,
-        clouds: 20
-      },
-      forecast: {
-        list: []
-      },
-      isMock: true
-    });
+    console.error('AI Calendar generation error:', error);
+    return c.json({ error: 'Failed to generate calendar' }, 500);
   }
 });
 
-// ============= SATELLITE MONITORING / VEGETATION ROUTES =============
-
-// Get vegetation data for a specific field
-app.get("/make-server-6fdef95d/fields/:id/vegetation", async (c) => {
+// Chatbot Endpoint
+app.post("/make-server-6fdef95d/ai/chat", async (c) => {
   try {
     const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const fieldId = c.req.param('id');
-    const date = c.req.query('date'); // 'latest' or specific date
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -780,125 +965,269 @@ app.get("/make-server-6fdef95d/fields/:id/vegetation", async (c) => {
     );
     
     const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+    // Allow demo user to use chat as well, or just public for now if needed.
+    // For now, let's just check if user exists or if it's the public key (simple auth)
     
-    if (!user || error) {
-      return c.json({ error: 'Unauthorized' }, 401);
+    const { message, context } = await c.req.json();
+    const apiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    if (!apiKey) {
+      return c.json({ 
+        reply: "I'm sorry, I'm currently offline (API Key missing). Please check back later." 
+      });
     }
+
+    const systemPrompt = `
+      You are "MS", a helpful and knowledgeable agricultural assistant for Indian farmers. 
+      You speak in a simple, friendly, and encouraging tone.
+      
+      Your goal is to help farmers with:
+      - Crop management advice
+      - Disease identification and remedies
+      - Weather-related farming decisions
+      - Market price trends (general knowledge)
+      - Government schemes for farmers in India
+      - Soil health and management based on Indian soil types
+
+      You have access to the following Indian Soil Master Data. Use this as your base reasoning layer for soil-related questions:
+      ${JSON.stringify(SOIL_MASTER_DATA)}
+
+      Context provided: ${JSON.stringify(context || {})}
+      
+      Keep your answers concise and practical. If you don't know something, admit it and suggest consulting a local expert.
+      Always try to be supportive.
+    `;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+        temperature: 0.7,
+        max_tokens: 300
+      })
+    });
+
+    const data = await response.json();
     
-    // Get the field to access boundary
-    const fields = await kv.get(`user:${user.id}:fields`) || [];
-    const field = fields.find((f: any) => f.id === fieldId);
-    
-    if (!field) {
-      return c.json({ error: 'Field not found' }, 404);
+    if (!response.ok) {
+      // Check for quota/rate limit issues
+      const isQuotaError = 
+        response.status === 429 || 
+        (data.error && (data.error.code === 'insufficient_quota' || data.error.type === 'insufficient_quota'));
+      
+      if (isQuotaError) {
+         console.warn('OpenAI Quota Exceeded (Chat) - Using Fallback:', data.error?.message || 'Rate limit hit');
+         return c.json({ 
+           reply: "I apologize, but my connection to the central database is currently limited (Quota Exceeded). However, I can tell you that generally, keeping your soil moisture balanced and monitoring for pests early is key for a good harvest! (Mock Response)" 
+         });
+      }
+
+      console.error('OpenAI API Error:', data);
+      return c.json({ 
+        reply: "I'm having trouble connecting to my brain right now. Please try again later." 
+      });
     }
-    
-    // For MVP: Return simulated vegetation data
-    // In production: This would call Google Earth Engine API
-    // to fetch Sentinel-2 imagery and compute NDVI
-    
-    console.log(`Generating vegetation data for field ${fieldId}`);
-    
-    // Simulate different health statuses based on field name/random
-    const healthStatuses = ['healthy', 'moderate', 'stressed', 'poor'];
-    const randomStatus = healthStatuses[Math.floor(Math.random() * healthStatuses.length)];
-    
-    // Generate realistic NDVI based on status
-    let avgNdvi = 0.5;
-    let stressPercent = 0;
-    
-    switch (randomStatus) {
-      case 'healthy':
-        avgNdvi = 0.65 + Math.random() * 0.15; // 0.65-0.8
-        stressPercent = Math.floor(Math.random() * 5); // 0-5%
-        break;
-      case 'moderate':
-        avgNdvi = 0.45 + Math.random() * 0.15; // 0.45-0.6
-        stressPercent = Math.floor(Math.random() * 15) + 5; // 5-20%
-        break;
-      case 'stressed':
-        avgNdvi = 0.25 + Math.random() * 0.15; // 0.25-0.4
-        stressPercent = Math.floor(Math.random() * 20) + 20; // 20-40%
-        break;
-      case 'poor':
-        avgNdvi = 0.1 + Math.random() * 0.1; // 0.1-0.2
-        stressPercent = Math.floor(Math.random() * 30) + 40; // 40-70%
-        break;
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Unexpected OpenAI response format:', data);
+      return c.json({ 
+        reply: "I received a strange response. Please try asking in a different way." 
+      });
     }
+
+    const reply = data.choices[0].message.content;
     
-    const vegetationData = {
-      date: new Date().toISOString(),
-      avg_ndvi: parseFloat(avgNdvi.toFixed(3)),
-      health_status: randomStatus,
-      stress_zones_percent: stressPercent,
-      cloud_cover: Math.floor(Math.random() * 30), // Random cloud cover
-      data_available: true,
-      source: 'simulated', // In production: 'sentinel-2'
-    };
+    return c.json({ reply });
     
-    // Store the vegetation data for this field
-    await kv.set(`field:${fieldId}:vegetation:latest`, vegetationData);
-    
-    return c.json(vegetationData);
   } catch (error) {
-    console.log('Get vegetation data error:', error);
-    return c.json({ error: 'Failed to fetch vegetation data' }, 500);
+    console.error('AI Chat error:', error);
+    return c.json({ error: 'Failed to process chat message' }, 500);
   }
 });
 
-// Get vegetation time series/trend for a field
-app.get("/make-server-6fdef95d/fields/:id/vegetation/trend", async (c) => {
+// ==================== METADATA ROUTES ====================
+
+// Get all available crops
+app.get("/make-server-6fdef95d/crops", (c) => {
   try {
-    const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    const fieldId = c.req.param('id');
-    const days = parseInt(c.req.query('days') || '60');
+    // Extract unique crops from the database
+    const uniqueCropIds = new Set();
+    const uniqueCrops = [];
     
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
+    for (const cycle of CROP_CYCLES_DATABASE) {
+      if (!uniqueCropIds.has(cycle.crop_id)) {
+        uniqueCropIds.add(cycle.crop_id);
+        
+        // Infer season based on typical Indian planting times if not explicitly stored
+        // This is a heuristic mapping
+        let season = 'kharif';
+        const name = cycle.crop_name.toLowerCase();
+        if (name.includes('wheat') || name.includes('chickpea') || name.includes('mustard') || name.includes('potato')) {
+          season = 'rabi';
+        } else if (name.includes('sugarcane') || name.includes('tomato') || name.includes('onion')) {
+          season = 'both';
+        }
+        
+        // Add emoji
+        let emoji = '🌱';
+        if (name.includes('rice') || name.includes('paddy')) emoji = '🌾';
+        else if (name.includes('wheat')) emoji = '🌾';
+        else if (name.includes('corn') || name.includes('maize')) emoji = '🌽';
+        else if (name.includes('cotton')) emoji = '🌿';
+        else if (name.includes('sugarcane')) emoji = '🎋';
+        else if (name.includes('potato')) emoji = '🥔';
+        else if (name.includes('tomato')) emoji = '🍅';
+        else if (name.includes('onion')) emoji = '🧅';
+        else if (name.includes('soybean')) emoji = '🫘';
+        else if (name.includes('groundnut')) emoji = '🥜';
+        
+        uniqueCrops.push({
+          id: cycle.crop_id,
+          name: cycle.crop_name,
+          season,
+          emoji,
+          soil_types: getSoilsByCrop(cycle.crop_id).map(s => s.soil_id)
+        });
+      }
+    }
     
-    const { data: { user }, error } = await supabase.auth.getUser(accessToken);
+    return c.json({ crops: uniqueCrops });
+  } catch (error) {
+    console.error('Get crops error:', error);
+    return c.json({ error: 'Failed to fetch crops' }, 500);
+  }
+});
+
+// Calculate crop status (Logic Implementation)
+app.post("/make-server-6fdef95d/crop/calculate-status", async (c) => {
+  try {
+    const { crop_name, sowing_date, soil_type } = await c.req.json();
     
-    if (!user || error) {
+    if (!crop_name || !sowing_date) {
+      return c.json({ error: 'crop_name and sowing_date are required' }, 400);
+    }
+    
+    console.log('=== CALCULATE CROP STATUS REQUEST ===');
+    console.log('Crop:', crop_name);
+    console.log('Sowing Date:', sowing_date);
+    
+    const result = processCropCycle(crop_name, sowing_date, soil_type);
+    
+    return c.json(result);
+    
+  } catch (error) {
+    console.error('Calculate status error:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ==================== CROP PROGRESS ROUTES ====================
+
+// Get crop progress
+app.get("/make-server-6fdef95d/crop/progress", async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    const accessToken = authHeader?.split(' ')[1];
+    
+    // Get user from token
+    let user = null;
+    if (accessToken) {
+      user = await getUserFromToken(accessToken);
+    }
+    
+    // Fallback to Supabase auth check if custom token fails
+    if (!user && accessToken) {
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      );
+      const { data, error } = await supabase.auth.getUser(accessToken);
+      if (data && data.user) {
+        user = { id: data.user.id };
+      }
+    }
+    
+    if (!user) {
       return c.json({ error: 'Unauthorized' }, 401);
     }
     
-    // For MVP: Return simulated trend data
-    // In production: Query historical satellite data
+    const cropName = c.req.query('cropName');
+    const plantingDate = c.req.query('plantingDate');
     
-    console.log(`Generating ${days}-day vegetation trend for field ${fieldId}`);
-    
-    const trend = [];
-    const now = new Date();
-    
-    // Generate data points every 5 days (Sentinel-2 frequency)
-    for (let i = days; i >= 0; i -= 5) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      
-      // Simulate NDVI trend with some variation
-      const baseNdvi = 0.5 + Math.sin(i / 10) * 0.2;
-      const variation = (Math.random() - 0.5) * 0.1;
-      const ndvi = Math.max(0.1, Math.min(0.8, baseNdvi + variation));
-      
-      let status = 'moderate';
-      if (ndvi > 0.6) status = 'healthy';
-      else if (ndvi > 0.4) status = 'moderate';
-      else if (ndvi > 0.2) status = 'stressed';
-      else status = 'poor';
-      
-      trend.push({
-        date: date.toISOString().split('T')[0],
-        avg_ndvi: parseFloat(ndvi.toFixed(3)),
-        health_status: status,
-      });
+    if (!cropName) {
+      return c.json({ error: 'Crop name is required' }, 400);
     }
     
-    return c.json({ trend, days });
+    // Construct key (include plantingDate if available to support multiple cycles)
+    const key = `progress:${user.id}:${cropName}${plantingDate ? ':' + plantingDate : ''}`;
+    
+    const progressData = await kv.get(key);
+    
+    return c.json({ 
+      completedStageIds: progressData?.completedStageIds || [] 
+    });
+    
   } catch (error) {
-    console.log('Get vegetation trend error:', error);
-    return c.json({ error: 'Failed to fetch vegetation trend' }, 500);
+    console.error('Get progress error:', error);
+    return c.json({ error: 'Failed to fetch progress' }, 500);
+  }
+});
+
+// Save crop progress
+app.post("/make-server-6fdef95d/crop/progress", async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization');
+    const accessToken = authHeader?.split(' ')[1];
+    
+    // Get user from token
+    let user = null;
+    if (accessToken) {
+      user = await getUserFromToken(accessToken);
+    }
+    
+    // Fallback to Supabase auth check
+    if (!user && accessToken) {
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      );
+      const { data, error } = await supabase.auth.getUser(accessToken);
+      if (data && data.user) {
+        user = { id: data.user.id };
+      }
+    }
+    
+    if (!user) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    
+    const { cropName, plantingDate, completedStageIds } = await c.req.json();
+    
+    if (!cropName || !completedStageIds) {
+      return c.json({ error: 'Crop name and completedStageIds are required' }, 400);
+    }
+    
+    // Construct key
+    const key = `progress:${user.id}:${cropName}${plantingDate ? ':' + plantingDate : ''}`;
+    
+    await kv.set(key, { 
+      completedStageIds,
+      updated_at: new Date().toISOString()
+    });
+    
+    return c.json({ success: true });
+    
+  } catch (error) {
+    console.error('Save progress error:', error);
+    return c.json({ error: 'Failed to save progress' }, 500);
   }
 });
 

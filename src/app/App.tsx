@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { Navigation } from './components/Navigation';
 import { LoginScreen } from './components/LoginScreen';
 import { OnboardingFlow } from './components/OnboardingFlow';
+import { PostLoginOnboarding } from './components/PostLoginOnboarding';
 import { MainDashboard } from './components/MainDashboard';
 import { PrototypeWelcome } from './components/PrototypeWelcome';
 import { HomePage } from './pages/HomePage';
@@ -23,42 +24,46 @@ function App() {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [showPrototype, setShowPrototype] = useState(false);
   
   const { setUser } = useAppStore();
 
-  // Check if user wants to see the working prototype
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('prototype') === 'true') {
-      setShowPrototype(true);
-    }
-  }, []);
-
-  // Check for existing session on mount
   useEffect(() => {
     async function checkAuth() {
-      if (!showPrototype) {
-        setIsCheckingAuth(false);
-        return;
-      }
+      setIsCheckingAuth(true);
 
       try {
-        const response = await getSession();
+        // Check for active session FIRST via api (which checks localStorage 'current_session')
+        const session = await getSession();
         
-        if (response.user) {
-          setCurrentUser(response.user);
+        if (session && session.user) {
+          console.log('Restored session from storage:', session.user);
+          setCurrentUser(session.user);
           setIsLoggedIn(true);
-          
-          // Try to get user profile to check if onboarding is complete
-          try {
-            const profile = await getUserProfile();
-            if (profile && profile.onboardingComplete) {
-              setHasCompletedOnboarding(true);
-              setUser(profile);
-            }
-          } catch (error) {
-            console.log('No profile found, need onboarding');
+          setHasCompletedOnboarding(true);
+        } else {
+          // Fallback: Check for legacy 'currentUser' in localStorage
+          const storedUser = localStorage.getItem('currentUser');
+          if (storedUser) {
+            console.log('Restored legacy user from storage');
+            const user = JSON.parse(storedUser);
+            
+            // MIGRATION: Create a proper session for legacy users
+            // This ensures api.ts functions like getCurrentUserId() work correctly
+            const userId = user.id || `user_legacy_${Date.now()}`;
+            const migratedUser = { ...user, id: userId };
+            const sessionToken = `session_${userId}_${Date.now()}`;
+            
+            const newSession = {
+                access_token: sessionToken,
+                user: migratedUser
+            };
+            
+            localStorage.setItem('current_session', JSON.stringify(newSession));
+            console.log('Migrated legacy user to session-based auth');
+            
+            setCurrentUser(migratedUser);
+            setIsLoggedIn(true);
+            setHasCompletedOnboarding(true);
           }
         }
       } catch (error) {
@@ -69,23 +74,39 @@ function App() {
     }
 
     checkAuth();
-  }, [showPrototype, setUser]);
+  }, [setUser]);
 
   const handleLogin = (user: any) => {
+    console.log('=== handleLogin called ===');
+    console.log('User object:', user);
+    
     setCurrentUser(user);
     setIsLoggedIn(true);
     
-    // Check if user has completed onboarding (check localStorage as fallback)
-    const hasOnboarded = localStorage.getItem('hasOnboarded');
-    if (hasOnboarded) {
-      setHasCompletedOnboarding(true);
-    }
+    // Persist user to localStorage
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    localStorage.setItem('user', JSON.stringify(user)); // Also store for compatibility
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new Event('authStateChanged'));
+    
+    // SKIP Onboarding Screen - Go straight to Dashboard
+    // We will show a tour guide instead
+    console.log('✓ Skipping onboarding screen -> Going to Dashboard');
+    setHasCompletedOnboarding(true);
+    localStorage.setItem('hasOnboarded', 'true');
+    
+    // Set a flag to trigger the tour in the dashboard
+    localStorage.setItem('showDashboardTour', 'true');
   };
 
   const handleOnboardingComplete = async (profileData: any) => {
     setHasCompletedOnboarding(true);
     setUser(profileData);
     localStorage.setItem('hasOnboarded', 'true');
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new Event('authStateChanged'));
   };
 
   const handleLogout = async () => {
@@ -98,12 +119,16 @@ function App() {
     setIsLoggedIn(false);
     setHasCompletedOnboarding(false);
     setCurrentUser(null);
-    setShowPrototype(false);
     localStorage.removeItem('hasOnboarded');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('showDashboardTour');
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new Event('authStateChanged'));
   };
 
   // Show loading state while checking auth
-  if (showPrototype && isCheckingAuth) {
+  if (isCheckingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -117,56 +142,68 @@ function App() {
     );
   }
 
-  // If prototype mode is enabled, show the working prototype
-  if (showPrototype) {
-    if (!isLoggedIn) {
-      return (
-        <>
-          <LoginScreen onLogin={handleLogin} />
-          <Toaster position="top-center" richColors />
-        </>
-      );
-    }
-
-    if (!hasCompletedOnboarding) {
-      return (
-        <>
-          <OnboardingFlow onComplete={handleOnboardingComplete} />
-          <Toaster position="top-center" richColors />
-        </>
-      );
-    }
-
-    return (
-      <>
-        <MainDashboard 
-          farmerName={currentUser?.user_metadata?.name || 'Farmer'} 
-          onLogout={handleLogout} 
-        />
-        <Toaster position="top-center" richColors />
-      </>
-    );
-  }
-
   // Default: Show marketing website
   return (
     <Router>
       <div className="min-h-screen bg-background">
-        <Navigation />
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/how-it-works" element={<HowItWorksPage />} />
-          <Route path="/features" element={<FeaturesPage />} />
-          <Route path="/journal-budget" element={<JournalBudgetPage />} />
-          <Route path="/impact" element={<ImpactPage />} />
-          <Route path="/communities" element={<CommunitiesPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/get-started" element={<GetStartedPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+          {/* Login/Auth Routes */}
+          <Route 
+            path="/login" 
+            element={
+              !isLoggedIn ? (
+                <>
+                  <LoginScreen onLogin={handleLogin} />
+                  <Toaster position="top-center" richColors />
+                </>
+              ) : (
+                <>
+                  <MainDashboard 
+                    farmerName={currentUser?.user_metadata?.name || currentUser?.mobile_number || 'Farmer'} 
+                    onLogout={handleLogout} 
+                  />
+                  <Toaster position="top-center" richColors />
+                </>
+              )
+            } 
+          />
+          
+          {/* App Routes - Redirect to /login if not logged in */}
+          <Route 
+            path="/app" 
+            element={
+              !isLoggedIn ? (
+                <>
+                  <LoginScreen onLogin={handleLogin} />
+                  <Toaster position="top-center" richColors />
+                </>
+              ) : (
+                <>
+                  <MainDashboard 
+                    farmerName={currentUser?.user_metadata?.name || currentUser?.mobile_number || 'Farmer'} 
+                    onLogout={handleLogout} 
+                  />
+                  <Toaster position="top-center" richColors />
+                </>
+              )
+            } 
+          />
+          
+          {/* Marketing Pages */}
+          <Route path="/" element={<><Navigation /><HomePage /></>} />
+          <Route path="/how-it-works" element={<><Navigation /><HowItWorksPage /></>} />
+          <Route path="/features" element={<><Navigation /><FeaturesPage /></>} />
+          <Route path="/journal-budget" element={<><Navigation /><JournalBudgetPage /></>} />
+          <Route path="/impact" element={<><Navigation /><ImpactPage /></>} />
+          <Route path="/communities" element={<><Navigation /><CommunitiesPage /></>} />
+          <Route path="/about" element={<><Navigation /><AboutPage /></>} />
+          <Route path="/get-started" element={<><Navigation /><GetStartedPage /></>} />
+          <Route path="/dashboard" element={<><Navigation /><DashboardPage /></>} />
         </Routes>
         
-        {/* Footer */}
-        <footer className="border-t border-border mt-20 py-12 px-4">
+        {/* Footer - Only show when NOT logged in */}
+        {!isLoggedIn && (
+        <footer className="dark bg-background text-foreground mt-20 py-12 px-4 border-t border-border">
           <div className="max-w-7xl mx-auto">
             <div className="grid md:grid-cols-4 gap-8 mb-8">
               <div>
@@ -174,7 +211,7 @@ function App() {
                   <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
                     <span className="text-primary-foreground">🌱</span>
                   </div>
-                  <span className="text-xl text-foreground">Farm Companion</span>
+                  <span className="text-xl font-serif font-bold text-foreground">Farm Companion</span>
                 </div>
                 <p className="text-muted-foreground leading-relaxed">
                   Your personal farming companion for every season.
@@ -182,7 +219,7 @@ function App() {
               </div>
               
               <div>
-                <h3 className="mb-4 text-foreground">Platform</h3>
+                <h3 className="mb-4 text-lg font-serif font-bold text-foreground">Platform</h3>
                 <ul className="space-y-2">
                   <li><a href="/how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">How It Works</a></li>
                   <li><a href="/features" className="text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
@@ -191,7 +228,7 @@ function App() {
               </div>
               
               <div>
-                <h3 className="mb-4 text-foreground">Connect</h3>
+                <h3 className="mb-4 text-lg font-serif font-bold text-foreground">Connect</h3>
                 <ul className="space-y-2">
                   <li><a href="/communities" className="text-muted-foreground hover:text-foreground transition-colors">For Communities</a></li>
                   <li><a href="/about" className="text-muted-foreground hover:text-foreground transition-colors">About Us</a></li>
@@ -200,7 +237,7 @@ function App() {
               </div>
               
               <div>
-                <h3 className="mb-4 text-foreground">Legal</h3>
+                <h3 className="mb-4 text-lg font-serif font-bold text-foreground">Legal</h3>
                 <ul className="space-y-2">
                   <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
                   <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
@@ -214,6 +251,7 @@ function App() {
             </div>
           </div>
         </footer>
+        )}
       </div>
     </Router>
   );

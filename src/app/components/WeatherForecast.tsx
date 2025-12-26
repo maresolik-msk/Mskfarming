@@ -54,12 +54,27 @@ export function WeatherForecast({ location = 'Nashik, Maharashtra', compact = tr
         
         console.log('Weather data received:', weatherData);
         
-        // Check if we got mock data from backend or real data
-        if (weatherData.isMock || !weatherData.forecast || !weatherData.forecast.list || weatherData.forecast.list.length === 0) {
-          console.log('Using local fallback weather data (live weather unavailable)');
-          // Don't throw error, just use fallback data
+        // Check if we have valid weather data
+        if (!weatherData || (!weatherData.forecast?.list && !weatherData.isMock)) {
+          console.log('No valid weather data, using default forecast');
           setIsLoading(false);
-          return; // Use the default fallback data already set in state
+          return;
+        }
+        
+        // If we got mock data or no forecast, but have current weather, use it
+        if (weatherData.isMock || !weatherData.forecast?.list || weatherData.forecast.list.length === 0) {
+          console.log('⚠️ Using mock/fallback weather data (live weather unavailable)');
+          // Set current weather from mock data
+          if (weatherData.current) {
+            setCurrentWeather(weatherData.current);
+          }
+          // Process mock forecast if available
+          if (weatherData.forecast?.list && weatherData.forecast.list.length > 0) {
+            // Continue to process the mock forecast data below
+          } else {
+            setIsLoading(false);
+            return;
+          }
         }
         
         setCurrentWeather(weatherData.current);

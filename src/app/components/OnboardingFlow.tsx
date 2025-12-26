@@ -39,6 +39,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     // Step 5: Crop Selection
     selectedCrop: '',
     plantingDate: '',
+    harvestDate: '',
     budget: '',
   });
 
@@ -47,11 +48,84 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const languages = ['English', 'हिंदी', 'मराठी', 'தமிழ்'];
   const soilTypes = ['Sandy', 'Loamy', 'Clay', 'Black Cotton'];
   const crops = [
-    { name: 'Tomato', season: 'Rabi', budget: '₹18,000' },
-    { name: 'Cotton', season: 'Kharif', budget: '₹25,000' },
-    { name: 'Wheat', season: 'Rabi', budget: '₹15,000' },
-    { name: 'Rice', season: 'Kharif', budget: '₹22,000' },
+    { name: 'Tomato', season: 'Rabi', budget: '₹18,000', durationInDays: 100 },
+    { name: 'Cotton', season: 'Kharif', budget: '₹25,000', durationInDays: 160 },
+    { name: 'Wheat', season: 'Rabi', budget: '₹15,000', durationInDays: 120 },
+    { name: 'Rice', season: 'Kharif', budget: '₹22,000', durationInDays: 120 },
   ];
+
+  // Auto-calculate harvest date and cycle status
+  const getCropStatus = (start: string, duration: number) => {
+    if (!start) return null;
+    
+    try {
+      const [year, month, day] = start.split('-').map(num => parseInt(num, 10));
+      const startDate = new Date(year, month - 1, day);
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Normalize today to midnight
+      
+      // Calculate difference in days
+      const diffTime = today.getTime() - startDate.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 0) {
+        return { 
+          status: 'upcoming', 
+          days: Math.abs(diffDays),
+          message: `Cycle starts in ${Math.abs(diffDays)} days`
+        };
+      } else if (diffDays > duration) {
+        return { 
+          status: 'completed', 
+          days: diffDays,
+          message: `Cycle completed ${diffDays - duration} days ago`
+        };
+      } else {
+        return { 
+          status: 'active', 
+          days: diffDays + 1, // Day 1 is the start date
+          message: `Current Progress: Day ${diffDays + 1} of ${duration}`
+        };
+      }
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const updateHarvestDate = (start: string, cropName: string) => {
+    // Basic validation
+    if (!start || !cropName) {
+      console.log('Missing inputs for harvest date calculation:', { start, cropName });
+      return;
+    }
+    
+    const crop = crops.find(c => c.name === cropName);
+    if (crop) {
+      try {
+        // Manually parse YYYY-MM-DD to avoid timezone issues
+        const [year, month, day] = start.split('-').map(num => parseInt(num, 10));
+        
+        // Month in Date constructor is 0-indexed (0 = Jan, 11 = Dec)
+        const startDate = new Date(year, month - 1, day);
+        
+        // Add days
+        startDate.setDate(startDate.getDate() + crop.durationInDays);
+        
+        // Format back to YYYY-MM-DD
+        const harvestYear = startDate.getFullYear();
+        const harvestMonth = String(startDate.getMonth() + 1).padStart(2, '0');
+        const harvestDay = String(startDate.getDate()).padStart(2, '0');
+        
+        const harvestDate = `${harvestYear}-${harvestMonth}-${harvestDay}`;
+        
+        console.log('Calculated harvest date:', harvestDate);
+        setFormData(prev => ({ ...prev, harvestDate }));
+      } catch (e) {
+        console.error('Error calculating harvest date:', e);
+      }
+    }
+  };
 
   const nextStep = () => {
     if (step < totalSteps) setStep(step + 1);
@@ -377,7 +451,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       {crops.map((crop) => (
                         <button
                           key={crop.name}
-                          onClick={() => setFormData({ ...formData, selectedCrop: crop.name, budget: crop.budget })}
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, selectedCrop: crop.name, budget: crop.budget }));
+                            updateHarvestDate(formData.plantingDate, crop.name);
+                          }}
                           className={`w-full p-6 rounded-xl border-2 transition-colors text-left ${
                             formData.selectedCrop === crop.name
                               ? 'border-primary bg-primary/5'
@@ -400,14 +477,49 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block mb-2 text-foreground">When do you want to start? *</label>
-                    <input
-                      type="date"
-                      value={formData.plantingDate}
-                      onChange={(e) => setFormData({ ...formData, plantingDate: e.target.value })}
-                      className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
-                    />
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block mb-2 text-foreground">When do you want to start? *</label>
+                      <input
+                        type="date"
+                        value={formData.plantingDate}
+                        onChange={(e) => {
+                          const newDate = e.target.value;
+                          setFormData(prev => ({ ...prev, plantingDate: newDate }));
+                          updateHarvestDate(newDate, formData.selectedCrop);
+                        }}
+                        className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
+                      />
+                      {formData.plantingDate && formData.selectedCrop && (
+                        <div className="mt-2 text-sm">
+                          {(() => {
+                            const crop = crops.find(c => c.name === formData.selectedCrop);
+                            const status = crop ? getCropStatus(formData.plantingDate, crop.durationInDays) : null;
+                            if (!status) return null;
+                            
+                            return (
+                              <span className={`
+                                ${status.status === 'active' ? 'text-primary font-medium' : ''}
+                                ${status.status === 'upcoming' ? 'text-blue-500' : ''}
+                                ${status.status === 'completed' ? 'text-green-600' : ''}
+                              `}>
+                                {status.message}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block mb-2 text-foreground">Estimated Harvest Date</label>
+                      <input
+                        type="date"
+                        value={formData.harvestDate}
+                        readOnly
+                        className="w-full px-4 py-3 bg-muted/50 rounded-lg border-2 border-transparent outline-none text-muted-foreground cursor-not-allowed"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

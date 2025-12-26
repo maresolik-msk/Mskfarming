@@ -7,7 +7,7 @@
 1. **Access the Prototype**
    - Go to homepage and click "Try Working Prototype"
    - OR add `?prototype=true` to URL
-   - Login with: `9876543210` + any 6-digit OTP
+   - Login with: `demo@farmerdemo.com` / `demo123`
 
 2. **Navigate to Dashboard**
    - Complete onboarding (or skip to dashboard)
