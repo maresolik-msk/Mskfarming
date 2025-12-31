@@ -39,6 +39,7 @@ export interface CropCycle {
   crop_id: string; // Lowercase identifier, e.g., "paddy", "cotton"
   crop_name: string; // Display name, e.g., "Paddy", "Cotton"
   crop_cycle_duration_days: string; // e.g., "110-150", "160-180"
+  image_url: string; // URL of the crop image
   stages: CropStage[];
 }
 

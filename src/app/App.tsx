@@ -4,9 +4,7 @@ import { Toaster } from 'sonner';
 import { Navigation } from './components/Navigation';
 import { LoginScreen } from './components/LoginScreen';
 import { OnboardingFlow } from './components/OnboardingFlow';
-import { PostLoginOnboarding } from './components/PostLoginOnboarding';
 import { MainDashboard } from './components/MainDashboard';
-import { PrototypeWelcome } from './components/PrototypeWelcome';
 import { HomePage } from './pages/HomePage';
 import { HowItWorksPage } from './pages/HowItWorksPage';
 import { FeaturesPage } from './pages/FeaturesPage';
@@ -14,12 +12,18 @@ import { JournalBudgetPage } from './pages/JournalBudgetPage';
 import { ImpactPage } from './pages/ImpactPage';
 import { CommunitiesPage } from './pages/CommunitiesPage';
 import { AboutPage } from './pages/AboutPage';
+import { ContactPage } from './pages/ContactPage';
 import { GetStartedPage } from './pages/GetStartedPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { getSession, logout as apiLogout, getUserProfile } from '../lib/api';
 import { useAppStore } from './store/appStore';
+import './i18n';
+import { useTranslation } from 'react-i18next';
+import { AppFooter } from './components/AppFooter';
+import { ScrollToTop } from './components/ScrollToTop';
 
 function App() {
+  const { t } = useTranslation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -131,6 +135,9 @@ function App() {
     
     // Dispatch custom event to notify other components
     window.dispatchEvent(new Event('authStateChanged'));
+
+    // Redirect to home page
+    window.location.href = '/';
   };
 
   // Show loading state while checking auth
@@ -141,7 +148,7 @@ function App() {
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary flex items-center justify-center text-3xl animate-pulse">
             🌱
           </div>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{t('common.loading')}</p>
         </div>
         <Toaster position="top-center" richColors />
       </div>
@@ -151,6 +158,7 @@ function App() {
   // Default: Show marketing website
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen bg-background">
         <Routes>
           {/* Login/Auth Routes */}
@@ -196,68 +204,17 @@ function App() {
           />
           
           {/* Marketing Pages */}
-          <Route path="/" element={<><Navigation /><HomePage /></>} />
-          <Route path="/how-it-works" element={<><Navigation /><HowItWorksPage /></>} />
-          <Route path="/features" element={<><Navigation /><FeaturesPage /></>} />
-          <Route path="/journal-budget" element={<><Navigation /><JournalBudgetPage /></>} />
-          <Route path="/impact" element={<><Navigation /><ImpactPage /></>} />
-          <Route path="/communities" element={<><Navigation /><CommunitiesPage /></>} />
-          <Route path="/about" element={<><Navigation /><AboutPage /></>} />
-          <Route path="/get-started" element={<><Navigation /><GetStartedPage /></>} />
+          <Route path="/" element={<><Navigation /><HomePage /><AppFooter /></>} />
+          <Route path="/how-it-works" element={<><Navigation /><HowItWorksPage /><AppFooter /></>} />
+          <Route path="/features" element={<><Navigation /><FeaturesPage /><AppFooter /></>} />
+          <Route path="/journal-budget" element={<><Navigation /><JournalBudgetPage /><AppFooter /></>} />
+          <Route path="/impact" element={<><Navigation /><ImpactPage /><AppFooter /></>} />
+          <Route path="/communities" element={<><Navigation /><CommunitiesPage /><AppFooter /></>} />
+          <Route path="/about" element={<><Navigation /><AboutPage /><AppFooter /></>} />
+          <Route path="/contact" element={<><Navigation /><ContactPage /><AppFooter /></>} />
+          <Route path="/get-started" element={<><Navigation /><GetStartedPage /><AppFooter /></>} />
           <Route path="/dashboard" element={<><Navigation /><DashboardPage /></>} />
         </Routes>
-        
-        {/* Footer - Only show when NOT logged in */}
-        {!isLoggedIn && (
-        <footer className="dark bg-background text-foreground mt-20 py-12 px-4 border-t border-border">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid md:grid-cols-4 gap-8 mb-8">
-              <div>
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                    <span className="text-primary-foreground">🌱</span>
-                  </div>
-                  <span className="text-xl font-serif font-bold text-foreground">Farm Companion</span>
-                </div>
-                <p className="text-muted-foreground leading-relaxed">
-                  Your personal farming companion for every season.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="mb-4 text-lg font-serif font-bold text-foreground">Platform</h3>
-                <ul className="space-y-2">
-                  <li><a href="/how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">How It Works</a></li>
-                  <li><a href="/features" className="text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
-                  <li><a href="/impact" className="text-muted-foreground hover:text-foreground transition-colors">Impact</a></li>
-                </ul>
-              </div>
-              
-              <div>
-                <h3 className="mb-4 text-lg font-serif font-bold text-foreground">Connect</h3>
-                <ul className="space-y-2">
-                  <li><a href="/communities" className="text-muted-foreground hover:text-foreground transition-colors">For Communities</a></li>
-                  <li><a href="/about" className="text-muted-foreground hover:text-foreground transition-colors">About Us</a></li>
-                  <li><a href="/get-started" className="text-muted-foreground hover:text-foreground transition-colors">Get Started</a></li>
-                </ul>
-              </div>
-              
-              <div>
-                <h3 className="mb-4 text-lg font-serif font-bold text-foreground">Legal</h3>
-                <ul className="space-y-2">
-                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
-                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a></li>
-                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Contact</a></li>
-                </ul>
-              </div>
-            </div>
-            
-            <div className="pt-8 border-t border-border text-center text-muted-foreground">
-              <p>© 2025 MS Farm. Built by farmer for farmers.</p>
-            </div>
-          </div>
-        </footer>
-        )}
       </div>
     </Router>
   );

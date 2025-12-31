@@ -26,6 +26,7 @@ const ALLUVIAL_PADDY: CropCycle = {
   crop_id: "paddy",
   crop_name: "Paddy (Rice)",
   crop_cycle_duration_days: "110-150",
+  image_url: "https://images.unsplash.com/photo-1701665836468-4346c4d0d574?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwYWRkeSUyMHJpY2UlMjBmaWVsZCUyMGluZGlhfGVufDF8fHx8MTc2Njg1MjQyNnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
   stages: [
     {
       stage_id: 1,
@@ -125,6 +126,7 @@ const ALLUVIAL_WHEAT: CropCycle = {
   crop_id: "wheat",
   crop_name: "Wheat",
   crop_cycle_duration_days: "120-150",
+  image_url: "https://images.unsplash.com/photo-1676993842545-e0b8265dee9f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3aGVhdCUyMGZpZWxkJTIwaW5kaWF8ZW58MXx8fHwxNzY2ODUyNDI2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
   stages: [
     {
       stage_id: 1,
@@ -224,6 +226,7 @@ const ALLUVIAL_SUGARCANE: CropCycle = {
   crop_id: "sugarcane",
   crop_name: "Sugarcane",
   crop_cycle_duration_days: "300-365",
+  image_url: "https://images.unsplash.com/photo-1606707718537-af0e5460849b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdWdhcmNhbmUlMjBmaWVsZCUyMGluZGlhfGVufDF8fHx8MTc2Njg1MjQyNnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
   stages: [
     {
       stage_id: 1,
@@ -323,6 +326,7 @@ const ALLUVIAL_MAIZE: CropCycle = {
   crop_id: "maize",
   crop_name: "Maize",
   crop_cycle_duration_days: "90-120",
+  image_url: "https://images.unsplash.com/photo-1657520832269-cea57052ec7b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYWl6ZSUyMGNvcm4lMjBmaWVsZCUyMGluZGlhfGVufDF8fHx8MTc2Njg1MjQyNnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
   stages: [
     {
       stage_id: 1,
@@ -430,6 +434,7 @@ const BLACK_COTTON: CropCycle = {
   crop_id: "cotton",
   crop_name: "Cotton",
   crop_cycle_duration_days: "160-180",
+  image_url: "https://images.unsplash.com/photo-1707811179851-c1f93698ad46?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3R0b24lMjBmaWVsZCUyMGluZGlhfGVufDF8fHx8MTc2Njg1MjQyNnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
   stages: [
     {
       stage_id: 1,
@@ -529,6 +534,7 @@ const BLACK_SOYBEAN: CropCycle = {
   crop_id: "soybean",
   crop_name: "Soybean",
   crop_cycle_duration_days: "90-120",
+  image_url: "https://images.unsplash.com/photo-1597474417024-3ca3baa9fb13?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb3liZWFuJTIwZmllbGQlMjBpbmRpYXxlbnwxfHx8fDE3NjY4NTI0MjZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
   stages: [
     {
       stage_id: 1,
@@ -636,6 +642,7 @@ const RED_GROUNDNUT: CropCycle = {
   crop_id: "groundnut",
   crop_name: "Groundnut",
   crop_cycle_duration_days: "100-120",
+  image_url: "https://images.unsplash.com/photo-1639049327329-7d83406add70?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxncm91bmRudXQlMjBwZWFudXQlMjBmaWVsZCUyMGluZGlhfGVufDF8fHx8MTc2Njg1MjQyNnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
   stages: [
     {
       stage_id: 1,
@@ -743,6 +750,7 @@ const ARID_BAJRA: CropCycle = {
   crop_id: "bajra",
   crop_name: "Bajra (Pearl Millet)",
   crop_cycle_duration_days: "75-95",
+  image_url: "https://images.unsplash.com/photo-1724418020207-144b3ba54d2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZWFybCUyMG1pbGxldCUyMGNyb3B8ZW58MXx8fHwxNzY2ODUyNDQwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
   stages: [
     {
       stage_id: 1,

@@ -1,0 +1,47 @@
+
+const svgPaths = {
+  p11110080: "M6.94321 4.02393C7.77216 3.95621 8.49877 4.5582 8.22 5.34572C7.80153 6.52759 5.97007 6.45688 4.89856 7.05471C2.67662 8.29436 1.2614 10.5725 0.486068 13.0121C0.401796 13.4351 0.383104 13.5804 0.187643 13.982L0.0667399 13.936C-0.234675 12.2516 0.534882 9.91267 1.37162 8.46569C2.68409 6.19637 4.40735 4.71564 6.94321 4.02393Z",
+  p2c30eb70: "M10.4406 10.4284C11.2261 10.3964 11.9397 10.6858 12.2152 11.4816C12.3579 11.9045 12.3153 12.3681 12.0978 12.759C11.783 13.3251 11.4656 13.4287 10.898 13.5922C8.83404 13.7214 8.30096 11.2711 10.4406 10.4284Z",
+  p2e86fb80: "M10.7174 0.0162961C11.1444 -0.0708621 11.5627 0.200119 11.6577 0.625442C11.7529 1.05087 11.4897 1.47417 11.0662 1.57714C10.7851 1.6455 10.489 1.55663 10.2919 1.34493C10.0948 1.13323 10.0274 0.831593 10.1155 0.556019C10.2037 0.280552 10.4339 0.0741879 10.7174 0.0162961Z",
+  p33acc980: "M14.0971 4.03505C17.2322 3.75702 20.9666 9.33472 21.3073 12.0968C22.0847 18.3997 19.0516 24.0319 12.3771 25.053C9.31485 25.5219 6.3117 24.5061 3.8787 22.685C2.86188 21.9608 0.702732 20.1333 2.33189 18.9156C3.8128 17.808 6.79416 19.5971 8.51111 19.8652C11.1782 20.2764 13.8989 19.6024 16.0665 17.9949C19.7497 15.2648 20.4825 10.1752 16.6983 7.22273C15.9242 6.61882 10.88 5.71445 14.0971 4.03505ZM6.11784 22.6999C7.1446 23.2404 8.21408 23.768 9.37819 23.9422C13.1796 24.5093 17.9214 22.2802 19.7414 18.859C20.7878 16.8926 21.0801 14.2437 20.6529 12.0807C20.6023 11.818 20.4109 11.5178 20.1522 11.4174C19.8757 12.4161 19.6895 13.5964 19.4076 14.5054C18.7993 16.4653 16.8908 18.5375 15.1098 19.5533C13.6622 20.3928 12.0142 20.8254 10.3409 20.803C9.54267 20.7998 9.27533 20.741 8.53782 20.6609C7.47165 20.5466 5.07795 19.47 4.48089 20.5968C4.49456 21.4727 5.40137 22.3037 6.11784 22.6999Z",
+};
+
+function Group() {
+  return (
+    <div className="absolute inset-[13.75%_19.41%_14.34%_19.38%]">
+      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 21.4264 25.1669">
+        <g id="Group 1">
+          <path d={svgPaths.p33acc980} fill="currentColor" id="Vector" />
+          <path d={svgPaths.p11110080} fill="currentColor" id="Vector_2" />
+          <path d={svgPaths.p2c30eb70} fill="currentColor" id="Vector_3" />
+          <path d={svgPaths.p2e86fb80} fill="currentColor" id="Vector_4" />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+function Logo() {
+  return (
+    <div className="overflow-clip relative shrink-0 size-[35px]" data-name="Logo 3">
+      <Group />
+    </div>
+  );
+}
+
+interface MilaLogoProps {
+  className?: string;
+}
+
+export function MilaLogo({ className }: MilaLogoProps) {
+  return (
+    <div className={`relative ${className || 'size-full'}`}>
+      <div className="flex flex-row items-center justify-center size-full">
+        <div className="content-stretch flex gap-[2px] items-center justify-center p-[4px] relative size-full">
+          <Logo />
+          <p className="font-['Kugile:Regular',sans-serif] h-[19px] leading-[normal] not-italic relative shrink-0 text-current text-[16px] text-center tracking-[3px] w-[50px] font-bold">MILA</p>
+        </div>
+      </div>
+    </div>
+  );
+}

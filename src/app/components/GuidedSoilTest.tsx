@@ -5,7 +5,7 @@ import {
   ChevronRight, 
   ChevronLeft, 
   Volume2, 
-  CheckCircle2,
+  Check,
   Circle,
   Play,
   HelpCircle
@@ -400,16 +400,17 @@ export function GuidedSoilTest({ testType, onClose, onComplete }: GuidedSoilTest
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-card rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-card rounded-3xl p-0 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-hidden flex flex-col ring-1 ring-white/10"
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
+        <div className="flex items-center justify-between p-6 pb-4 bg-card/95 backdrop-blur-sm border-b border-border shrink-0 z-10">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-2xl">{testConfig.emoji}</span>
-              <h3 className="text-xl text-foreground">{testConfig.name}</h3>
+              <h3 className="text-xl font-bold text-foreground font-[Megrim]">{testConfig.name}</h3>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-widest mt-1">
+              <span className="w-2 h-2 rounded-full bg-[#812F0F] animate-pulse"></span>
               Step {currentStep + 1} of {testConfig.steps.length}
             </div>
           </div>
@@ -422,16 +423,15 @@ export function GuidedSoilTest({ testType, onClose, onComplete }: GuidedSoilTest
         </div>
 
         {/* Progress Bar */}
-        <div className="mb-6">
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${((currentStep + 1) / testConfig.steps.length) * 100}%` }}
-              className="h-full bg-primary"
-            />
-          </div>
+        <div className="w-full h-1 bg-muted/50">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${((currentStep + 1) / testConfig.steps.length) * 100}%` }}
+            className="h-full bg-gradient-to-r from-[#812F0F] to-[#963714]"
+          />
         </div>
 
+        <div className="overflow-y-auto p-6 flex-1 scrollbar-hide">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -442,24 +442,28 @@ export function GuidedSoilTest({ testType, onClose, onComplete }: GuidedSoilTest
             {/* Step Content */}
             <div className="mb-6">
               {/* Title */}
-              <div className="mb-4">
-                <h4 className="text-2xl text-foreground mb-2">{currentStepData.title}</h4>
-                <p className="text-foreground">{currentStepData.instruction}</p>
+              <div className="mb-6 text-center">
+                <h4 className="text-2xl font-bold text-foreground mb-3">{currentStepData.title}</h4>
+                <p className="text-muted-foreground leading-relaxed max-w-md mx-auto">{currentStepData.instruction}</p>
               </div>
 
               {/* Visual Placeholder */}
-              <div className="mb-4 aspect-video bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20 flex items-center justify-center">
-                <div className="text-center p-8">
-                  <div className="text-6xl mb-4">{testConfig.emoji}</div>
-                  <div className="text-sm text-muted-foreground mb-3">
-                    {currentStepData.title}
+              <div className="mb-6 aspect-video bg-gradient-to-br from-[#812F0F]/5 to-transparent rounded-2xl border border-[#812F0F]/10 flex items-center justify-center relative overflow-hidden group">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.05)_100%)] pointer-events-none" />
+                
+                <div className="text-center p-8 relative z-10">
+                  <div className="w-20 h-20 rounded-full bg-[#812F0F]/10 flex items-center justify-center mx-auto mb-4 border border-[#812F0F]/20 shadow-inner">
+                    <span className="text-5xl">{testConfig.emoji}</span>
                   </div>
+                  
                   <button
                     onClick={() => setShowVideo(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors mx-auto"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-[#812F0F] text-white rounded-full hover:bg-[#963714] transition-all shadow-lg shadow-[#812F0F]/20 group-hover:scale-105 active:scale-95"
                   >
-                    <Play className="w-4 h-4" />
-                    Watch How To Do This
+                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                        <Play className="w-3 h-3 fill-current" />
+                    </div>
+                    <span className="text-sm font-bold">Watch Tutorial</span>
                   </button>
                 </div>
               </div>
@@ -467,38 +471,46 @@ export function GuidedSoilTest({ testType, onClose, onComplete }: GuidedSoilTest
               {/* Voice Instructions */}
               <button
                 onClick={handlePlayVoice}
-                className="w-full mb-4 flex items-center justify-center gap-2 p-4 bg-blue-500/10 text-blue-600 rounded-lg hover:bg-blue-500/20 transition-colors border border-blue-500/20"
+                className="w-full mb-6 flex items-center justify-center gap-3 p-4 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-xl hover:bg-amber-500/20 transition-colors border border-amber-500/20 group"
               >
-                <Volume2 className="w-5 h-5" />
-                <span>Play Voice Instructions</span>
+                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Volume2 className="w-4 h-4" />
+                </div>
+                <span className="font-medium">Play Voice Instructions</span>
               </button>
 
               {/* Checklist */}
               {currentStepData.checklist && (
-                <div className="mb-6 p-4 bg-muted rounded-lg">
-                  <div className="font-medium text-foreground mb-3">
-                    ✓ Complete these steps:
+                <div className="mb-8 p-5 bg-muted/30 rounded-2xl border border-border/50">
+                  <div className="font-bold text-xs uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#812F0F]" />
+                    Action Checklist
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {currentStepData.checklist.map((item, index) => (
-                      <div key={index} className="flex items-start gap-2 text-sm">
-                        <Circle className="w-4 h-4 text-muted-foreground mt-0.5" />
-                        <span className="text-foreground">{item}</span>
+                      <div key={index} className="flex items-start gap-3 text-sm p-3 bg-card rounded-xl border border-border/50">
+                        <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${checklistCompleted[currentStep] ? 'border-[#812F0F] bg-[#812F0F]' : 'border-muted-foreground/30'}`}>
+                            {checklistCompleted[currentStep] && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                        <span className={`transition-opacity ${checklistCompleted[currentStep] ? 'opacity-50 line-through' : 'opacity-100'}`}>{item}</span>
                       </div>
                     ))}
                   </div>
                   {!checklistCompleted[currentStep] && (
                     <button
                       onClick={handleChecklistComplete}
-                      className="w-full mt-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                      className="w-full mt-4 py-3 bg-[#812F0F] text-white rounded-xl hover:bg-[#963714] transition-all font-bold shadow-md shadow-[#812F0F]/20 flex items-center justify-center gap-2"
                     >
-                      ✓ I've Done These Steps
+                      <span>I've Done These Steps</span>
+                      <Check className="w-4 h-4" />
                     </button>
                   )}
                   {checklistCompleted[currentStep] && (
-                    <div className="mt-3 p-2 bg-green-500/10 rounded-lg border border-green-500/20 flex items-center justify-center gap-2 text-green-600">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span className="text-sm">Steps completed!</span>
+                    <div className="mt-4 p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex items-center justify-center gap-2 text-emerald-600 font-medium animate-in fade-in zoom-in">
+                      <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                        <Check className="w-3 h-3" />
+                      </div>
+                      Steps completed!
                     </div>
                   )}
                 </div>
@@ -506,65 +518,78 @@ export function GuidedSoilTest({ testType, onClose, onComplete }: GuidedSoilTest
 
               {/* Observations (Last Step) */}
               {isLastStep && (
-                <div className="space-y-3">
-                  <div className="text-foreground font-medium mb-3">
-                    What did you observe? (Tap your answer)
+                <div className="space-y-4">
+                  <div className="text-center mb-4">
+                    <h5 className="font-bold text-lg">What did you observe?</h5>
+                    <p className="text-sm text-muted-foreground">Select the option that best matches your result</p>
                   </div>
+                  
+                  <div className="grid gap-3">
                   {testConfig.observations.map((obs) => (
                     <button
                       key={obs.id}
                       onClick={() => setSelectedObservation(obs.value)}
-                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                      className={`w-full text-left p-4 rounded-2xl border-2 transition-all relative overflow-hidden group ${
                         selectedObservation === obs.value
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
+                          ? 'border-[#812F0F] bg-[#812F0F]/5'
+                          : 'border-border hover:border-[#812F0F]/30 hover:bg-muted/30'
                       }`}
                     >
-                      <div className="flex items-start gap-3">
-                        <div className="text-3xl">{obs.emoji}</div>
-                        <div className="flex-1">
-                          <div className="text-foreground font-medium mb-1">{obs.label}</div>
-                          <div className="text-sm text-muted-foreground">{obs.description}</div>
+                      <div className="flex items-center gap-4 relative z-10">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl border transition-colors ${
+                            selectedObservation === obs.value ? 'bg-[#812F0F]/10 border-[#812F0F]/20' : 'bg-muted border-border'
+                        }`}>
+                            {obs.emoji}
                         </div>
-                        {selectedObservation === obs.value && (
-                          <CheckCircle2 className="w-5 h-5 text-primary" />
-                        )}
+                        <div className="flex-1">
+                          <div className={`font-bold mb-0.5 ${selectedObservation === obs.value ? 'text-[#812F0F]' : 'text-foreground'}`}>{obs.label}</div>
+                          <div className="text-xs text-muted-foreground">{obs.description}</div>
+                        </div>
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                            selectedObservation === obs.value ? 'border-[#812F0F] bg-[#812F0F]' : 'border-muted-foreground/30'
+                        }`}>
+                            {selectedObservation === obs.value && <Check className="w-3.5 h-3.5 text-white" />}
+                        </div>
                       </div>
                     </button>
                   ))}
+                  </div>
                 </div>
               )}
             </div>
           </motion.div>
         </AnimatePresence>
-
-        {/* Help */}
-        <div className="mb-6 p-3 bg-muted rounded-lg">
-          <button className="flex items-center gap-2 text-sm text-primary hover:underline">
-            <HelpCircle className="w-4 h-4" />
-            Need help? Talk to Expert
-          </button>
         </div>
 
-        {/* Navigation */}
-        <div className="flex gap-3 sticky bottom-0 bg-card pt-4 border-t border-border">
-          <button
-            onClick={handlePrevious}
-            disabled={currentStep === 0}
-            className="px-6 py-3 rounded-lg border-2 border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-          >
-            <ChevronLeft className="w-5 h-5" />
-            Back
-          </button>
+        {/* Footer Actions */}
+        <div className="p-6 pt-4 bg-card border-t border-border shrink-0 flex flex-col gap-4">
+            {/* Help Link */}
+            <div className="flex justify-center">
+                <button className="flex items-center gap-2 text-xs font-bold text-[#812F0F] hover:underline uppercase tracking-wider">
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    Need help? Talk to Expert
+                </button>
+            </div>
 
-          <button
-            onClick={handleNext}
-            disabled={!canProceed}
-            className="flex-1 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-          >
-            {isLastStep ? 'Complete Test' : 'Next Step'}
-            <ChevronRight className="w-5 h-5" />
-          </button>
+            <div className="flex gap-3">
+            <button
+                onClick={handlePrevious}
+                disabled={currentStep === 0}
+                className="px-6 py-3.5 rounded-xl border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 font-medium"
+            >
+                <ChevronLeft className="w-5 h-5" />
+                Back
+            </button>
+
+            <button
+                onClick={handleNext}
+                disabled={!canProceed}
+                className="flex-1 py-3.5 rounded-xl bg-[#812F0F] text-white hover:bg-[#963714] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#812F0F]/20 flex items-center justify-center gap-2 font-bold"
+            >
+                {isLastStep ? 'Complete Test' : 'Next Step'}
+                <ChevronRight className="w-5 h-5" />
+            </button>
+            </div>
         </div>
       </motion.div>
     </div>

@@ -30,20 +30,30 @@ export function getAuthToken() {
     if (storedToken) {
       console.log('Restoring auth token from localStorage');
       authToken = storedToken;
+    } else {
+      // Fallback: Try to recover from current_session
+      const sessionStr = localStorage.getItem('current_session');
+      if (sessionStr) {
+        try {
+          const session = JSON.parse(sessionStr);
+          if (session.access_token) {
+            console.log('Restoring auth token from current_session fallback');
+            authToken = session.access_token;
+            localStorage.setItem('authToken', authToken); // Restore key
+          }
+        } catch (e) {
+          console.error('Failed to parse current_session', e);
+        }
+      }
     }
   }
   
-  console.log('getAuthToken called, returning:', authToken ? 'SET' : 'NULL');
+  // console.log('getAuthToken called, returning:', authToken ? 'SET' : 'NULL');
   return authToken;
 }
 
 async function apiRequest(endpoint: string, options: RequestInit = {}) {
-  // Get the current auth token (with localStorage fallback)
-  // Force reload from localStorage if memory is empty to prevent race conditions
-  if (!authToken) {
-    const stored = localStorage.getItem('authToken');
-    if (stored) authToken = stored;
-  }
+  // Always try to get the latest token using our robust retrieval logic
   const currentToken = getAuthToken();
   
   // Public endpoints that don't require user authentication - DON'T send Authorization header at all
@@ -640,6 +650,28 @@ export async function deleteExpense(id: string) {
   return response;
 }
 
+// ============= SIMULATION API =============
+
+export async function triggerHeartbeat() {
+  if (CLIENT_SIDE_AUTH) {
+    console.log('Heartbeat skipped (Client Side Auth)');
+    return { success: true };
+  }
+
+  try {
+    const response = await apiRequest('/simulation/heartbeat', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    console.log('Simulation Heartbeat Response:', response);
+    return response;
+  } catch (error) {
+    console.error('Failed to trigger heartbeat:', error);
+    // Non-blocking error - don't throw
+    return { success: false, error };
+  }
+}
+
 // ============= JOURNAL API =============
 
 export async function getJournalEntries() {
@@ -933,5 +965,231 @@ export async function deleteField(fieldId: string) {
   const response = await apiRequest(`/fields/${fieldId}`, {
     method: 'DELETE',
   });
+  return response;
+}
+
+// ============= CROP SIMULATION API =============
+
+export type CropType = 'Wheat' | 'Rice' | 'Maize' | 'Groundnut' | 'Cotton' | 'Soybean' | 'Sugarcane' | 'Bajra';
+export type SoilType = 'Sandy Loam' | 'Clay Loam' | 'Silt Clay';
+
+export interface SimulationParams {
+  crop_type: CropType;
+  sowing_date: string;
+  soil_type: SoilType;
+  initial_soil_water_pct: number;
+  nitrogen_applied_kg_ha: number;
+  simulation_days?: number;
+}
+
+export interface DailyOutput {
+  day: number;
+  date: string;
+  stage: string;
+  gdd_cum: number;
+  biomass: number;
+  lai: number;
+  root_depth: number;
+  soil_water: number;
+  water_stress: number;
+  et_crop: number;
+}
+
+export interface SimulationResult {
+  summary: {
+    total_biomass: number;
+    yield: number;
+    days_to_maturity: number;
+    total_water_use: number;
+    average_stress: number;
+  };
+  daily_logs: DailyOutput[];
+}
+
+// --- V2 API Models ---
+
+export interface SimulationParamsV2 {
+  cropType: CropType;
+  startDate: string;
+  initialSoilWater: number;
+  initialNitrogen: number;
+  operations: Array<{
+    date: string;
+    operation_type: 'Sowing' | 'Irrigation' | 'Fertilizer' | 'Spray' | 'Harvest';
+    quantity?: number;
+    nutrient_content?: { n_pct: number };
+  }>;
+}
+
+export interface SeasonResultV2 {
+  logs: Array<{
+    day_index: number;
+    date: string;
+    stage_name: string;
+    gdd_today: number;
+    accumulated_gdd: number;
+    water_balance: {
+      start: number;
+      rain: number;
+      irrigation: number;
+      et: number;
+      end: number;
+      drainage: number;
+    };
+    stress: {
+      water: number;
+      nutrient: number;
+      temperature: number;
+      combined: number;
+    };
+    growth: {
+      biomass_gain: number;
+      accumulated_biomass: number;
+      yield_potential_penalty: number;
+    };
+    advisory: string;
+  }>;
+  summary: {
+    total_days: number;
+    total_rainfall: number;
+    total_irrigation: number;
+    final_yield_t_ha: number;
+    yield_potential_realized_pct: number;
+    key_limiting_factors: string[];
+    harvest_date: string;
+  };
+}
+
+export async function runSimulationV2(params: SimulationParamsV2): Promise<SeasonResultV2> {
+  if (CLIENT_SIDE_AUTH) {
+    console.warn('Running in client-side auth mode. Simulation requires backend.');
+    // Mock V2 Response
+    return {
+      logs: [],
+      summary: {
+        total_days: 120,
+        total_rainfall: 500,
+        total_irrigation: 200,
+        final_yield_t_ha: 5.5,
+        yield_potential_realized_pct: 85,
+        key_limiting_factors: ["Water Availability"],
+        harvest_date: "2024-10-15"
+      }
+    };
+  }
+
+  const response = await apiRequest('/simulation/run-v2', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+  
+  return response;
+}
+
+export async function runSimulation(params: SimulationParams): Promise<SimulationResult> {
+  // If we wanted client-side simulation fallback, we would implement the logic here too.
+  // For now, we rely on the backend engine.
+  
+  if (CLIENT_SIDE_AUTH) {
+    console.warn('Running in client-side auth mode. Simulation requires backend.');
+    // Simple mock result so UI doesn't crash
+    return {
+      summary: {
+        total_biomass: 12000,
+        yield: 4500,
+        days_to_maturity: 140,
+        total_water_use: 450,
+        average_stress: 0.15
+      },
+      daily_logs: []
+    };
+  }
+  
+  const response = await apiRequest('/simulation/run', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+  
+  return response;
+}
+
+// ============= NUTRIENT API =============
+
+export async function calculateNutrients(
+  cropType: string,
+  sowingDate: string,
+  fieldSizeAcres: number,
+  fieldId?: string
+) {
+  if (CLIENT_SIDE_AUTH) {
+    // Mock local calculation
+    console.log('Calculating nutrients locally...');
+    return {
+      success: true,
+      plan: {
+        id: 'local_plan',
+        schedule: [],
+        totals: { n: 50, p: 30, k: 20 }
+      }
+    };
+  }
+  
+  const response = await apiRequest('/nutrient/calculate', {
+    method: 'POST',
+    body: JSON.stringify({
+      cropType,
+      sowingDate,
+      fieldSizeAcres,
+      fieldId
+    })
+  });
+  
+  return response;
+}
+
+export async function getNutrientPlans() {
+  if (CLIENT_SIDE_AUTH) return { plans: [] };
+  
+  const response = await apiRequest('/nutrient/plans');
+  return response;
+}
+
+// ============= CROP MANAGEMENT API =============
+
+export async function calculateCropManagementPlan(
+  cropType: string,
+  sowingDate: string,
+  fieldSizeAcres: number,
+  fieldId?: string
+) {
+  if (CLIENT_SIDE_AUTH) {
+    console.log('Calculating crop plan locally (Mock)...');
+    return { success: false, error: "Backend required for crop planning" };
+  }
+  
+  const response = await apiRequest('/crop/management/calculate', {
+    method: 'POST',
+    body: JSON.stringify({
+      cropType,
+      sowingDate,
+      fieldSizeAcres,
+      fieldId
+    })
+  });
+  
+  return response;
+}
+
+export async function getCropManagementPlans() {
+  if (CLIENT_SIDE_AUTH) return { plans: [] };
+  
+  const response = await apiRequest('/crop/management/plans');
+  return response;
+}
+
+export async function getCropDetails(cropType: string) {
+  if (CLIENT_SIDE_AUTH) return { details: null };
+  
+  const response = await apiRequest(`/crop/management/details/${cropType}`);
   return response;
 }

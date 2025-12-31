@@ -7,10 +7,10 @@ import {
   ThermometerSun, 
   Wind, 
   Calendar, 
-  CheckCircle2, 
+  CircleCheck, 
   Circle,
   TrendingUp,
-  AlertCircle,
+  CircleAlert,
   MoreVertical,
   Leaf,
   Map as MapIcon,
@@ -31,6 +31,7 @@ interface CropDetailViewProps {
     boundary?: any;
     plantingDate?: string;
     soilType?: string;
+    soilProfile?: any;
   };
   onBack: () => void;
 }
@@ -155,11 +156,22 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
   }, [cropInfo]);
 
   // Mock additional data for the detail view
+  // Dynamic Health Metrics
+  const soilHealthStatus = cropInfo.soilProfile 
+    ? (cropInfo.soilProfile.results.riskLevel === 'low' ? 'Excellent' : 
+       cropInfo.soilProfile.results.riskLevel === 'medium' ? 'Average' : 'Poor')
+    : 'Unknown';
+    
+  const soilHealthValue = cropInfo.soilProfile 
+    ? (cropInfo.soilProfile.results.riskLevel === 'low' ? '98%' : 
+       cropInfo.soilProfile.results.riskLevel === 'medium' ? '75%' : '40%')
+    : '--';
+
   const healthMetrics = [
     { label: 'Moisture', value: '62%', status: 'Optimal', icon: Droplets, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     { label: 'Soil Temp', value: '24°C', status: 'Normal', icon: ThermometerSun, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    { label: 'Humidity', value: '45%', status: 'Low', icon: Wind, color: 'text-slate-500', bg: 'bg-slate-500/10' },
-    { label: 'Health', value: '98%', status: 'Excellent', icon: Leaf, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { label: 'Soil Type', value: cropInfo.soilType || 'N/A', status: 'Fixed', icon: MapIcon, color: 'text-slate-500', bg: 'bg-slate-500/10' },
+    { label: 'Soil Health', value: soilHealthValue, status: soilHealthStatus, icon: Leaf, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
   ];
 
   // Use AI tasks if available, otherwise fall back to mock
@@ -185,7 +197,7 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-3xl overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-3xl overflow-y-auto overflow-x-hidden">
       <motion.div 
         variants={container}
         initial="hidden"
@@ -211,22 +223,22 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
         </motion.div>
 
         {/* Hero Section */}
-        <motion.div variants={item} className="px-6 pt-4 pb-8">
-          <div className="flex items-start justify-between mb-6">
+        <motion.div variants={item} className="px-4 md:px-6 pt-4 pb-6 md:pb-8">
+          <div className="flex items-start justify-between mb-4 md:mb-6">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-600 text-xs font-bold uppercase tracking-wider mb-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-600 text-xs font-bold uppercase tracking-wider mb-2 md:mb-3">
                 <Sprout className="w-3.5 h-3.5" />
                 <span>{cropInfo.field}</span>
               </div>
-              <h1 className="text-5xl font-bold text-foreground tracking-tight mb-2">
+              <h1 className="text-3xl md:text-5xl font-bold text-foreground tracking-tight mb-2">
                 {cropInfo.name}
               </h1>
-              <p className="text-muted-foreground text-lg">Vegetative Stage</p>
+              <p className="text-muted-foreground text-base md:text-lg">Vegetative Stage</p>
             </div>
           </div>
 
           {/* Large Progress Ring Card */}
-          <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-emerald-600 to-green-500 p-8 text-white shadow-2xl shadow-green-900/20">
+          <div className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] bg-gradient-to-br from-emerald-600 to-green-500 p-5 md:p-8 text-white shadow-2xl shadow-green-900/20">
              {/* Background Pattern */}
              <div className="absolute inset-0 opacity-10" 
                 style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} 
@@ -234,7 +246,7 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
              
              <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="relative w-48 h-48 mb-6">
+                <div className="relative w-32 h-32 md:w-48 md:h-48 mb-4 md:mb-6">
                   {/* SVG Circle Progress */}
                   <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
                     <circle
@@ -260,20 +272,20 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-5xl font-bold tracking-tighter">{cropInfo.day}</span>
-                    <span className="text-sm font-medium opacity-80 uppercase tracking-wide">Days Old</span>
+                    <span className="text-3xl md:text-5xl font-bold tracking-tighter">{cropInfo.day}</span>
+                    <span className="text-[10px] md:text-sm font-medium opacity-80 uppercase tracking-wide">Days Old</span>
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-center gap-8 w-full border-t border-white/20 pt-6 mt-2">
+                <div className="flex items-center justify-center gap-3 md:gap-8 w-full border-t border-white/20 pt-4 md:pt-6 mt-2">
                   <div className="text-center">
-                     <div className="text-xs opacity-70 uppercase tracking-wider mb-1">Total Cycle</div>
-                     <div className="text-xl font-bold">{cropInfo.totalDays} Days</div>
+                     <div className="text-[10px] md:text-xs opacity-70 uppercase tracking-wider mb-1">Total Cycle</div>
+                     <div className="text-lg md:text-xl font-bold">{cropInfo.totalDays} Days</div>
                   </div>
                   <div className="h-8 w-px bg-white/20" />
                   <div className="text-center">
-                     <div className="text-xs opacity-70 uppercase tracking-wider mb-1">Harvest</div>
-                     <div className="text-xl font-bold">~45 Days</div>
+                     <div className="text-[10px] md:text-xs opacity-70 uppercase tracking-wider mb-1">Harvest</div>
+                     <div className="text-lg md:text-xl font-bold">~45 Days</div>
                   </div>
                 </div>
              </div>
@@ -304,34 +316,38 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
         </motion.div>
 
         {/* Tabs Navigation */}
-        <motion.div variants={item} className="px-4 mb-6">
-          <div className="flex gap-2 bg-muted/50 rounded-2xl p-1.5">
+        {/* Sticky Tab Navigation (HUD Style) */}
+        <motion.div 
+          variants={item} 
+          className="sticky top-[4.5rem] z-30 flex justify-center px-4 mb-6"
+        >
+          <div className="flex items-center gap-1 p-1 bg-black/70 backdrop-blur-md rounded-full border border-white/10 shadow-2xl max-w-sm w-full bg-[rgba(0,0,0,0.19)]">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${
+              className={`flex-1 py-2 px-3 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wide transition-all duration-300 ${
                 activeTab === 'overview'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                  : 'text-white/60 hover:text-white hover:bg-white/10'
               }`}
             >
               Overview
             </button>
             <button
               onClick={() => setActiveTab('stages')}
-              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${
+              className={`flex-1 py-2 px-3 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wide transition-all duration-300 ${
                 activeTab === 'stages'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                  : 'text-white/60 hover:text-white hover:bg-white/10'
               }`}
             >
-              Growth Stages
+              Stages
             </button>
             <button
               onClick={() => setActiveTab('tasks')}
-              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold transition-all ${
+              className={`flex-1 py-2 px-3 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wide transition-all duration-300 ${
                 activeTab === 'tasks'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                  : 'text-white/60 hover:text-white hover:bg-white/10'
               }`}
             >
               Tasks
@@ -344,7 +360,7 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               {/* Satellite View */}
-              <div className="bg-black rounded-[2rem] p-0 relative overflow-hidden h-96 group shadow-2xl border border-border/50">
+              <div className="bg-black rounded-[2rem] p-0 relative overflow-hidden h-[300px] md:h-96 group shadow-2xl border border-border/50">
                 {/* Satellite Background */}
                 <div className="absolute inset-0 z-0">
                   <img 
@@ -365,21 +381,21 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
                 </div>
 
                 {/* HUD Header */}
-                <div className="absolute top-6 left-6 right-6 z-20 flex justify-between items-start">
+                <div className="absolute top-4 left-4 right-4 md:top-6 md:left-6 md:right-6 z-20 flex justify-between items-start">
                   <div className="flex items-center gap-3">
-                    <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 flex items-center gap-2 shadow-lg">
+                    <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2 shadow-lg">
                         <div className="relative">
                             <Circle className="w-3 h-3 text-red-500 fill-red-500 animate-pulse" />
                             <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-75" />
                         </div>
-                        <span className="text-xs font-bold text-white uppercase tracking-widest">Live Satellite</span>
+                        <span className="text-[10px] md:text-xs font-bold text-white uppercase tracking-widest">Live Satellite</span>
                     </div>
                   </div>
                   
                   <div className="flex flex-col items-end gap-2">
-                    <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-xl p-2 text-center min-w-[80px]">
+                    <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-xl p-2 text-center min-w-[70px] md:min-w-[80px]">
                         <div className="text-[10px] text-white/60 uppercase tracking-wider font-bold">NDVI Index</div>
-                        <div className="text-lg font-bold text-[#8BCF6A]">0.85</div>
+                        <div className="text-base md:text-lg font-bold text-[#8BCF6A]">0.85</div>
                     </div>
                   </div>
                 </div>
@@ -413,7 +429,7 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
                             <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-black/90 backdrop-blur-xl border border-white/10 p-3 rounded-xl opacity-0 group-hover/node:opacity-100 transition-all duration-300 translate-x-2 group-hover/node:translate-x-0 w-32 shadow-2xl z-[1000]">
                                 <div className="text-xs font-bold text-white mb-1">Zone A</div>
                                 <div className="flex items-center gap-2 text-[10px] text-[#8BCF6A] font-medium">
-                                  <CheckCircle2 className="w-3 h-3" />
+                                  <CircleCheck className="w-3 h-3" />
                                   Optimal Growth
                                 </div>
                             </div>
@@ -441,17 +457,17 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
                 </div>
 
                 {/* Bottom Panel */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
-                  <div className="bg-black/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 flex items-center justify-between shadow-2xl">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white shadow-lg">
-                          <Sprout className="w-6 h-6" />
+                <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 z-20">
+                  <div className="bg-black/60 backdrop-blur-xl border border-white/5 rounded-2xl p-3 md:p-4 flex items-center justify-between shadow-2xl">
+                    <div className="flex items-center gap-3 md:gap-4">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white shadow-lg">
+                          <Sprout className="w-5 h-5 md:w-6 md:h-6" />
                         </div>
                         <div>
-                          <div className="text-white font-bold text-sm">Growth Velocity</div>
-                          <div className="text-white/60 text-xs flex items-center gap-2">
+                          <div className="text-white font-bold text-xs md:text-sm">Growth Velocity</div>
+                          <div className="text-white/60 text-[10px] md:text-xs flex items-center gap-2">
                               +2.4cm / day
-                              <span className="text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded text-[10px] font-bold">+12% vs last week</span>
+                              <span className="text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded text-[10px] font-bold hidden xs:inline-block">+12% vs last week</span>
                           </div>
                         </div>
                     </div>
@@ -496,13 +512,13 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
                 ))
               ) : (
                 displayTasks.map(task => (
-                  <div key={task.id} className="group relative bg-card border border-border/50 rounded-2xl p-5 hover:bg-card/80 transition-all active:scale-[0.99] overflow-hidden">
+                  <div key={task.id} className="group relative bg-card border border-border/50 rounded-2xl p-4 md:p-5 hover:bg-card/80 transition-all active:scale-[0.99] overflow-hidden">
                     {task.urgent && (
                         <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-red-500/20 to-transparent -translate-y-1/2 translate-x-1/2 rounded-full blur-xl" />
                     )}
                     <div className="flex items-center gap-4 relative z-10">
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${task.urgent ? 'bg-red-500/10 text-red-600' : 'bg-primary/10 text-primary'}`}>
-                          {task.urgent ? <AlertCircle className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
+                          {task.urgent ? <CircleAlert className="w-6 h-6" /> : <CircleCheck className="w-6 h-6" />}
                       </div>
                       <div className="flex-1">
                         <h4 className="font-bold text-foreground">{task.title}</h4>
@@ -515,7 +531,7 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
                           )}
                         </p>
                         {task.stage_name && (
-                          <div className="mt-2 inline-flex items-center gap-1 text-xs bg-[#1F3D2B]/10 text-[#1F3D2B] px-2 py-1 rounded-full">
+                          <div className="mt-2 inline-flex items-center gap-1 text-xs bg-[#0F8144]/10 text-[#0F8144] px-2 py-1 rounded-full">
                             <Sprout className="w-3 h-3" />
                             {task.stage_name}
                           </div>
@@ -557,13 +573,13 @@ export function CropDetailView({ cropInfo, onBack }: CropDetailViewProps) {
               
               <div className="space-y-3">
                 {displayTasks.slice(0, 3).map(task => (
-                  <div key={task.id} className="group relative bg-card border border-border/50 rounded-2xl p-5 hover:bg-card/80 transition-all active:scale-[0.99] overflow-hidden">
+                  <div key={task.id} className="group relative bg-card border border-border/50 rounded-2xl p-4 md:p-5 hover:bg-card/80 transition-all active:scale-[0.99] overflow-hidden">
                     {task.urgent && (
                         <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-red-500/20 to-transparent -translate-y-1/2 translate-x-1/2 rounded-full blur-xl" />
                     )}
                     <div className="flex items-center gap-4 relative z-10">
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${task.urgent ? 'bg-red-500/10 text-red-600' : 'bg-primary/10 text-primary'}`}>
-                          {task.urgent ? <AlertCircle className="w-6 h-6" /> : <CheckCircle2 className="w-6 h-6" />}
+                          {task.urgent ? <CircleAlert className="w-6 h-6" /> : <CircleCheck className="w-6 h-6" />}
                       </div>
                       <div className="flex-1">
                         <h4 className="font-bold text-foreground">{task.title}</h4>

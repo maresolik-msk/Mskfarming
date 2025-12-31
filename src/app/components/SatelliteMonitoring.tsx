@@ -21,23 +21,32 @@ import {
 import { toast } from 'sonner';
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 
+import { updateField, createField } from '../../lib/api';
+
 interface Field {
   id: string;
   name: string;
-  boundary: any;
-  area_acres: number;
+  boundary?: any;
+  size?: number;
+  sizeUnit?: string;
+  area_acres?: number; // legacy support
   crop?: string;
-  created_at: string;
+  created_at?: string;
   vegetation_data?: {
     date: string;
     avg_ndvi: number;
     health_status: 'healthy' | 'moderate' | 'stressed' | 'poor';
     stress_zones_percent: number;
   };
+  // Allow other props
+  [key: string]: any;
 }
 
 interface SatelliteMonitoringProps {
   onClose: () => void;
+  fields?: Field[];
+  onUpdateField?: (id: string, data: any) => Promise<any>;
+  onCreateField?: (data: any) => Promise<any>;
 }
 
 // Declare global types for Leaflet
@@ -47,7 +56,7 @@ declare global {
   }
 }
 
-export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
+export function SatelliteMonitoring({ onClose, fields: propFields, onUpdateField, onCreateField }: SatelliteMonitoringProps) {
   const [fields, setFields] = useState<Field[]>([]);
   const [selectedField, setSelectedField] = useState<Field | null>(null);
   const [loading, setLoading] = useState(false);
@@ -196,7 +205,11 @@ export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
     });
 
     // Load fields
-    loadFields();
+    if (propFields) {
+        setFields(propFields);
+    } else {
+        loadFields();
+    }
 
     return () => {
       // Explicitly clear layers to prevent Leaflet Draw from trying to disable editing on them
@@ -209,10 +222,12 @@ export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
         mapRef.current = null;
       }
     };
-  }, [leafletLoaded]);
+  }, [leafletLoaded, propFields]);
 
   // Client-side fields operations
   const loadFields = async () => {
+    if (propFields) return;
+    
     setLoading(true);
     try {
       // Load from localStorage
@@ -220,41 +235,7 @@ export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
       const fieldsData = storedFields ? JSON.parse(storedFields) : [];
       setFields(Array.isArray(fieldsData) ? fieldsData : []);
       
-      // Display fields on map
-      if (drawnItemsRef.current && Array.isArray(fieldsData) && fieldsData.length > 0 && window.L) {
-        // Clear existing layers first to avoid duplicates
-        drawnItemsRef.current.clearLayers();
-        
-        fieldsData.forEach((field: Field) => {
-          if (field.boundary && field.boundary.geometry) {
-            try {
-              const geoJsonLayer = window.L.geoJSON(field.boundary);
-              
-              // Iterate over layers (polygons) inside the GeoJSON group
-              // and add them individually to the drawnItems FeatureGroup.
-              // This ensures Leaflet Draw can edit them directly.
-              geoJsonLayer.eachLayer((l: any) => {
-                l.feature = l.feature || {};
-                l.feature.properties = l.feature.properties || {};
-                l.feature.properties.id = field.id;
-                
-                // Add tooltip (label) with field name
-                if (field.name) {
-                  l.bindTooltip(field.name, {
-                    permanent: true,
-                    direction: "center",
-                    className: "bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md shadow-lg text-xs font-bold border border-gray-200 text-foreground z-[1000]"
-                  });
-                }
-                
-                drawnItemsRef.current?.addLayer(l);
-              });
-            } catch (e) {
-              console.error('Error adding field to map:', e);
-            }
-          }
-        });
-      }
+      // Map layers will be updated by the effect below
     } catch (error) {
       console.error('Error loading fields:', error);
       toast.error('Failed to load fields');
@@ -263,6 +244,44 @@ export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
       setLoading(false);
     }
   };
+
+  // Sync map layers with fields
+  useEffect(() => {
+    if (!drawnItemsRef.current || !window.L || fields.length === 0) return;
+
+    // Clear existing layers first to avoid duplicates
+    drawnItemsRef.current.clearLayers();
+    
+    fields.forEach((field: Field) => {
+      if (field.boundary && field.boundary.geometry) {
+        try {
+          const geoJsonLayer = window.L.geoJSON(field.boundary);
+          
+          // Iterate over layers (polygons) inside the GeoJSON group
+          // and add them individually to the drawnItems FeatureGroup.
+          // This ensures Leaflet Draw can edit them directly.
+          geoJsonLayer.eachLayer((l: any) => {
+            l.feature = l.feature || {};
+            l.feature.properties = l.feature.properties || {};
+            l.feature.properties.id = field.id;
+            
+            // Add tooltip (label) with field name
+            if (field.name) {
+              l.bindTooltip(field.name, {
+                permanent: true,
+                direction: "center",
+                className: "bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md shadow-lg text-xs font-bold border border-gray-200 text-foreground z-[1000]"
+              });
+            }
+            
+            drawnItemsRef.current?.addLayer(l);
+          });
+        } catch (e) {
+          console.error('Error adding field to map:', e);
+        }
+      }
+    });
+  }, [fields, leafletLoaded]);
 
   const startDrawingBoundary = (fieldId: string) => {
     if (!mapRef.current || !window.L) return;
@@ -302,29 +321,40 @@ export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
     if (drawingForFieldId) {
       // We are adding a boundary to an existing field
       try {
-        const storedFields = localStorage.getItem('app_fields');
-        if (storedFields) {
-          const currentFields = JSON.parse(storedFields);
-          const updatedFields = currentFields.map((f: Field) => {
-            if (f.id === drawingForFieldId) {
-              return {
-                ...f,
-                boundary: geoJSON,
-                area_acres: area // Update area based on actual drawing
-              };
+        if (onUpdateField) {
+           await onUpdateField(drawingForFieldId, {
+              boundary: geoJSON,
+              size: area,
+              area_acres: area // Keep for compatibility if needed
+           });
+           toast.success('Field boundary updated successfully!');
+           // Parent will trigger re-render with new props
+        } else {
+            // Fallback to local storage logic
+            const storedFields = localStorage.getItem('app_fields');
+            if (storedFields) {
+            const currentFields = JSON.parse(storedFields);
+            const updatedFields = currentFields.map((f: Field) => {
+                if (f.id === drawingForFieldId) {
+                return {
+                    ...f,
+                    boundary: geoJSON,
+                    area_acres: area // Update area based on actual drawing
+                };
+                }
+                return f;
+            });
+            
+            localStorage.setItem('app_fields', JSON.stringify(updatedFields));
+            setFields(updatedFields);
+            
+            // If this was the selected field, update it
+            if (selectedField?.id === drawingForFieldId) {
+                setSelectedField(updatedFields.find((f: Field) => f.id === drawingForFieldId) || null);
             }
-            return f;
-          });
-          
-          localStorage.setItem('app_fields', JSON.stringify(updatedFields));
-          setFields(updatedFields);
-          
-          // If this was the selected field, update it
-          if (selectedField?.id === drawingForFieldId) {
-            setSelectedField(updatedFields.find((f: Field) => f.id === drawingForFieldId) || null);
-          }
-          
-          toast.success('Field boundary added successfully!');
+            
+            toast.success('Field boundary added successfully!');
+            }
         }
       } catch (error) {
         console.error('Error updating field boundary:', error);
@@ -334,7 +364,7 @@ export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
         }
       } finally {
         setDrawingForFieldId(null);
-        loadFields(); // Reload to refresh map layers
+        if (!propFields) loadFields(); 
       }
       return;
     }
@@ -346,6 +376,27 @@ export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
         drawnItemsRef.current.removeLayer(layer);
       }
       return;
+    }
+
+    if (onCreateField) {
+        try {
+            await onCreateField({
+                name: fieldName,
+                boundary: geoJSON,
+                size: area,
+                sizeUnit: 'acres',
+                area_acres: area
+            });
+            toast.success(`Field "${fieldName}" created successfully!`);
+            // Parent triggers re-render
+        } catch (error) {
+            console.error('Error creating field:', error);
+            toast.error('Failed to create field');
+            if (drawnItemsRef.current) {
+                drawnItemsRef.current.removeLayer(layer);
+            }
+        }
+        return;
     }
 
     const newField: Field = {
@@ -396,9 +447,12 @@ export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
   const deleteFieldById = async (id: string) => {
     if (!confirm('Are you sure you want to delete this field?')) return;
     
+    // NOT IMPLEMENTED: delete callback prop, as we only need updating for now
+    // But for local fallback:
+    
     try {
       const storedFields = localStorage.getItem('app_fields');
-      if (storedFields) {
+      if (storedFields && !propFields) {
         const currentFields = JSON.parse(storedFields);
         const updatedFields = currentFields.filter((f: Field) => f.id !== id);
         localStorage.setItem('app_fields', JSON.stringify(updatedFields));
@@ -415,6 +469,8 @@ export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
           drawnItemsRef.current.clearLayers();
           loadFields(); // Reload to redraw remaining fields
         }
+      } else if (propFields) {
+        toast.error("Deletion not supported in this view");
       }
     } catch (error) {
       console.error('Error deleting field:', error);
@@ -474,19 +530,24 @@ export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
         stress_zones_percent: status === 'healthy' ? 0 : Math.floor(Math.random() * 30)
       };
 
-      // Update in localStorage
-      const storedFields = localStorage.getItem('app_fields');
-      if (storedFields) {
-        const currentFields = JSON.parse(storedFields);
-        const updatedFields = currentFields.map((f: Field) => 
-          f.id === fieldId ? { ...f, vegetation_data: mockData } : f
-        );
-        localStorage.setItem('app_fields', JSON.stringify(updatedFields));
-        setFields(updatedFields);
-        
-        // Update selected field if matches
-        if (selectedField?.id === fieldId) {
-          setSelectedField({ ...selectedField, vegetation_data: mockData });
+      // Update in localStorage or via callback
+      if (onUpdateField) {
+         await onUpdateField(fieldId, { vegetation_data: mockData });
+         // Parent updates props
+      } else {
+        const storedFields = localStorage.getItem('app_fields');
+        if (storedFields) {
+            const currentFields = JSON.parse(storedFields);
+            const updatedFields = currentFields.map((f: Field) => 
+            f.id === fieldId ? { ...f, vegetation_data: mockData } : f
+            );
+            localStorage.setItem('app_fields', JSON.stringify(updatedFields));
+            setFields(updatedFields);
+            
+            // Update selected field if matches
+            if (selectedField?.id === fieldId) {
+            setSelectedField({ ...selectedField, vegetation_data: mockData });
+            }
         }
       }
       
@@ -764,7 +825,7 @@ export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
                 <details className="group relative [&_summary::-webkit-details-marker]:hidden">
                     <summary 
                     className={`list-none cursor-pointer w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full shadow-xl transition-all duration-300 hover:scale-110 active:scale-95 ${
-                      drawingForFieldId ? 'bg-[#E6A23C] text-white' : 'bg-[#1F3D2B] text-white'
+                      drawingForFieldId ? 'bg-[#E6A23C] text-white' : 'bg-[#0F8144] text-white'
                     }`}
                     title="Click for instructions"
                   >
@@ -773,7 +834,7 @@ export function SatelliteMonitoring({ onClose }: SatelliteMonitoringProps) {
                   
                   <div 
                     className={`absolute top-0 right-14 md:right-16 w-48 md:w-64 p-3 md:p-4 rounded-2xl shadow-xl backdrop-blur-md border border-white/10 text-white text-xs md:text-sm font-medium origin-right animate-in fade-in slide-in-from-right-4 duration-200 ${
-                      drawingForFieldId ? 'bg-[#E6A23C]/90' : 'bg-[#1F3D2B]/90'
+                      drawingForFieldId ? 'bg-[#E6A23C]/90' : 'bg-[#0F8144]/90'
                     }`}
                   >
                     <div className="absolute top-3 md:top-4 -right-1.5 w-3 h-3 rotate-45 transform bg-inherit" />

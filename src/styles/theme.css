@@ -4,10 +4,11 @@
   --font-size: 16px;
   
   /* Palette */
-  --deep-soil-green: #1F3D2B;
-  --crop-leaf-green: #4F8F4A;
+  --deep-soil-green: #2A0F05; /* Deep Burgundy Dark */
+  --brand-green: #812F0F; /* Brand Burgundy */
+  --crop-leaf-green: #4F8F4A; /* Keeping crops green */
   --clay-white: #F7F6F2;
-  --night-field: #0E1A14;
+  --night-field: #1A0903; /* Darker Burgundy */
   --sky-blue: #4A90E2;
   --fresh-lime: #8BCF6A;
   --amber-earth: #E6A23C;
@@ -15,48 +16,48 @@
 
   /* Theme Mapping - Light */
   --background: #F7F6F2; /* Clay White */
-  --foreground: #1F3D2B; /* Deep Soil Green */
+  --foreground: #2A0F05; /* Deep Burgundy Dark */
   
   --card: #FFFFFF;
-  --card-foreground: #1F3D2B;
+  --card-foreground: #2A0F05;
   
   --popover: #FFFFFF;
-  --popover-foreground: #1F3D2B;
+  --popover-foreground: #2A0F05;
   
-  --primary: #1F3D2B; /* Deep Soil Green */
+  --primary: #812F0F; /* Brand Burgundy */
   --primary-foreground: #FFFFFF;
   
   --secondary: #4F8F4A; /* Crop Leaf Green */
   --secondary-foreground: #FFFFFF;
   
   --muted: #EBE6DF;
-  --muted-foreground: #5C6B5F; /* Muted Green-Gray */
+  --muted-foreground: #6B5C5C; /* Muted Burgundy-Gray */
   
-  --accent: #E8F5E9; /* Very light green for hover */
-  --accent-foreground: #1F3D2B;
+  --accent: #F5E8E9; /* Very light burgundy for hover */
+  --accent-foreground: #2A0F05;
   
   --destructive: #C44536; /* Soil Red */
   --destructive-foreground: #FFFFFF;
   
-  --border: rgba(31, 61, 43, 0.15);
-  --input: rgba(31, 61, 43, 0.15);
-  --ring: #4F8F4A; /* Crop Leaf Green */
+  --border: rgba(129, 47, 15, 0.15);
+  --input: rgba(129, 47, 15, 0.15);
+  --ring: #812F0F; /* Brand Burgundy */
   
   --radius: 1rem; /* 16px */
   
   --chart-1: #4F8F4A; /* Crop Leaf Green */
-  --chart-2: #1F3D2B; /* Deep Soil Green */
+  --chart-2: #812F0F; /* Brand Burgundy */
   --chart-3: #E6A23C; /* Amber Earth */
   --chart-4: #4A90E2; /* Sky Blue */
   --chart-5: #C44536; /* Soil Red */
   
   --sidebar: #F7F6F2;
-  --sidebar-foreground: #1F3D2B;
-  --sidebar-primary: #1F3D2B;
+  --sidebar-foreground: #2A0F05;
+  --sidebar-primary: #812F0F;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #E8F5E9;
-  --sidebar-accent-foreground: #1F3D2B;
-  --sidebar-border: rgba(31, 61, 43, 0.15);
+  --sidebar-accent: #F5E8E9;
+  --sidebar-accent-foreground: #812F0F;
+  --sidebar-border: rgba(129, 47, 15, 0.15);
   --sidebar-ring: #4F8F4A;
 
   /* Fonts */
@@ -69,25 +70,25 @@
 
 .dark {
   /* Theme Mapping - Dark */
-  --background: #0E1A14; /* Night Field */
+  --background: #1A0903; /* Night Field */
   --foreground: #F7F6F2; /* Clay White text */
   
-  --card: #15231C; /* Slightly lighter Night Field */
+  --card: #231109; /* Slightly lighter Night Field */
   --card-foreground: #F7F6F2;
   
-  --popover: #15231C;
+  --popover: #231109;
   --popover-foreground: #F7F6F2;
   
-  --primary: #4F8F4A; /* Crop Leaf Green (brighter for dark mode) */
+  --primary: #CC5533; /* Lighter Terra Cotta for dark mode */
   --primary-foreground: #FFFFFF;
   
-  --secondary: #1F3D2B; /* Deep Soil Green */
+  --secondary: #2A0F05; /* Deep Soil Green (Burgundy) */
   --secondary-foreground: #FFFFFF;
   
-  --muted: #1F3D2B;
-  --muted-foreground: #9CA3AF;
+  --muted: #2A0F05;
+  --muted-foreground: #AFA3A3;
   
-  --accent: #1F3D2B;
+  --accent: #2A0F05;
   --accent-foreground: #F7F6F2;
   
   --destructive: #C44536;
@@ -95,7 +96,7 @@
   
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.1);
-  --ring: #4F8F4A;
+  --ring: #CC5533;
   
   --chart-1: #4F8F4A;
   --chart-2: #8BCF6A; /* Fresh Lime */
@@ -103,14 +104,14 @@
   --chart-4: #4A90E2;
   --chart-5: #C44536;
   
-  --sidebar: #0E1A14;
+  --sidebar: #1A0903;
   --sidebar-foreground: #F7F6F2;
-  --sidebar-primary: #4F8F4A;
+  --sidebar-primary: #CC5533;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #1F3D2B;
+  --sidebar-accent: #2A0F05;
   --sidebar-accent-foreground: #F7F6F2;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #4F8F4A;
+  --sidebar-ring: #CC5533;
 }
 
 @theme inline {

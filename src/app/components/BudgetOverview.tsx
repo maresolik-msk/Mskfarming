@@ -9,7 +9,11 @@ import {
   Download,
   PieChart as PieChartIcon,
   List,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  Pencil,
+  Check,
+  X
 } from 'lucide-react';
 import { 
   PieChart, 
@@ -43,6 +47,7 @@ interface BudgetOverviewProps {
   expenses: Expense[];
   onAddExpense: () => void;
   onBack?: () => void;
+  onUpdateBudget?: (newTotal: number) => void;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -61,8 +66,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'Other',
 };
 
-export function BudgetOverview({ budget, expenses, onAddExpense, onBack }: BudgetOverviewProps) {
+export function BudgetOverview({ budget, expenses, onAddExpense, onBack, onUpdateBudget }: BudgetOverviewProps) {
   const [viewMode, setViewMode] = useState<'list' | 'chart'>('list');
+  const [isEditingBudget, setIsEditingBudget] = useState(false);
+  const [editAmount, setEditAmount] = useState(budget.total.toString());
+
   const remaining = budget.total - budget.used;
   const percentUsed = (budget.used / budget.total) * 100;
   
@@ -91,12 +99,19 @@ export function BudgetOverview({ budget, expenses, onAddExpense, onBack }: Budge
     <div className="h-full pb-24 animate-in fade-in slide-in-from-bottom-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Wallet className="w-6 h-6 text-primary" />
-            Budget & Expenses
-          </h2>
-          <p className="text-muted-foreground text-sm">Track your farm's financial health</p>
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <button onClick={onBack} className="p-2 hover:bg-muted rounded-full transition-colors -ml-2">
+              <ChevronDown className="w-5 h-5 rotate-90 text-muted-foreground" />
+            </button>
+          )}
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Wallet className="w-6 h-6 text-primary" />
+              Budget & Expenses
+            </h2>
+            <p className="text-muted-foreground text-sm">Track your farm's financial health</p>
+          </div>
         </div>
         <button 
           onClick={onAddExpense}
@@ -117,8 +132,52 @@ export function BudgetOverview({ budget, expenses, onAddExpense, onBack }: Budge
         <div className="relative z-10">
           <div className="flex justify-between items-start mb-8">
             <div>
-              <p className="text-slate-400 font-medium mb-1">Total Budget</p>
-              <h3 className="text-3xl font-bold text-[rgb(255,255,255)]">₹{budget.total.toLocaleString()}</h3>
+              <div className="text-slate-400 font-medium mb-1 flex items-center gap-2">
+                Total Budget
+                {!isEditingBudget && onUpdateBudget && (
+                   <button 
+                     onClick={() => { 
+                       setEditAmount(budget.total.toString()); 
+                       setIsEditingBudget(true); 
+                     }} 
+                     className="p-1 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                   >
+                     <Pencil className="w-3.5 h-3.5" />
+                   </button>
+                )}
+              </div>
+              
+              {isEditingBudget ? (
+                <div className="flex items-center gap-2 h-9">
+                   <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                      <input 
+                        type="number"
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                        className="w-32 bg-white/10 border border-white/20 rounded-lg py-1 pl-6 pr-2 text-white font-bold text-lg focus:outline-none focus:border-primary/50"
+                        autoFocus
+                      />
+                   </div>
+                   <button 
+                    onClick={() => {
+                        const amount = parseFloat(editAmount);
+                        if (!isNaN(amount) && amount > 0 && onUpdateBudget) {
+                          onUpdateBudget(amount);
+                          setIsEditingBudget(false);
+                        }
+                    }} 
+                    className="p-1.5 bg-primary/20 hover:bg-primary/40 text-primary rounded-lg transition-colors"
+                   >
+                     <Check className="w-4 h-4" />
+                   </button>
+                   <button onClick={() => setIsEditingBudget(false)} className="p-1.5 bg-white/5 hover:bg-white/10 text-slate-400 rounded-lg transition-colors">
+                     <X className="w-4 h-4" />
+                   </button>
+                </div>
+              ) : (
+                <h3 className="text-3xl font-bold text-[rgb(255,255,255)]">₹{budget.total.toLocaleString()}</h3>
+              )}
             </div>
             <div className={`px-3 py-1 rounded-full text-xs font-bold border ${
               isCritical ? 'bg-red-500/20 text-red-300 border-red-500/50' : 
@@ -130,22 +189,39 @@ export function BudgetOverview({ budget, expenses, onAddExpense, onBack }: Budge
           </div>
 
           <div className="space-y-2 mb-6">
-            <div className="h-4 bg-white/10 rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(percentUsed, 100)}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
-                className={`h-full rounded-full ${
-                  isCritical ? 'bg-gradient-to-r from-red-500 to-rose-600' :
-                  isWarning ? 'bg-gradient-to-r from-orange-500 to-amber-500' :
-                  'bg-gradient-to-r from-primary to-emerald-400'
-                }`}
-              />
-            </div>
-            <div className="flex justify-between text-sm font-medium">
-              <span className="text-slate-300">Spent: ₹{budget.used.toLocaleString()}</span>
-              <span className="text-slate-300">Remaining: ₹{remaining.toLocaleString()}</span>
-            </div>
+            {(() => {
+              // Calculate dynamic values for live preview during editing
+              const displayTotal = isEditingBudget 
+                ? (parseFloat(editAmount) || budget.total) 
+                : budget.total;
+              
+              const displayRemaining = displayTotal - budget.used;
+              const displayPercent = (budget.used / (displayTotal || 1)) * 100;
+              
+              const displayIsCritical = displayPercent > 90;
+              const displayIsWarning = displayPercent > 75;
+
+              return (
+                <>
+                  <div className="h-4 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(displayPercent, 100)}%` }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                      className={`h-full rounded-full ${
+                        displayIsCritical ? 'bg-gradient-to-r from-red-500 to-rose-600' :
+                        displayIsWarning ? 'bg-gradient-to-r from-orange-500 to-amber-500' :
+                        'bg-gradient-to-r from-primary to-emerald-400'
+                      }`}
+                    />
+                  </div>
+                  <div className="flex justify-between text-sm font-medium">
+                    <span className="text-slate-300">Spent: ₹{budget.used.toLocaleString()}</span>
+                    <span className="text-slate-300">Remaining: ₹{displayRemaining.toLocaleString()}</span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {isWarning && (

@@ -1,5 +1,8 @@
 import { motion } from 'motion/react';
 import { Sprout, Droplets, Bug, BookOpen, Wallet, PieChart } from 'lucide-react';
+import imgSeedlings from "figma:asset/a20a758f3328babc56624328f34c10ed1139f425.png";
+import imgSprinklers from "figma:asset/5a3ed7a98dd93e7ce419c1678be36e0cacdffdca.png";
+import imgPest from "figma:asset/426eb80147166eed75682d2c68672a155db19486.png";
 
 export function FeaturesPage() {
   const features = [
@@ -7,19 +10,19 @@ export function FeaturesPage() {
       icon: Sprout,
       title: 'Soil Intelligence',
       benefit: 'Know exactly what your soil needs — no guesswork',
-      image: 'https://images.unsplash.com/photo-1599320092708-8a9dde49fc2c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2lsJTIwYWdyaWN1bHR1cmUlMjBoYW5kc3xlbnwxfHx8fDE3NjYyOTI5NjV8MA&ixlib=rb-4.1.0&q=80&w=1080',
+      image: imgSeedlings,
     },
     {
       icon: Droplets,
       title: 'Crop & Water Guidance',
       benefit: 'Right crop, right water — save money, grow better',
-      image: 'https://images.unsplash.com/photo-1691384630414-09dad88b297b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjcm9wJTIwZmllbGQlMjBncmVlbnxlbnwxfHx8fDE3NjYyOTI5NjZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
+      image: imgSprinklers,
     },
     {
       icon: Bug,
       title: 'Pest & Nutrition Advisor',
       benefit: 'Catch problems early, protect your harvest',
-      image: 'https://images.unsplash.com/photo-1623211269755-569fec0536d2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBmYXJtZXIlMjBmaWVsZHxlbnwxfHx8fDE3NjYyOTI5NjV8MA&ixlib=rb-4.1.0&q=80&w=1080',
+      image: imgPest,
     },
     {
       icon: BookOpen,
@@ -42,22 +45,29 @@ export function FeaturesPage() {
   ];
 
   return (
-    <div className="min-h-screen py-20 px-4">
+    <div className="min-h-screen py-[32px] px-[16px] bg-background">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Megrim&display=swap');
+      `}</style>
+
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-20"
+          className="text-center mb-24"
         >
-          <h1 className="text-4xl sm:text-5xl mb-6 text-foreground">
+          <span className="inline-block py-1 px-3 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider mb-6">
+            Capabilities
+          </span>
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 font-['Megrim'] tracking-tight text-foreground">
             Features Built for Farmers
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
             Simple tools that help you make better decisions every day.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {features.map((feature, index) => (
             <motion.div
               key={index}
@@ -65,25 +75,31 @@ export function FeaturesPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="group bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all"
+              className="group relative overflow-hidden bg-card border border-border rounded-3xl hover:shadow-2xl transition-all duration-300"
             >
-              <div className="aspect-[16/10] overflow-hidden bg-muted">
+              <div className="aspect-[4/3] overflow-hidden relative">
                 <img
                   src={feature.image}
                   alt={feature.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                 />
-              </div>
-              <div className="p-8">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <feature.icon className="w-7 h-7 text-primary" />
-                  </div>
-                  <h3 className="text-2xl text-foreground">
-                    {feature.title}
-                  </h3>
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                
+                {/* Icon Floating */}
+                <div className="absolute top-6 left-6 w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white">
+                  <feature.icon className="w-6 h-6" />
                 </div>
-                <p className="text-lg text-muted-foreground leading-relaxed">
+              </div>
+
+              <div className="p-8 relative">
+                {/* Connecting Line Effect */}
+                <div className="absolute -top-12 right-8 w-px h-16 bg-gradient-to-b from-transparent to-border opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <h3 className="text-2xl font-bold mb-3 text-foreground font-serif group-hover:text-primary transition-colors">
+                  {feature.title}
+                </h3>
+                <p className="text-muted-foreground leading-relaxed">
                   {feature.benefit}
                 </p>
               </div>

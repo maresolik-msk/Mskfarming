@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
 import { 
@@ -23,7 +23,9 @@ import {
   BookOpen,
   Plus,
   TrendingUp,
-  Leaf
+  Leaf,
+  PawPrint,
+  Wrench
 } from 'lucide-react';
 import { WeeklySummary } from './WeeklySummary';
 import { HomeView } from './HomeView';
@@ -48,6 +50,11 @@ import { SeedSelectionModal } from './seed-selection/SeedSelectionModal';
 import { DemoHelper } from './DemoHelper';
 import { MSChatbot } from './MSChatbot';
 import { UserProfile } from './UserProfile';
+import { KrishiKarmaWidget } from './KrishiKarmaWidget';
+import { CropSimulator } from './CropSimulator';
+import { AnimalHusbandry } from './AnimalHusbandry';
+import { FarmMachinery } from './FarmMachinery';
+import { CropManager } from './CropManager';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetClose } from './ui/sheet';
 import { toast } from 'sonner';
 import { 
@@ -64,7 +71,11 @@ import {
   updateField,
   deleteField as apiDeleteField,
   getUserProfile,
+  triggerHeartbeat,
 } from '../../lib/api';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from './LanguageSwitcher';
+import Logo from '../../imports/Logo';
 
 interface MainDashboardProps {
   farmerName: string;
@@ -82,7 +93,8 @@ interface JournalEntry {
   id: string;
   text: string;
   timestamp: Date;
-  type: 'voice' | 'photo';
+  type: 'voice' | 'photo' | 'log';
+  details?: any;
 }
 
 interface Expense {
@@ -119,11 +131,12 @@ interface Expense {
 }
 
 export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
+  const { t } = useTranslation();
   const [showVoiceJournal, setShowVoiceJournal] = useState(false);
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [showExpenseTracker, setShowExpenseTracker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [activeView, setActiveView] = useState<'dashboard' | 'journal' | 'expenses' | 'field' | 'market'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'journal' | 'expenses' | 'field' | 'market' | 'profile' | 'crop_sim' | 'crop_manager' | 'animals' | 'machinery'>('dashboard');
 
   // Soil Testing State
   const [showSoilTestSelection, setShowSoilTestSelection] = useState(false);
@@ -137,6 +150,8 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   const [showSeedSelection, setShowSeedSelection] = useState(false);
   const [currentSelfTestType, setCurrentSelfTestType] = useState('');
   const [selfTestResults, setSelfTestResults] = useState<any[]>([]);
+  const [displayedSoilResult, setDisplayedSoilResult] = useState<any>(null);
+  const [viewingStoredProfile, setViewingStoredProfile] = useState(false);
   const [showSoilSummary, setShowSoilSummary] = useState(false);
 
   // Farming Journal State
@@ -157,28 +172,18 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   // Tour State
   const [runTour, setRunTour] = useState(false);
   
-  const [farmingJournalEntries, setFarmingJournalEntries] = useState<any[]>([]);
   const [selectedJournalEntry, setSelectedJournalEntry] = useState<any>(null);
 
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  
+  // Computed view for backward compatibility and helper components
+  const farmingJournalEntries = journalEntries
+    .filter(e => e.type === 'log' && e.details)
+    .map(e => e.details);
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
-
-  const [budget, setBudget] = useState({
-    total: 18000,
-    used: 0,
-  });
-  
-  const [userProfile, setUserProfile] = useState<any>(null);
-
-  // Load User Profile
-  useEffect(() => {
-    getUserProfile().then(profile => {
-      if (profile) setUserProfile(profile);
-    });
-  }, []);
 
   // Fields State (loaded from localStorage)
   const [availableFields, setAvailableFields] = useState<any[]>([]);
@@ -208,6 +213,15 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   useEffect(() => {
     loadFields();
     
+    // Trigger Simulation Heartbeat (Update GDD/Weather for fields)
+    triggerHeartbeat().then((res) => {
+        if (res && res.updates_count > 0) {
+            toast.success(`Updated ${res.updates_count} fields with live weather data`);
+            // Reload fields to show new status
+            loadFields();
+        }
+    });
+
     // Check if we should run the tour
     const shouldRunTour = localStorage.getItem('showDashboardTour');
     if (shouldRunTour === 'true') {
@@ -220,6 +234,51 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   }, []);
 
   const currentField = availableFields.find(f => f.id === selectedFieldId) || availableFields[0];
+
+  // Calculate budget derived from selected field
+  const currentFieldExpenses = selectedFieldId 
+    ? expenses.filter(e => e.field === selectedFieldId)
+    : [];
+    
+  const currentBudgetTotal = currentField?.budgetTotal || 18000;
+  const currentBudgetUsed = currentFieldExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  
+  const budget = {
+    total: currentBudgetTotal,
+    used: currentBudgetUsed
+  };
+
+  const handleUpdateBudget = async (newTotal: number) => {
+    if (!selectedFieldId || !currentField) {
+        toast.error('Please select a field to update budget');
+        return;
+    }
+
+    // Optimistically update local state
+    const updatedFields = availableFields.map(f => 
+        f.id === selectedFieldId ? { ...f, budgetTotal: newTotal } : f
+    );
+    setAvailableFields(updatedFields);
+
+    try {
+        await updateField(selectedFieldId, { ...currentField, budgetTotal: newTotal });
+        toast.success('Budget updated');
+    } catch (error) {
+        console.error('Failed to update budget:', error);
+        toast.error('Failed to save budget to cloud');
+        // Revert (reload fields)
+        loadFields();
+    }
+  };
+  
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Load User Profile
+  useEffect(() => {
+    getUserProfile().then(profile => {
+      if (profile) setUserProfile(profile);
+    });
+  }, []);
 
   const day = currentField?.day ? Number(currentField.day) : 0;
   const totalDays = currentField?.totalDays ? Number(currentField.totalDays) : 120;
@@ -235,6 +294,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
     progress: isNaN(progress) ? 0 : progress,
     boundary: currentField.boundary,
     soilType: currentField.soilType,
+    soilProfile: currentField.soilProfile,
   } : {
     name: '',
     field: 'No Field Selected',
@@ -244,6 +304,21 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
     boundary: null,
     soilType: '',
   };
+
+  // Calculate Krishi Karma Points
+  const karmaPoints = (journalEntries.length * 10) + 
+                      (tasks.filter(t => t.completed).length * 5) + 
+                      (expenses.length * 5) + 
+                      (selfTestResults.length * 50);
+
+  const getKarmaLevel = (points: number) => {
+    if (points >= 1000) return { level: 'Master Farmer', next: 2000 };
+    if (points >= 500) return { level: 'Expert Farmer', next: 1000 };
+    if (points >= 100) return { level: 'Intermediate Farmer', next: 500 };
+    return { level: 'Beginner Farmer', next: 100 };
+  };
+
+  const { level: karmaLevel, next: nextLevelPoints } = getKarmaLevel(karmaPoints);
 
   const toggleTask = async (id: string) => {
     const task = tasks.find(t => t.id === id);
@@ -321,12 +396,6 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
     
     setExpenses([tempExpense, ...expenses]);
     
-    // Update budget with new expense
-    setBudget({
-      ...budget,
-      used: budget.used + expense.amount,
-    });
-    
     try {
       await createExpense(expense);
       toast.success('Expense saved');
@@ -338,7 +407,13 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
 
   // Soil Testing Handlers
   const handleTestSoil = () => {
-    setShowSoilTestSelection(true);
+    if (currentField?.soilProfile?.results) {
+        setDisplayedSoilResult(currentField.soilProfile.results);
+        setViewingStoredProfile(true);
+        setShowSoilSummary(true);
+    } else {
+        setShowSoilTestSelection(true);
+    }
   };
 
   const handleSelectTest = (testId: string) => {
@@ -377,28 +452,69 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
 
   const handleSelfTestComplete = (result: any) => {
     setSelfTestResults([...selfTestResults, result]);
+    setDisplayedSoilResult(result);
+    setViewingStoredProfile(false);
     setShowGuidedSoilTest(false);
     setShowSoilSummary(true);
   };
 
-  const handleSaveSoilProfile = () => {
-    setShowSoilSummary(false);
-    toast.success('Soil profile saved! You can view it anytime in your dashboard.');
-    // In production, save to database
+  const handleSaveSoilProfile = async (fieldId: string, result: any) => {
+    if (!fieldId) {
+        toast.error('Please select a field');
+        return;
+    }
+    
+    try {
+        // Find the field to update
+        const field = availableFields.find(f => f.id === fieldId);
+        if (!field) {
+            toast.error('Field not found');
+            return;
+        }
+
+        // Use the interpreted result passed from SoilHealthSummary
+        const soilProfileData = {
+            lastTested: new Date().toISOString(),
+            testType: 'self-test',
+            results: result, // This now contains riskLevel, actions, etc.
+            history: [
+                ...(field.soilProfile?.history || []),
+                { date: new Date().toISOString(), ...result }
+            ]
+        };
+        
+        // Update the field with soil profile data
+        await updateField(fieldId, {
+            ...field,
+            soilProfile: soilProfileData
+        });
+
+        // Refresh fields
+        await loadFields();
+        
+        setShowSoilSummary(false);
+        toast.success('Soil profile saved! You can view it anytime in your dashboard.');
+    } catch (error) {
+        console.error('Error saving soil profile:', error);
+        toast.error('Failed to save soil profile');
+    }
   };
 
   // Farming Journal Handlers
   const handleFarmingJournalSave = async (entry: any) => {
-    setFarmingJournalEntries([entry, ...farmingJournalEntries]);
+    const newEntry: JournalEntry = {
+      id: Date.now().toString(),
+      text: entry.activities ? `Activities: ${entry.activities.join(', ')}` : 'Daily Log',
+      timestamp: new Date(),
+      type: 'log',
+      details: entry
+    };
+
+    setJournalEntries([newEntry, ...journalEntries]);
     setShowFarmingJournal(false);
     
     try {
-      await createJournalEntry({
-        text: entry.activities ? `Activities: ${entry.activities.join(', ')}` : 'Daily Log',
-        timestamp: new Date(),
-        type: 'log',
-        details: entry
-      });
+      await createJournalEntry(newEntry);
       toast.success('Journal entry saved!');
     } catch (error) {
       console.error(error);
@@ -423,8 +539,8 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
       target: 'body',
       content: (
         <div className="text-left">
-          <h3 className="font-bold text-lg mb-2">Welcome to your Farm Dashboard! 🌱</h3>
-          <p>Let's take a quick tour to help you get started.</p>
+          <h3 className="font-bold text-lg mb-2">{t('dashboard.welcomeMessage')}</h3>
+          <p>{t('dashboard.welcomeSub')}</p>
         </div>
       ),
       placement: 'center',
@@ -434,8 +550,8 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
       target: '#tour-field-selector',
       content: (
         <div className="text-left">
-          <h3 className="font-bold mb-1">Manage Your Fields</h3>
-          <p>Click here to switch between fields or add a new field to your farm.</p>
+          <h3 className="font-bold mb-1">{t('dashboard.manageFields')}</h3>
+          <p>{t('dashboard.manageFieldsSub')}</p>
         </div>
       ),
     },
@@ -443,8 +559,8 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
       target: '#tour-menu-button',
       content: (
         <div className="text-left">
-          <h3 className="font-bold mb-1">More Features</h3>
-          <p>Access your Profile, Expenses, and Market Prices here.</p>
+          <h3 className="font-bold mb-1">{t('dashboard.moreFeatures')}</h3>
+          <p>{t('dashboard.moreFeaturesSub')}</p>
         </div>
       ),
     }
@@ -477,9 +593,6 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
       .then(data => {
         if (data && Array.isArray(data)) {
           setExpenses(data);
-          // Calculate total used from all expenses
-          const totalUsed = data.reduce((sum, exp) => sum + (exp.amount || 0), 0);
-          setBudget(prev => ({ ...prev, used: totalUsed }));
         }
       })
       .catch(err => {
@@ -503,7 +616,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background pb-24 p-[0px]">
+    <div className="min-h-screen bg-background pt-[0px] pr-[0px] pb-[24px] pl-[0px]">
       <Joyride
         steps={tourSteps}
         run={runTour}
@@ -513,42 +626,44 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
         callback={handleTourCallback}
         styles={{
           options: {
-            primaryColor: '#1F3D2B',
+            primaryColor: '#812F0F',
             zIndex: 1000,
           },
           tooltipContainer: {
             textAlign: 'left',
           },
           buttonNext: {
-            backgroundColor: '#1F3D2B',
+            backgroundColor: '#812F0F',
           },
           buttonBack: {
-            color: '#1F3D2B',
+            color: '#812F0F',
           }
         }}
       />
 
       {/* Header */}
       <div className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 py-3">
+        <div className="max-w-4xl mx-auto px-4 py-3 pt-[12px] pr-[16px] pb-[8px] pl-[16px]">
           {/* Header Bar */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <div className="relative group cursor-pointer">
-                <div className="absolute inset-0 bg-primary/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative w-11 h-11 rounded-full bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center text-xl shrink-0 text-white shadow-lg border border-white/10">
-                  🌾
+                <div className="absolute inset-0 bg-[#812F0F]/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative w-11 h-11 rounded-full bg-gradient-to-br from-[#812F0F] to-[#963714] flex items-center justify-center text-xl shrink-0 text-nill-lg border border-white/10">
+                  <div className="w-6 h-6" style={{ '--fill-0': '#ffffff' } as CSSProperties}>
+                    <Logo />
+                  </div>
                 </div>
               </div>
               <div>
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Active Field</div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5 no-underline">{t('mila')}</div>
                 <div className="relative group">
                   <button 
                     id="tour-field-selector"
                     onClick={() => setShowFieldSelector(!showFieldSelector)}
                     className="flex items-center gap-2 text-foreground font-bold text-lg hover:text-primary transition-colors"
                   >
-                    {currentField?.name || 'Select Field'}
+                    {currentField?.name || t('dashboard.selectField')}
                     <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
                        <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
@@ -573,7 +688,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                           key={field.id}
                           className={`w-full px-4 py-3.5 rounded-xl transition-all mb-1 flex items-center justify-between group ${
                             selectedFieldId === field.id 
-                                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' 
+                                ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' 
                                 : 'hover:bg-muted/80 text-foreground'
                           }`}
                         >
@@ -581,11 +696,22 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                             onClick={() => {
                               setSelectedFieldId(field.id);
                               setShowFieldSelector(false);
-                              toast.success(`Switched to ${field.name}`);
+                              toast.success(t('common.switch_field_success', { fieldName: field.name }));
                             }}
-                            className="flex-1 text-left flex items-center justify-between"
+                            className="flex-1 text-left flex items-center gap-3"
                           >
-                            <div>
+                            {/* Crop Image */}
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-white/10">
+                              {field.image_url ? (
+                                <img src={field.image_url} alt={field.crop} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-[#812F0F]/10 text-[#812F0F] font-bold text-xs">
+                                  {field.crop?.charAt(0)}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1">
                                 <div className={`font-bold text-sm ${selectedFieldId === field.id ? 'text-white' : 'text-foreground'}`}>{field.name}</div>
                                 <div className={`text-xs ${selectedFieldId === field.id ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{field.crop} • Day {field.day}</div>
                             </div>
@@ -657,10 +783,10 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                             setShowAddFieldModal(true);
                             setShowFieldSelector(false);
                           }}
-                          className="w-full text-left px-4 py-3 rounded-xl transition-all flex items-center gap-2 hover:bg-primary/10 text-primary group"
+                          className="w-full text-left px-4 py-3 rounded-xl transition-all flex items-center gap-2 hover:bg-[#812F0F]/10 text-[#812F0F] group"
                         >
                           <Plus className="w-4 h-4" />
-                          <span className="font-medium text-sm">Add New Field</span>
+                          <span className="font-medium text-sm">{t('dashboard.addNewField')}</span>
                         </button>
                       </div>
                     </motion.div>
@@ -678,18 +804,23 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                 <SheetTrigger asChild>
                   <button
                     id="tour-menu-button"
-                    className="w-10 h-10 rounded-full bg-card/50 backdrop-blur-sm border border-border/50 hover:bg-muted hover:border-border transition-all flex items-center justify-center text-muted-foreground hover:text-foreground shadow-sm"
+                    className="w-10 h-10 rounded-[0px] bg-card/50 backdrop-blur-sm border border-border/50 hover:bg-muted hover:border-border transition-all flex items-center justify-center text-muted-foreground hover:text-foreground shadow-sm"
                   >
                     <Menu className="w-5 h-5" />
                   </button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[300px] sm:w-[350px] border-l border-white/10 bg-card/95 backdrop-blur-xl overflow-y-auto">
                   <SheetHeader className="mb-8">
-                    <SheetTitle className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center text-2xl text-white shadow-xl shadow-primary/25">
-                         🌾
+                    <SheetTitle className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#812F0F] to-[#963714] flex items-center justify-center text-2xl text-white shadow-xl shadow-[#812F0F]/25">
+                           <div className="w-8 h-8" style={{ '--fill-0': '#ffffff' } as CSSProperties}>
+                             <Logo />
+                           </div>
+                        </div>
+                        <span className="text-2xl font-bold font-[Megrim]">{t('MILA')}</span>
                       </div>
-                      <span className="text-2xl font-bold">Menu</span>
+                      <LanguageSwitcher />
                     </SheetTitle>
                     <SheetDescription className="hidden">
                       Access dashboard navigation and quick actions
@@ -698,17 +829,27 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                   
                   <div className="flex flex-col gap-2 pb-8">
                     <div className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-[0.15em] mb-4 px-3">
-                      Navigation
+                      {t('menu.navigation')}
                     </div>
                     
                     <SheetClose asChild>
                       <button 
                         onClick={() => setActiveView('dashboard')}
-                        className={`flex items-center gap-4 px-5 py-4 rounded-0px transition-all duration-300 group ${activeView === 'dashboard' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-0px transition-all duration-300 group ${activeView === 'dashboard' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
                       >
                         <LayoutDashboard className="w-5 h-5" />
-                        <span className="font-semibold text-[15px]">Home Dashboard</span>
+                        <span className="font-semibold text-[15px]">{t('menu.dashboard')}</span>
                         {activeView === 'dashboard' && <div className="w-2 h-2 rounded-full bg-white ml-auto shadow-sm" />}
+                      </button>
+                    </SheetClose>
+
+                    <SheetClose asChild>
+                      <button 
+                        onClick={() => setActiveView('crop_manager')}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-0px transition-all duration-300 group ${activeView === 'crop_manager' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
+                      >
+                        <Leaf className="w-5 h-5" />
+                        <span className="font-semibold text-[15px]">Crop Manager</span>
                       </button>
                     </SheetClose>
 
@@ -718,17 +859,17 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                         className="flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
                       >
                         <History className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                        <span className="font-medium text-[15px]">Journal History</span>
+                        <span className="font-medium text-[15px]">{t('menu.journalHistory')}</span>
                       </button>
                     </SheetClose>
 
                     <SheetClose asChild>
                       <button 
                         onClick={() => setActiveView('expenses')}
-                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'expenses' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'expenses' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
                       >
                         <Calculator className="w-5 h-5" />
-                        <span className="font-semibold text-[15px]">Budget & Expenses</span>
+                        <span className="font-semibold text-[15px]">{t('menu.expenses')}</span>
                         {activeView === 'expenses' && <div className="w-2 h-2 rounded-full bg-white ml-auto shadow-sm" />}
                       </button>
                     </SheetClose>
@@ -736,10 +877,10 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                     <SheetClose asChild>
                       <button 
                         onClick={() => setActiveView('market')}
-                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'market' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'market' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
                       >
                         <TrendingUp className="w-5 h-5" />
-                        <span className="font-semibold text-[15px]">Market Prices</span>
+                        <span className="font-semibold text-[15px]">{t('menu.marketPrices')}</span>
                         {activeView === 'market' && <div className="w-2 h-2 rounded-full bg-white ml-auto shadow-sm" />}
                       </button>
                     </SheetClose>
@@ -747,10 +888,10 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                     <SheetClose asChild>
                       <button 
                         onClick={() => setActiveView('profile')}
-                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'profile' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'profile' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
                       >
                         <User className="w-5 h-5" />
-                        <span className="font-semibold text-[15px]">My Profile</span>
+                        <span className="font-semibold text-[15px]">{t('menu.profile')}</span>
                         {activeView === 'profile' && <div className="w-2 h-2 rounded-full bg-white ml-auto shadow-sm" />}
                       </button>
                     </SheetClose>
@@ -758,15 +899,49 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                     <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-6" />
                     
                     <div className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-[0.15em] mb-4 px-3">
-                      Farming Tools
+                      {t('farming tools')}
                     </div>
+
+                    <SheetClose asChild>
+                      <button 
+                        onClick={() => setActiveView('crop_sim')}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'crop_sim' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
+                      >
+                        <div className="w-5 h-5" style={activeView === 'crop_sim' ? { '--fill-0': '#ffffff' } as CSSProperties : undefined}>
+                          <Logo />
+                        </div>
+                        <span className="font-semibold text-[15px]">{t('menu.cropSimulator')}</span>
+                      </button>
+                    </SheetClose>
+
+                    <SheetClose asChild>
+                      <button 
+                        onClick={() => setActiveView('animals')}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'animals' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
+                      >
+                        <PawPrint className="w-5 h-5" />
+                        <span className="font-semibold text-[15px]">Animal Husbandry</span>
+                      </button>
+                    </SheetClose>
+
+                    <SheetClose asChild>
+                      <button 
+                        onClick={() => setActiveView('machinery')}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'machinery' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
+                      >
+                        <Wrench className="w-5 h-5" />
+                        <span className="font-semibold text-[15px]">Machinery & Tools</span>
+                      </button>
+                    </SheetClose>
 
                     <SheetClose asChild>
                       <button 
                         onClick={() => setShowSeedSelection(true)}
                         className="flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
                       >
-                        <Sprout className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                        <div className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors">
+                          <Logo />
+                        </div>
                         <span className="font-medium text-[15px]">Seed Selection</span>
                       </button>
                     </SheetClose>
@@ -774,10 +949,10 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                     <SheetClose asChild>
                       <button 
                         onClick={handleTestSoil}
-                        className="flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
+                        className="flex items-center gap-4 px-5 py-4 rounded-[0px] hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
                       >
                         <FlaskConical className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                        <span className="font-medium text-[15px]">Soil Health</span>
+                        <span className="font-medium text-[15px]">{t('menu.soilTesting')}</span>
                       </button>
                     </SheetClose>
 
@@ -787,7 +962,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                         className="flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
                       >
                         <Satellite className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                        <span className="font-medium text-[15px]">Satellite View</span>
+                        <span className="font-medium text-[15px]">{t('features.satelliteMonitoring')}</span>
                       </button>
                     </SheetClose>
                     
@@ -795,10 +970,10 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                       <SheetClose asChild>
                         <button 
                           onClick={onLogout}
-                          className="flex items-center gap-2 px-5 py-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors w-full"
+                          className="flex items-center gap-2 px-5 py-3 text-red-500 hover:bg-red-500/10 rounded-[0px] transition-colors w-full"
                         >
                           <LogOut className="w-4 h-4" />
-                          <span className="font-medium">Sign Out</span>
+                          <span className="font-medium">{t('menu.logout')}</span>
                         </button>
                       </SheetClose>
                     </div>
@@ -811,35 +986,40 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-4xl mx-auto px-4 pb-20">
+      <div className="max-w-4xl px-[16px] pb-20 py-[0px] mt-[0px] mr-[0px] mb-[44px] ml-[0px]">
         {activeView === 'dashboard' ? (
           <>
             {availableFields.length === 0 ? (
               <div className="text-center py-10 animate-in fade-in slide-in-from-bottom-4">
-                <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                   <Sprout className="w-12 h-12 text-primary" />
+                <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 p-6">
+                   <Logo />
                 </div>
-                <h2 className="text-2xl font-bold mb-2">Welcome to Your Farm! 🌱</h2>
+                <h2 className="text-2xl font-bold mb-2">{t('dashboard.welcomeMessage')}</h2>
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Get started by adding your first field. You can track crops, monitor expenses, and get AI insights.
+                  {t('dashboard.welcomeSub')}
                 </p>
                 <button
                   onClick={() => setShowAddFieldModal(true)}
-                  className="px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-bold text-lg shadow-xl shadow-primary/20 hover:scale-105 transition-transform flex items-center gap-2 mx-auto"
+                  className="px-8 py-4 bg-[#812F0F] text-white rounded-2xl font-bold text-lg shadow-xl shadow-[#812F0F]/20 hover:scale-105 transition-transform flex items-center gap-2 mx-auto"
                 >
                   <Plus className="w-6 h-6" />
-                  Add Your First Field
+                  {t('dashboard.addNewField')}
                 </button>
               </div>
             ) : (
               <>
-                {/* Field Status */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <HomeView 
                     farmerName={userProfile?.name || farmerName}
                     cropInfo={cropInfo}
                     tasks={tasks}
                     budget={budget}
+                    soilHealth={currentField?.soilProfile ? {
+                        lastTested: currentField.soilProfile.lastTested,
+                        status: currentField.soilProfile.results.riskLevel === 'high' ? 'Critical' : 
+                                currentField.soilProfile.results.riskLevel === 'medium' ? 'Attention' : 'Good',
+                        riskLevel: currentField.soilProfile.results.riskLevel
+                    } : undefined}
                     onToggleTask={toggleTask}
                     onAction={(action) => {
                       switch(action) {
@@ -855,58 +1035,67 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                     }}
                   />
                   
-                  {/* Daily Tasks */}
-                  <div className="bg-card border border-border rounded-3xl p-5 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <h3 className="font-bold text-foreground">Today's Tasks</h3>
-                      </div>
-                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                        {tasks.filter(t => t.completed).length}/{tasks.length}
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {tasks.length === 0 ? (
-                         <div className="text-center py-6 text-muted-foreground text-sm">
-                           <p>No tasks yet.</p>
-                           <p className="text-xs mt-1">Add a field to get recommendations.</p>
-                         </div>
-                      ) : (
-                        tasks.map(task => (
-                          <div 
-                            key={task.id}
-                            onClick={() => toggleTask(task.id)}
-                            className={`flex items-start gap-3 p-3 rounded-2xl transition-all cursor-pointer border ${
-                              task.completed 
-                                ? 'bg-muted/30 border-transparent opacity-60' 
-                                : 'bg-card border-border hover:border-primary/30 hover:bg-muted/20'
-                            }`}
-                          >
-                            <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                              task.completed
-                                ? 'bg-primary border-primary'
-                                : 'border-muted-foreground/30'
-                            }`}>
-                              {task.completed && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                  <div className="space-y-4">
+                      {/* Krishi Karma Widget */}
+                      <KrishiKarmaWidget 
+                        points={karmaPoints} 
+                        level={karmaLevel} 
+                        nextLevelPoints={nextLevelPoints} 
+                      />
+
+                      {/* Daily Tasks */}
+                      <div className="bg-card border border-border rounded-3xl p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-[#812F0F]/10 flex items-center justify-center">
+                              <CheckCircle2 className="w-4 h-4 text-[#812F0F]" />
                             </div>
-                            <div className="flex-1">
-                              <p className={`text-sm font-medium transition-all ${
-                                task.completed ? 'text-muted-foreground line-through' : 'text-foreground'
-                              }`}>
-                                {task.text}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                                {task.time}
-                              </p>
-                            </div>
+                            <h3 className="font-bold text-foreground">Today's Tasks</h3>
                           </div>
-                        ))
-                      )}
-                    </div>
+                          <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                            {tasks.filter(t => t.completed).length}/{tasks.length}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {tasks.length === 0 ? (
+                            <div className="text-center py-6 text-muted-foreground text-sm">
+                              <p>No tasks yet.</p>
+                              <p className="text-xs mt-1">Add a field to get recommendations.</p>
+                            </div>
+                          ) : (
+                            tasks.map(task => (
+                              <div 
+                                key={task.id}
+                                onClick={() => toggleTask(task.id)}
+                                className={`flex items-start gap-3 p-3 rounded-2xl transition-all cursor-pointer border ${
+                                  task.completed 
+                                    ? 'bg-muted/30 border-transparent opacity-60' 
+                                    : 'bg-card border-border hover:border-primary/30 hover:bg-muted/20'
+                                }`}
+                              >
+                                <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                  task.completed
+                                    ? 'bg-[#812F0F] border-[#812F0F]'
+                                    : 'border-muted-foreground/30'
+                                }`}>
+                                  {task.completed && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                                </div>
+                                <div className="flex-1">
+                                  <p className={`text-sm font-medium transition-all ${
+                                    task.completed ? 'text-muted-foreground line-through' : 'text-foreground'
+                                  }`}>
+                                    {task.text}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                    {task.time}
+                                  </p>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
                   </div>
                 </div>
                 
@@ -946,8 +1135,8 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                     onClick={() => setShowSeedSelection(true)}
                     className="flex flex-col items-center gap-2 p-4 bg-card border border-border rounded-2xl hover:bg-muted/50 transition-all group"
                   >
-                    <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Sprout className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center group-hover:scale-110 transition-transform p-3">
+                      <Logo />
                     </div>
                     <span className="text-xs font-medium text-center">Seed Select</span>
                   </button>
@@ -955,12 +1144,36 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
               </>
             )}
           </>
+        ) : activeView === 'crop_sim' ? (
+          <div className="p-4 pt-2">
+            <div className="flex items-center gap-2 mb-6">
+              <button onClick={() => setActiveView('dashboard')} className="p-2 hover:bg-muted rounded-full">
+                <ChevronDown className="w-5 h-5 rotate-90" />
+              </button>
+              <h2 className="text-xl font-bold">Crop Intelligence Engine</h2>
+            </div>
+            <CropSimulator />
+          </div>
+        ) : activeView === 'crop_manager' ? (
+          <div className="p-4 md:p-6 min-h-screen bg-background/50">
+            <button 
+              onClick={() => setActiveView('dashboard')} 
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4 md:mb-6 group"
+            >
+              <div className="p-1.5 rounded-full bg-muted/50 group-hover:bg-muted transition-colors">
+                 <ChevronDown className="w-4 h-4 rotate-90" />
+              </div>
+              <span className="font-medium text-sm">Back to Dashboard</span>
+            </button>
+            <CropManager />
+          </div>
         ) : activeView === 'expenses' ? (
           <BudgetOverview 
             budget={budget}
-            expenses={expenses}
+            expenses={currentFieldExpenses}
             onAddExpense={() => setShowExpenseTracker(true)}
             onBack={() => setActiveView('dashboard')}
+            onUpdateBudget={handleUpdateBudget}
           />
         ) : activeView === 'market' ? (
           <div className="space-y-4">
@@ -982,17 +1195,21 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
               setUserProfile(updatedProfile);
             }}
           />
+        ) : activeView === 'animals' ? (
+          <AnimalHusbandry onBack={() => setActiveView('dashboard')} />
+        ) : activeView === 'machinery' ? (
+          <FarmMachinery onBack={() => setActiveView('dashboard')} />
         ) : null}
       </div>
 
       {/* Bottom Navigation Bar - Only show when NOT in a full-screen modal mode like Expense Tracker */}
-      {activeView !== 'expenses' && (
+      {true && (
       <>
       <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-xl border-t border-border px-2 py-2 pb-6 z-40 flex justify-around items-center">
         <button 
           onClick={() => setActiveView('dashboard')}
           className={`flex flex-col items-center gap-1 p-2 rounded-xl min-w-[64px] transition-all ${
-            activeView === 'dashboard' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            activeView === 'dashboard' ? 'text-[#812F0F]' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <LayoutDashboard className={`w-6 h-6 ${activeView === 'dashboard' ? 'fill-current' : ''}`} />
@@ -1002,7 +1219,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
         <button 
           onClick={() => setActiveView('expenses')}
           className={`flex flex-col items-center gap-1 p-2 rounded-xl min-w-[64px] transition-all ${
-            activeView === 'expenses' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            activeView === 'expenses' ? 'text-[#812F0F]' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <Wallet className={`w-6 h-6 ${activeView === 'expenses' ? 'fill-current' : ''}`} />
@@ -1015,7 +1232,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
         <button 
           onClick={() => setActiveView('market')}
           className={`flex flex-col items-center gap-1 p-2 rounded-xl min-w-[64px] transition-all ${
-            activeView === 'market' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            activeView === 'market' ? 'text-[#812F0F]' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <TrendingUp className={`w-6 h-6 ${activeView === 'market' ? 'fill-current' : ''}`} />
@@ -1025,7 +1242,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
         <button 
           onClick={() => setActiveView('profile')}
           className={`flex flex-col items-center gap-1 p-2 rounded-xl min-w-[64px] transition-all ${
-            activeView === 'profile' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            activeView === 'profile' ? 'text-[#812F0F]' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           <User className={`w-6 h-6 ${activeView === 'profile' ? 'fill-current' : ''}`} />
@@ -1096,7 +1313,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
         <button
           onClick={() => setShowQuickAddMenu(!showQuickAddMenu)}
-          className={`w-16 h-16 bg-gradient-to-br from-primary to-emerald-600 text-white rounded-full shadow-xl shadow-primary/30 ring-4 ring-background flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 ${showQuickAddMenu ? 'rotate-45 bg-red-500 from-red-500 to-rose-600' : ''}`}
+          className={`w-16 h-16 bg-[#812F0F] text-white rounded-full shadow-xl shadow-[#812F0F]/30 ring-4 ring-background flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 ${showQuickAddMenu ? 'rotate-45 bg-red-500 from-red-500 to-rose-600' : ''}`}
         >
           <Plus className="w-8 h-8" />
         </button>
@@ -1110,6 +1327,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
           <div className="fixed inset-0 bg-background flex flex-col h-full overflow-y-auto">
             <ExpenseTracker 
               currentBudget={budget} 
+              initialFieldId={selectedFieldId || undefined}
               onSave={(expense) => {
                 handleExpenseSave(expense);
                 setShowExpenseTracker(false);
@@ -1124,6 +1342,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
         <VoiceJournalEntry 
           onClose={() => setShowVoiceJournal(false)} 
           onSave={handleVoiceJournalSave}
+          currentFieldName={currentField?.name}
         />
       )}
 
@@ -1176,8 +1395,10 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
       {showSoilSummary && (
         <SoilHealthSummary 
           onClose={() => setShowSoilSummary(false)}
-          results={selfTestResults}
-          onSave={handleSaveSoilProfile}
+          testResults={displayedSoilResult || selfTestResults[selfTestResults.length - 1]}
+          onSaveProfile={handleSaveSoilProfile}
+          fields={availableFields}
+          isSaved={viewingStoredProfile}
         />
       )}
 
@@ -1186,6 +1407,8 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
         <FarmingJournal 
           onClose={() => setShowFarmingJournal(false)} 
           onSave={handleFarmingJournalSave}
+          currentFieldId={selectedFieldId || undefined}
+          fields={availableFields}
         />
       )}
 
@@ -1254,6 +1477,15 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
       {showFieldMonitoring && (
         <SatelliteMonitoring 
           onClose={() => setShowFieldMonitoring(false)}
+          fields={availableFields}
+          onUpdateField={async (id, updates) => {
+             await updateField(id, updates);
+             await loadFields();
+          }}
+          onCreateField={async (field) => {
+              await createField(field);
+              await loadFields();
+          }}
         />
       )}
 

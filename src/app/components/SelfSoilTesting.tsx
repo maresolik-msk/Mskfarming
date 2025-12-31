@@ -85,14 +85,14 @@ export function SelfSoilTesting({ onClose, onSelectTest }: SelfSoilTestingProps)
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-card rounded-2xl p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-card rounded-3xl p-0 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-hidden flex flex-col ring-1 ring-white/10"
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
+        <div className="flex items-center justify-between p-6 pb-4 bg-card/95 backdrop-blur-sm border-b border-border shrink-0 z-10">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-3xl">🌱</span>
-              <h3 className="text-2xl text-foreground">Test Your Soil</h3>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-2xl">🌱</span>
+              <h3 className="text-2xl font-bold text-foreground font-[Megrim]">Test Your Soil</h3>
             </div>
             <p className="text-sm text-muted-foreground">Mera Mitti - Know your soil in 25 minutes</p>
           </div>
@@ -104,124 +104,134 @@ export function SelfSoilTesting({ onClose, onSelectTest }: SelfSoilTestingProps)
           </button>
         </div>
 
-        {/* Introduction */}
-        <div className="mb-6 p-5 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
-          <div className="flex items-start gap-3">
-            <div className="text-3xl">💡</div>
-            <div>
-              <div className="text-foreground mb-2">No lab needed! Test at home</div>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Follow simple steps with pictures</li>
-                <li>• Just use your hands and water</li>
-                <li>• Takes 25 minutes total</li>
-                <li>• Get instant advice for your farm</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Test Cards */}
-        <div className="space-y-3 mb-6">
-          {tests.map((test, index) => {
-            const Icon = test.icon;
-            return (
-              <motion.button
-                key={test.id}
-                onClick={() => onSelectTest(test.id)}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="w-full text-left p-5 rounded-xl border-2 border-border hover:border-primary/50 bg-card hover:bg-muted/50 transition-all group"
-              >
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
-                    <span className="text-2xl">{test.emoji}</span>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-lg text-foreground">{test.name}</h4>
-                          {test.mandatory && (
-                            <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
-                              Must Do
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+        <div className="overflow-y-auto p-6 flex-1 space-y-6 scrollbar-hide">
+            {/* Introduction */}
+            <div className="p-5 bg-gradient-to-br from-[#812F0F]/10 to-transparent rounded-2xl border border-[#812F0F]/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#812F0F]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="flex items-start gap-4 relative z-10">
+                    <div className="w-10 h-10 rounded-full bg-[#812F0F]/10 flex items-center justify-center shrink-0 border border-[#812F0F]/20">
+                        <span className="text-xl">💡</span>
                     </div>
-
-                    <p className="text-sm text-foreground mb-2">{test.description}</p>
-
-                    {/* Duration */}
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="text-xs text-muted-foreground">
-                        ⏱️ {test.duration}
-                      </div>
-                      <div className="text-xs text-muted-foreground capitalize">
-                        {test.difficulty === 'easy' ? '😊 Easy' : '📖 Medium'}
-                      </div>
+                    <div>
+                    <div className="font-bold text-foreground mb-2">No lab needed! Test at home</div>
+                    <ul className="text-sm text-muted-foreground space-y-2">
+                        <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#812F0F]/50" />Follow simple steps with pictures</li>
+                        <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#812F0F]/50" />Just use your hands and water</li>
+                        <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#812F0F]/50" />Takes 25 minutes total</li>
+                        <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[#812F0F]/50" />Get instant advice for your farm</li>
+                    </ul>
                     </div>
-
-                    {/* Why it matters */}
-                    <div className="p-2 bg-muted rounded-lg">
-                      <div className="text-xs text-muted-foreground mb-1">Why this matters:</div>
-                      <div className="text-xs text-foreground">{test.whyItMatters}</div>
-                    </div>
-                  </div>
                 </div>
-              </motion.button>
-            );
-          })}
-        </div>
-
-        {/* Complete Test Button */}
-        <button
-          onClick={() => onSelectTest('complete')}
-          className="w-full mb-4 p-5 rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground hover:from-primary/90 hover:to-primary/70 transition-all"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <div className="text-left">
-                <div className="font-medium mb-1">Do Complete Test (All 5)</div>
-                <div className="text-sm opacity-90">Get full soil profile - Recommended!</div>
-              </div>
             </div>
-            <ChevronRight className="w-5 h-5" />
-          </div>
-        </button>
 
-        {/* Help Section */}
-        <div className="p-4 bg-muted rounded-lg">
-          <div className="flex items-start gap-3">
-            <HelpCircle className="w-5 h-5 text-primary mt-0.5" />
+            {/* Test Cards */}
+            <div className="space-y-3">
+            {tests.map((test, index) => {
+                const Icon = test.icon;
+                return (
+                <motion.button
+                    key={test.id}
+                    onClick={() => onSelectTest(test.id)}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="w-full text-left p-5 rounded-2xl border border-border hover:border-[#812F0F]/30 bg-card hover:bg-muted/50 transition-all group relative overflow-hidden"
+                >
+                    <div className="flex items-start gap-5 relative z-10">
+                    {/* Icon */}
+                    <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center flex-shrink-0 group-hover:bg-[#812F0F]/10 group-hover:scale-105 transition-all border border-border/50 shadow-sm">
+                        <span className="text-2xl group-hover:scale-110 transition-transform duration-300">{test.emoji}</span>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1">
+                        <div className="flex items-start justify-between mb-2">
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-lg font-bold text-foreground group-hover:text-[#812F0F] transition-colors">{test.name}</h4>
+                            {test.mandatory && (
+                                <span className="px-2 py-0.5 bg-amber-500/10 text-amber-600 border border-amber-500/20 text-[10px] font-bold uppercase tracking-wider rounded-full">
+                                Must Do
+                                </span>
+                            )}
+                            </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-[#812F0F] group-hover:translate-x-1 transition-all" />
+                        </div>
+
+                        <p className="text-sm text-foreground/80 mb-3 leading-relaxed">{test.description}</p>
+
+                        {/* Duration */}
+                        <div className="flex items-center gap-4 mb-3">
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                            <span>⏱️</span> {test.duration}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-md capitalize">
+                            <span>{test.difficulty === 'easy' ? '😊' : '📖'}</span> {test.difficulty}
+                        </div>
+                        </div>
+
+                        {/* Why it matters */}
+                        <div className="p-3 bg-muted/30 rounded-xl border border-border/50">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Why this matters</div>
+                        <div className="text-xs text-foreground/90 leading-relaxed">{test.whyItMatters}</div>
+                        </div>
+                    </div>
+                    </div>
+                </motion.button>
+                );
+            })}
+            </div>
+
+            {/* Complete Test Button */}
+            <button
+            onClick={() => onSelectTest('complete')}
+            className="w-full p-1 rounded-2xl bg-gradient-to-r from-[#812F0F] via-[#963714] to-[#812F0F] p-[1px] group transition-transform hover:scale-[1.01]"
+            >
+            <div className="bg-[#812F0F] rounded-[15px] p-5 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex items-center justify-between relative z-10 text-white">
+                    <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-inner">
+                        <Sparkles className="w-6 h-6 text-amber-200" />
+                    </div>
+                    <div className="text-left">
+                        <div className="font-bold text-lg mb-0.5">Do Complete Test (All 5)</div>
+                        <div className="text-sm text-white/80">Get full soil profile - <span className="text-amber-200 font-medium">Recommended!</span></div>
+                    </div>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-all">
+                        <ChevronRight className="w-5 h-5" />
+                    </div>
+                </div>
+            </div>
+            </button>
+
+            {/* Help Section */}
+            <div className="p-4 bg-muted/30 rounded-xl border border-border/50 flex items-start gap-4">
+            <div className="w-8 h-8 rounded-full bg-[#812F0F]/10 flex items-center justify-center shrink-0">
+                <HelpCircle className="w-4 h-4 text-[#812F0F]" />
+            </div>
             <div>
-              <div className="text-sm text-foreground mb-1">New to soil testing?</div>
-              <div className="text-sm text-muted-foreground mb-2">
+                <div className="text-sm font-bold text-foreground mb-1">New to soil testing?</div>
+                <div className="text-xs text-muted-foreground mb-2 leading-relaxed">
                 Don't worry! We'll guide you step by step with pictures and voice. It's very easy.
-              </div>
-              <button
+                </div>
+                <button
                 onClick={() => setShowInfo(true)}
-                className="text-sm text-primary hover:underline"
-              >
-                Watch How It Works (2 min video) →
-              </button>
+                className="text-xs font-bold text-[#812F0F] hover:underline flex items-center gap-1"
+                >
+                Watch How It Works (2 min video) <ChevronRight className="w-3 h-3" />
+                </button>
             </div>
-          </div>
+            </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 mt-6 pt-4 border-t border-border">
+        <div className="p-6 pt-4 bg-card border-t border-border shrink-0">
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-lg border-2 border-border hover:bg-muted transition-colors"
+            className="w-full py-3.5 rounded-xl border border-border hover:bg-muted font-medium transition-colors"
           >
             Back
           </button>

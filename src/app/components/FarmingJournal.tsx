@@ -19,6 +19,8 @@ import { toast } from 'sonner';
 interface FarmingJournalProps {
   onClose: () => void;
   onSave: (entry: any) => void;
+  currentFieldId?: string;
+  fields?: Array<{ id: string; name: string; crop?: string }>;
 }
 
 interface Activity {
@@ -33,24 +35,7 @@ interface Observation {
   emoji: string;
 }
 
-export function FarmingJournal({ onClose, onSave }: FarmingJournalProps) {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedField, setSelectedField] = useState('');
-  const [selectedCrop, setSelectedCrop] = useState('');
-  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
-  const [selectedObservations, setSelectedObservations] = useState<string[]>([]);
-  const [weather, setWeather] = useState('sunny');
-  const [canalWater, setCanalWater] = useState<boolean | null>(null);
-  const [borewellUsed, setBorewellUsed] = useState<boolean | null>(null);
-  const [textNote, setTextNote] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-
-  const fields = [
-    { id: 'field-a', name: 'Field A (2 acres)' },
-    { id: 'field-b', name: 'Field B (3 acres)' },
-    { id: 'field-c', name: 'Field C (1.5 acres)' },
-  ];
-
+export function FarmingJournal({ onClose, onSave, currentFieldId, fields = [] }: FarmingJournalProps) {
   const crops = [
     { id: 'rice', name: 'Rice' },
     { id: 'cotton', name: 'Cotton' },
@@ -58,7 +43,31 @@ export function FarmingJournal({ onClose, onSave }: FarmingJournalProps) {
     { id: 'chilli', name: 'Chilli' },
     { id: 'tomato', name: 'Tomato' },
     { id: 'sugarcane', name: 'Sugarcane' },
+    { id: 'maize', name: 'Maize' },
+    { id: 'potato', name: 'Potato' },
   ];
+
+  const getCropIdFromName = (name?: string) => {
+    if (!name) return '';
+    const normalized = name.toLowerCase();
+    const found = crops.find(c => c.id === normalized || c.name.toLowerCase() === normalized);
+    return found ? found.id : '';
+  };
+
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedField, setSelectedField] = useState(currentFieldId || '');
+  
+  // Initialize crop from current field
+  const initialField = fields.find(f => f.id === currentFieldId);
+  const [selectedCrop, setSelectedCrop] = useState(getCropIdFromName(initialField?.crop));
+
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
+  const [selectedObservations, setSelectedObservations] = useState<string[]>([]);
+  const [weather, setWeather] = useState('sunny');
+  const [canalWater, setCanalWater] = useState<boolean | null>(null);
+  const [borewellUsed, setBorewellUsed] = useState<boolean | null>(null);
+  const [textNote, setTextNote] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
 
   const activities: Activity[] = [
     { id: 'sowing', label: 'Sowing', emoji: '🌱' },
@@ -88,6 +97,15 @@ export function FarmingJournal({ onClose, onSave }: FarmingJournalProps) {
     { id: 'rain', label: 'Rained', icon: CloudRain, color: 'text-blue-500' },
     { id: 'windy', label: 'Windy', icon: Wind, color: 'text-cyan-500' },
   ];
+
+  const handleFieldChange = (fieldId: string) => {
+    setSelectedField(fieldId);
+    const field = fields.find(f => f.id === fieldId);
+    if (field?.crop) {
+      const cropId = getCropIdFromName(field.crop);
+      if (cropId) setSelectedCrop(cropId);
+    }
+  };
 
   const toggleActivity = (id: string) => {
     if (id === 'no-work') {
@@ -209,7 +227,7 @@ export function FarmingJournal({ onClose, onSave }: FarmingJournalProps) {
                     <div className="relative">
                         <select
                             value={selectedField}
-                            onChange={(e) => setSelectedField(e.target.value)}
+                            onChange={(e) => handleFieldChange(e.target.value)}
                             className="w-full bg-background/50 border border-border/60 rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none"
                         >
                             <option value="">Select Field</option>

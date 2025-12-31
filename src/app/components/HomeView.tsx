@@ -6,8 +6,8 @@ import {
   Camera, 
   Wallet, 
   ClipboardEdit, 
-  AlertTriangle, 
-  CheckCircle2, 
+  TriangleAlert, 
+  CircleCheck, 
   Circle, 
   Sprout, 
   ChevronRight, 
@@ -17,6 +17,8 @@ import {
   FlaskConical,
 } from 'lucide-react';
 import { WeatherForecast } from './WeatherForecast';
+import { useTranslation } from 'react-i18next';
+import Logo from '../../imports/Logo';
 
 interface Task {
   id: string;
@@ -42,6 +44,11 @@ interface HomeViewProps {
     total: number;
     used: number;
   };
+  soilHealth?: {
+    lastTested: string;
+    status: 'Good' | 'Average' | 'Poor';
+    riskLevel?: 'low' | 'medium' | 'high';
+  };
   onToggleTask: (id: string) => void;
   onAction: (action: 'voice' | 'photo' | 'expense' | 'journal' | 'guidance' | 'soil-test' | 'seed-selection' | 'crop-details') => void;
 }
@@ -51,16 +58,19 @@ export function HomeView({
   cropInfo, 
   tasks, 
   budget = { total: 0, used: 0 }, 
+  soilHealth,
   onToggleTask, 
   onAction 
 }: HomeViewProps) {
+  const { t, i18n } = useTranslation();
   
   const criticalBudget = budget.total > 0 ? (budget.used / budget.total) > 0.9 : false;
   const warningBudget = budget.total > 0 ? (budget.used / budget.total) > 0.75 : false;
   
-  // Get current date formatted nicely
+  // Get current date formatted nicely based on locale
   const today = new Date();
-  const dateString = today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
+  const dateLocale = i18n.language === 'te' ? 'te-IN' : 'en-IN';
+  const dateString = today.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'short' });
 
   // Helper to generate SVG path from GeoJSON
   const getFieldPath = (boundary: any) => {
@@ -122,12 +132,14 @@ export function HomeView({
   // Safe tasks array
   const safeTasks = Array.isArray(tasks) ? tasks : [];
 
+  const budgetUsedPercent = budget.total > 0 ? Math.round((budget.used / budget.total) * 100) : 0;
+
   return (
     <motion.div 
       variants={container}
       initial="hidden"
       animate="show"
-      className="space-y-6 pb-20 p-[0px]"
+      className="space-y-6 pt-[24px] pr-[0px] pb-[80px] pl-[0px] px-[0px] py-[24px]"
     >
       {/* Level 1: Context & Greeting */}
       <motion.div variants={item} className="flex flex-col gap-1">
@@ -136,7 +148,7 @@ export function HomeView({
           <span>{dateString}</span>
         </div>
         <h1 className="text-2xl font-medium text-foreground">
-          Namaste, <span className="font-semibold text-primary">{farmerName}</span>
+          {t('home.greeting', { name: farmerName })}
         </h1>
       </motion.div>
 
@@ -149,13 +161,13 @@ export function HomeView({
       {(criticalBudget || warningBudget) && (
         <motion.div variants={item} className={`p-4 rounded-xl border ${criticalBudget ? 'bg-red-50 border-red-200 text-red-900' : 'bg-orange-50 border-orange-200 text-orange-900'}`}>
           <div className="flex items-start gap-3">
-            <AlertTriangle className={`w-5 h-5 ${criticalBudget ? 'text-red-600' : 'text-orange-600'} shrink-0 mt-0.5`} />
+            <TriangleAlert className={`w-5 h-5 ${criticalBudget ? 'text-red-600' : 'text-orange-600'} shrink-0 mt-0.5`} />
             <div>
-              <h3 className="font-medium mb-1">Attention Needed</h3>
+              <h3 className="font-medium mb-1">{t('home.budget.attention')}</h3>
               <p className="text-sm opacity-90">
                 {criticalBudget 
-                  ? `Critical Budget: ${Math.round((budget.used / budget.total) * 100)}% used. Review expenses immediately.` 
-                  : `Budget Warning: ${Math.round((budget.used / budget.total) * 100)}% used. Be careful with spending.`}
+                  ? t('home.budget.critical', { percent: budgetUsedPercent })
+                  : t('home.budget.warning', { percent: budgetUsedPercent })}
               </p>
             </div>
           </div>
@@ -164,7 +176,7 @@ export function HomeView({
 
       {/* Level 4: Core Actions (The Worker) */}
       <motion.div variants={item}>
-        <h2 className="text-lg font-medium mb-3 text-foreground">Quick Actions</h2>
+        <h2 className="text-lg font-medium mb-3 text-foreground">{t('home.actions.title')}</h2>
         <div className="grid grid-cols-2 gap-3">
           {/* Voice Note - Primary Action */}
           <button
@@ -175,8 +187,8 @@ export function HomeView({
               <Mic className="w-6 h-6" />
             </div>
             <div className="text-left">
-              <div className="font-semibold text-lg">Voice Log</div>
-              <div className="text-sm text-primary-foreground/80">Record activity or note</div>
+              <div className="font-semibold text-lg">{t('home.actions.voice.title')}</div>
+              <div className="text-sm text-primary-foreground/80">{t('home.actions.voice.desc')}</div>
             </div>
             <ChevronRight className="w-5 h-5 ml-auto opacity-70" />
           </button>
@@ -189,7 +201,7 @@ export function HomeView({
             <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
               <Camera className="w-5 h-5" />
             </div>
-            <span className="font-medium text-sm">Take Photo</span>
+            <span className="font-medium text-sm">{t('home.actions.photo.title')}</span>
           </button>
 
           <button
@@ -199,7 +211,7 @@ export function HomeView({
             <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
               <Wallet className="w-5 h-5" />
             </div>
-            <span className="font-medium text-sm">Add Expense</span>
+            <span className="font-medium text-sm">{t('home.actions.expense.title')}</span>
           </button>
         </div>
       </motion.div>
@@ -209,10 +221,10 @@ export function HomeView({
         <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
           <h2 className="font-medium text-foreground flex items-center gap-2">
             <ClipboardEdit className="w-4 h-4 text-primary" />
-            Today's Plan
+            {t('home.dailyPlan.title')}
           </h2>
           <span className="text-xs font-medium px-2 py-1 bg-primary/10 text-primary rounded-full">
-            {safeTasks.filter(t => !t.completed).length} Pending
+            {t('home.dailyPlan.pending', { count: safeTasks.filter(t => !t.completed).length })}
           </span>
         </div>
         <div className="divide-y divide-border">
@@ -223,7 +235,7 @@ export function HomeView({
               className="p-4 flex items-start gap-3 hover:bg-muted/50 transition-colors cursor-pointer"
             >
               <div className={`mt-0.5 transition-colors ${task.completed ? 'text-primary' : 'text-muted-foreground'}`}>
-                {task.completed ? <CheckCircle2 className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
+                {task.completed ? <CircleCheck className="w-5 h-5" /> : <Circle className="w-5 h-5" />}
               </div>
               <div className="flex-1">
                 <p className={`text-sm font-medium transition-all ${task.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
@@ -240,7 +252,7 @@ export function HomeView({
 
       {/* Level 6: Farm Status (The Monitor) */}
       <motion.div variants={item}>
-        <h2 className="text-lg font-medium mb-3 text-foreground">Farm Status</h2>
+        <h2 className="text-lg font-medium mb-3 text-foreground">{t('home.farmStatus.title')}</h2>
         <div className="grid grid-cols-1 gap-4">
           {/* Crop Card */}
           <div className="group relative overflow-hidden rounded-2xl shadow-lg transition-all hover:shadow-xl bg-gradient-to-br from-slate-900 to-slate-800">
@@ -293,7 +305,9 @@ export function HomeView({
               <div className="relative z-10 flex items-start justify-between mb-8">
                 <div className="space-y-3">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 shadow-sm">
-                    <Sprout className="w-3.5 h-3.5 text-green-300" />
+                    <div className="w-4 h-4 text-green-300">
+                      <Logo />
+                    </div>
                     <span className="text-[10px] font-bold uppercase tracking-widest text-green-50">{cropInfo.field}</span>
                   </div>
                   <h3 className="text-4xl font-bold tracking-tight text-white drop-shadow-sm group-hover:scale-[1.02] transition-transform duration-300 origin-left">
@@ -304,7 +318,7 @@ export function HomeView({
                 {/* Day Counter */}
                 <div className="flex flex-col items-end">
                    <div className="bg-black/20 backdrop-blur-md border border-white/10 text-white pl-4 pr-1 py-1 rounded-full shadow-lg flex items-center gap-3 group-hover:bg-black/30 transition-all">
-                     <span className="text-xs font-bold tracking-wide">Day {cropInfo.day}</span>
+                     <span className="text-xs font-bold tracking-wide">{t('growth.days')} {cropInfo.day}</span>
                      <div className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-medium text-white/80">
                         {cropInfo.totalDays}
                      </div>
@@ -316,7 +330,7 @@ export function HomeView({
               <div className="relative z-10 space-y-5">
                 <div className="flex justify-between items-end text-sm">
                   <span className="text-green-50/80 font-medium flex items-center gap-2">
-                    Growth Cycle
+                    {t('home.farmStatus.growthCycle')}
                   </span>
                   <div className="flex items-baseline gap-1">
                       <span className="text-2xl font-bold text-white tracking-tight">{cropInfo.progress}</span>
@@ -342,7 +356,7 @@ export function HomeView({
                         <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-yellow-400 animate-ping opacity-75" />
                     </div>
                     <div className="flex flex-col leading-none gap-1">
-                        <span className="text-[10px] text-white/60 font-medium uppercase tracking-wide">Next Task</span>
+                        <span className="text-[10px] text-white/60 font-medium uppercase tracking-wide">{t('home.farmStatus.nextTask')}</span>
                         <span className="font-bold text-xs">Fertilizer in 3 days</span>
                     </div>
                   </div>
@@ -362,13 +376,13 @@ export function HomeView({
                 <Wallet className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Monthly Budget</div>
-                <div className="font-bold text-foreground">₹{budget.used.toLocaleString()} <span className="text-muted-foreground font-normal text-xs">used</span></div>
+                <div className="text-sm text-muted-foreground">{t('home.budget.monthly')}</div>
+                <div className="font-bold text-foreground">₹{budget.used.toLocaleString()} <span className="text-muted-foreground font-normal text-xs">{t('home.budget.used')}</span></div>
               </div>
             </div>
             <div className="text-right">
               <div className="text-sm font-medium text-foreground">₹{(budget.total - budget.used).toLocaleString()}</div>
-              <div className="text-xs text-muted-foreground">remaining</div>
+              <div className="text-xs text-muted-foreground">{t('home.budget.remaining')}</div>
             </div>
           </div>
 
@@ -378,16 +392,38 @@ export function HomeView({
             className="group bg-card border border-border rounded-xl p-4 flex items-center justify-between hover:bg-muted/50 transition-all text-left"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 group-hover:bg-amber-200 transition-colors">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                soilHealth 
+                  ? soilHealth.riskLevel === 'high' ? 'bg-red-100 text-red-700 group-hover:bg-red-200'
+                  : soilHealth.riskLevel === 'medium' ? 'bg-orange-100 text-orange-700 group-hover:bg-orange-200'
+                  : 'bg-green-100 text-green-700 group-hover:bg-green-200'
+                  : 'bg-amber-100 text-amber-700 group-hover:bg-amber-200'
+              }`}>
                 <FlaskConical className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Soil Health</div>
-                <div className="font-bold text-foreground">Check Status</div>
+                <div className="text-sm text-muted-foreground">{t('home.farmStatus.soilHealth')}</div>
+                <div className="font-bold text-foreground">
+                  {soilHealth 
+                    ? new Date(soilHealth.lastTested).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })
+                    : t('home.farmStatus.checkStatus')}
+                </div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">Good</div>
+              {soilHealth ? (
+                 <div className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  soilHealth.riskLevel === 'high' ? 'bg-red-100 text-red-700'
+                  : soilHealth.riskLevel === 'medium' ? 'bg-orange-100 text-orange-700'
+                  : 'bg-green-100 text-green-700'
+                }`}>
+                  {soilHealth.status}
+                </div>
+              ) : (
+                <div className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">
+                   {t('home.farmStatus.checkStatus')}
+                </div>
+              )}
             </div>
           </button>
 
@@ -397,12 +433,12 @@ export function HomeView({
             className="group bg-card border border-border rounded-xl p-4 flex items-center justify-between hover:bg-muted/50 transition-all text-left"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 group-hover:bg-emerald-200 transition-colors">
-                <Sprout className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 group-hover:bg-emerald-200 transition-colors p-2">
+                <Logo />
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Seed Advisor</div>
-                <div className="font-bold text-foreground">Next Season</div>
+                <div className="text-sm text-muted-foreground">{t('home.farmStatus.seedAdvisor')}</div>
+                <div className="font-bold text-foreground">{t('home.farmStatus.nextSeason')}</div>
               </div>
             </div>
             <div className="text-right">

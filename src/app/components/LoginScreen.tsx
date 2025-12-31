@@ -203,11 +203,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Important Notice Banner */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-full px-4">
-        <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 backdrop-blur-sm">
-          <p className="text-xs text-center text-foreground">
-            <span className="font-semibold">⚠️ Important:</span> Please use <span className="font-semibold">Mobile OTP Authentication</span> for the full experience. Email/password login is for demo only and has limited features.
-          </p>
-        </div>
+        
       </div>
 
       {/* Show Mobile Auth Screen if mobile mode is selected */}

@@ -12,9 +12,10 @@ interface VoiceJournalEntryProps {
     weather: string;
   }) => void;
   onClose: () => void;
+  currentFieldName?: string;
 }
 
-export function VoiceJournalEntry({ onSave, onClose }: VoiceJournalEntryProps) {
+export function VoiceJournalEntry({ onSave, onClose, currentFieldName }: VoiceJournalEntryProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -61,7 +62,7 @@ export function VoiceJournalEntry({ onSave, onClose }: VoiceJournalEntryProps) {
       text: transcribedText,
       timestamp: new Date(),
       duration,
-      location: 'North Field',
+      location: currentFieldName || 'Unknown Location',
       weather: '28°C, Clear',
     });
     toast.success('Journal entry saved');
@@ -176,7 +177,7 @@ export function VoiceJournalEntry({ onSave, onClose }: VoiceJournalEntryProps) {
               </div>
               <div className="bg-muted rounded-lg p-3">
                 <div className="text-xs text-muted-foreground mb-1">Location</div>
-                <div className="text-foreground">North Field</div>
+                <div className="text-foreground">{currentFieldName || 'Unknown Location'}</div>
               </div>
               <div className="bg-muted rounded-lg p-3">
                 <div className="text-xs text-muted-foreground mb-1">Date & Time</div>

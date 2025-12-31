@@ -116,7 +116,7 @@ export function MSChatbot({ farmerName = 'Farmer', currentContext = {} }: MSChat
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(true)}
         className={`fixed bottom-24 right-6 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-colors ${
-          isOpen ? 'bg-primary/0 pointer-events-none' : 'bg-gradient-to-tr from-primary to-emerald-600 text-white'
+          isOpen ? 'bg-primary/0 pointer-events-none' : 'bg-[#812F0F] text-white hover:bg-[#963714]'
         }`}
       >
         <MessageSquare className="w-7 h-7" />
@@ -134,7 +134,7 @@ export function MSChatbot({ farmerName = 'Farmer', currentContext = {} }: MSChat
             className="fixed bottom-24 right-6 z-50 w-[90vw] max-w-sm h-[600px] max-h-[70vh] bg-card/95 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-black/5"
           >
             {/* Header */}
-            <div className="p-4 bg-gradient-to-r from-primary to-emerald-600 flex items-center justify-between shrink-0">
+            <div className="p-4 bg-gradient-to-r from-[#812F0F] to-[#963714] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
                   <Bot className="w-6 h-6 text-white" />
@@ -166,18 +166,18 @@ export function MSChatbot({ farmerName = 'Farmer', currentContext = {} }: MSChat
                 >
                   <div className={`max-w-[80%] p-3.5 rounded-2xl text-sm leading-relaxed shadow-sm ${
                     msg.sender === 'user' 
-                      ? 'bg-primary text-primary-foreground rounded-tr-sm' 
+                      ? 'bg-[#812F0F] text-white rounded-tr-sm' 
                       : 'bg-card border border-border rounded-tl-sm'
                   }`}>
                     {msg.sender === 'bot' && (
                       <div className="flex items-center gap-1.5 mb-1 opacity-70">
-                        <Sparkles className="w-3 h-3 text-emerald-500" />
+                        <Sparkles className="w-3 h-3 text-[#812F0F]" />
                         <span className="text-[10px] font-bold uppercase tracking-wider">MS AI</span>
                       </div>
                     )}
                     {msg.text}
                     <div className={`text-[10px] mt-1 text-right ${
-                      msg.sender === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground/70'
+                      msg.sender === 'user' ? 'text-white/70' : 'text-muted-foreground/70'
                     }`}>
                       {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
@@ -188,7 +188,7 @@ export function MSChatbot({ farmerName = 'Farmer', currentContext = {} }: MSChat
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="bg-card border border-border rounded-2xl rounded-tl-sm p-4 shadow-sm flex items-center gap-3">
-                    <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                    <Loader2 className="w-4 h-4 text-[#812F0F] animate-spin" />
                     <span className="text-xs text-muted-foreground animate-pulse">Thinking...</span>
                   </div>
                 </div>
@@ -205,7 +205,7 @@ export function MSChatbot({ farmerName = 'Farmer', currentContext = {} }: MSChat
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={handleKeyPress}
                   placeholder="Ask anything about your crops..."
-                  className="flex-1 bg-muted/50 border border-input focus:border-primary/50 focus:ring-2 focus:ring-primary/20 rounded-xl px-4 py-3 text-sm transition-all outline-none"
+                  className="flex-1 bg-muted/50 border border-input focus:border-[#812F0F]/50 focus:ring-2 focus:ring-[#812F0F]/20 rounded-xl px-4 py-3 text-sm transition-all outline-none"
                   disabled={isLoading}
                 />
                 <button
@@ -214,7 +214,7 @@ export function MSChatbot({ farmerName = 'Farmer', currentContext = {} }: MSChat
                   className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all shadow-md ${
                     !inputText.trim() || isLoading
                       ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                      : 'bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95'
+                      : 'bg-[#812F0F] text-white hover:bg-[#963714] hover:scale-105 active:scale-95'
                   }`}
                 >
                   <Send className="w-5 h-5" />

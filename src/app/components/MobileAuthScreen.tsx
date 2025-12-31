@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Leaf, ArrowRight, Check, AlertCircle, Loader2, Phone, Hash, CheckCircle, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Leaf, ArrowRight, Check, AlertCircle, Loader2, Phone, Hash, CheckCircle, User, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 import { setAuthToken } from '../../lib/api';
+import Logo from '../../imports/Logo3-123-539';
 
 // Import Supabase config
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
@@ -48,6 +50,7 @@ const ROLES = [
 ];
 
 export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
+  const navigate = useNavigate();
   const [step, setStep] = useState<AuthStep>('mobile');
   const [mobileNumber, setMobileNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -222,13 +225,18 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
       </div>
 
+      {/* Back Button */}
+      <button 
+        onClick={() => navigate('/')} 
+        className="absolute top-4 left-4 z-50 p-2 rounded-[0px] bg-background/20 backdrop-blur-sm border border-foreground/10 text-foreground hover:bg-background/40 transition-colors"
+        aria-label="Go back"
+      >
+        <ArrowLeft className="w-6 h-6" />
+      </button>
+
       {/* OTP Authentication Notice */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 max-w-2xl w-full px-4">
-        <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 backdrop-blur-sm">
-          <p className="text-xs text-center text-foreground">
-            <span className="font-semibold">🔐 Dev Mode:</span> OTP is always <span className="font-mono font-bold">123456</span> for testing
-          </p>
-        </div>
+      
       </div>
 
       <motion.div
@@ -237,16 +245,16 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
         className="w-full max-w-md relative z-10"
       >
         {/* Logo */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-[12px] mt-[0px] mr-[0px] ml-[0px]">
           <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-primary flex items-center justify-center text-4xl shadow-lg">
-            🌱
+            <Logo />
           </div>
-          <h1 className="text-3xl mb-2 text-foreground">Crop Intelligence Engine</h1>
+          <h1 className="text-3xl mb-2 text-foreground font-[Kugile]">MILA</h1>
           <p className="text-muted-foreground">Your farming companion</p>
         </div>
 
         {/* Auth Card */}
-        <div className="bg-card rounded-2xl p-8 shadow-xl border border-border">
+        <div className="bg-card rounded-[0px] p-8 shadow-xl border border-border">
           {/* Error Display */}
           {error && (
             <motion.div
@@ -295,7 +303,7 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
                 <button
                   type="submit"
                   disabled={loading || !isValidMobile(mobileNumber)}
-                  className="w-full py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-primary text-primary-foreground rounded-[0px] hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
@@ -330,7 +338,7 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
                     </button>
                   </p>
                   {otpSentMessage && (
-                    <div className="mt-2 p-2 bg-primary/10 border border-primary/30 rounded-md">
+                    <div className="mt-2 p-2 bg-primary/10 border border-primary/30 rounded-[0px]">
                       <p className="text-xs text-foreground flex items-center gap-2">
                         <CheckCircle className="w-4 h-4" />
                         {otpSentMessage}
@@ -354,7 +362,7 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
                       }}
                       placeholder="123456"
                       maxLength={6}
-                      className="w-full pl-11 pr-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors text-center text-2xl tracking-widest font-mono"
+                      className="w-full pl-11 pr-4 py-3 bg-input-background rounded-[0px] border-2 border-transparent focus:border-primary outline-none transition-colors text-center text-2xl tracking-widest font-mono"
                       autoFocus
                     />
                   </div>
@@ -447,7 +455,7 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
                 <button
                   type="submit"
                   disabled={loading || otp.length !== 6 || (isNewUser && !consent)}
-                  className="w-full py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-primary text-primary-foreground rounded-[0px] hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
@@ -494,20 +502,6 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
             )}
           </motion.div>
         </div>
-
-        {/* Demo Notice */}
-        {step === 'mobile' && (
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
-            <p className="text-xs text-foreground mb-2">
-              📱 <span className="font-semibold">Testing Instructions:</span>
-            </p>
-            <div className="space-y-1 text-xs text-muted-foreground">
-              <p>• Enter any 10-digit mobile number (6-9 prefix)</p>
-              <p>• OTP is always: <span className="font-mono text-foreground font-bold">123456</span></p>
-              <p>• Accounts are auto-created on first login</p>
-            </div>
-          </div>
-        )}
       </motion.div>
     </div>
   );

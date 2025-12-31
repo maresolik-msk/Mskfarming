@@ -1,27 +1,24 @@
+import { MouseEvent } from 'react';
 import { motion } from 'motion/react';
-import { Sprout, Search, MessageCircle, TrendingUp } from 'lucide-react';
+import { Sprout, Search, MessageCircle, TrendingUp, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ScrollReveal } from '../components/ScrollReveal';
 
 export function HowItWorksPage() {
   const navigate = useNavigate();
   
-  const handleGetStartedClick = (e: React.MouseEvent) => {
+  const handleGetStartedClick = (e: MouseEvent) => {
     e.preventDefault();
-    
-    // Check if user is logged in
     const storedUser = localStorage.getItem('currentUser');
     const hasOnboarded = localStorage.getItem('hasOnboarded');
     
     if (storedUser) {
-      // User is logged in - check if they've completed onboarding
       if (hasOnboarded) {
         navigate('/dashboard');
       } else {
-        // User needs to complete onboarding
         window.location.href = '/';
       }
     } else {
-      // Not logged in - go to get-started page
       navigate('/get-started');
     }
   };
@@ -29,89 +26,94 @@ export function HowItWorksPage() {
   const steps = [
     {
       icon: Search,
-      title: 'Create your field profile',
-      description: 'Tell us about your land, water access, and experience',
+      title: 'Digital Field Profile',
+      description: 'Tell us about your location, water sources, and historical data to calibrate the engine for your specific farm.',
     },
     {
       icon: Sprout,
-      title: 'Understand your soil',
-      description: 'Get soil health insights and improvement suggestions',
+      title: 'Soil Analysis',
+      description: 'Upload your soil health card or let our AI estimate nutrients based on local data. We identify deficiencies instantly.',
     },
     {
       icon: MessageCircle,
-      title: 'Choose the right crop & seed',
-      description: 'Recommendations based on your soil, season, and market',
+      title: 'Strategic Crop Selection',
+      description: 'MILA recommends the perfect crop variety by analyzing upcoming weather patterns and predicting market prices.',
     },
     {
       icon: TrendingUp,
-      title: 'Get daily guidance',
-      description: 'Watering, fertilizer, pest alerts — in your language',
+      title: 'Daily Guidance',
+      description: 'Receive daily voice alerts in your language. Know exactly when to irrigate, when to fertilize, and when to harvest.',
     },
   ];
 
   return (
-    <div className="min-h-screen py-20 px-4">
-      <div className="max-w-5xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-20"
-        >
-          <h1 className="text-4xl sm:text-5xl mb-6 text-foreground">
-            How It Works
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Your farming journey, step by step. Simple, clear, and in your own language.
-          </p>
-        </motion.div>
+    <div className="min-h-screen bg-background text-foreground overflow-hidden">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Megrim&display=swap');
+      `}</style>
 
-        <div className="space-y-12">
+      {/* Hero Section */}
+      <section className="py-[32px] px-[16px] text-center">
+        <ScrollReveal animation="fade-up">
+          <span className="inline-block py-1 px-3 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider mb-6">
+            The Process
+          </span>
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 font-['Megrim'] tracking-tight text-foreground">
+            How MILA Works
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
+            Four simple steps to transform your farming with intelligence.
+          </p>
+        </ScrollReveal>
+      </section>
+
+      {/* Simple Grid Layout */}
+      <section className="px-4 pb-32 max-w-7xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {steps.map((step, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="flex items-start gap-6 p-8 bg-card rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+            <ScrollReveal 
+              key={index} 
+              animation="fade-up" 
+              delay={index * 0.1}
+              className="h-full"
             >
-              <div className="flex-shrink-0">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <step.icon className="w-8 h-8 text-primary" />
+              <div className="h-full bg-card border border-border p-8 rounded-2xl hover:shadow-lg transition-all duration-300 group">
+                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+                  <step.icon className="w-7 h-7 text-primary" />
                 </div>
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-4 mb-3">
-                  <span className="text-3xl text-primary/40">{index + 1}</span>
-                  <h3 className="text-2xl text-foreground">
-                    {step.title}
-                  </h3>
+                <div className="text-primary/60 text-sm font-bold tracking-widest uppercase mb-2">
+                  Step 0{index + 1}
                 </div>
-                <p className="text-lg text-muted-foreground leading-relaxed">
+                <h3 className="text-xl font-bold mb-3 text-foreground">
+                  {step.title}
+                </h3>
+                <p className="text-muted-foreground leading-relaxed">
                   {step.description}
                 </p>
               </div>
-            </motion.div>
+            </ScrollReveal>
           ))}
         </div>
+      </section>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-20 text-center"
-        >
-          <p className="text-lg text-muted-foreground mb-6">
-            Ready to start your journey?
-          </p>
-          <button
-            onClick={handleGetStartedClick}
-            className="inline-block px-8 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
-          >
-            Get Started Today
-          </button>
-        </motion.div>
-      </div>
+      {/* CTA Section */}
+      <section className="py-24 px-4 relative bg-primary text-primary-foreground">
+        <div className="max-w-4xl mx-auto text-center">
+          <ScrollReveal animation="scale-up" width="100%">
+            <h2 className="text-4xl md:text-5xl font-bold mb-8 font-serif text-white">
+              Ready to grow better?
+            </h2>
+            <button
+              onClick={handleGetStartedClick}
+              className="group relative inline-flex items-center gap-3 overflow-hidden rounded-[0px] bg-white px-10 py-5 text-lg font-bold text-primary shadow-xl transition-all hover:bg-white/90 hover:scale-105 hover:shadow-2xl active:scale-95"
+            >
+              <span className="relative z-10">Get Started Now</span>
+              <ArrowRight className="w-5 h-5 relative z-10 transition-transform duration-300 group-hover:translate-x-1" />
+            </button>
+          </ScrollReveal>
+        </div>
+      </section>
+
     </div>
   );
 }

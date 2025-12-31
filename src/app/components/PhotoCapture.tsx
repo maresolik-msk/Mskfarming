@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Camera, X, Check, AlertTriangle, Leaf } from 'lucide-react';
+import { Camera, X, Check, TriangleAlert, Leaf } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PhotoCaptureProps {
@@ -22,7 +22,7 @@ export function PhotoCapture({ onSave, onClose }: PhotoCaptureProps) {
 
   const categories = [
     { id: 'plant-health', label: 'Plant Health', icon: Leaf },
-    { id: 'pest', label: 'Pest/Disease', icon: AlertTriangle },
+    { id: 'pest', label: 'Pest/Disease', icon: TriangleAlert },
     { id: 'soil', label: 'Soil Condition', icon: Leaf },
     { id: 'harvest', label: 'Harvest Quality', icon: Check },
   ];

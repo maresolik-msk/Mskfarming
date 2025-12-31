@@ -4,11 +4,12 @@ import {
   X, Check, ChevronRight, Mic, 
   Tractor, Sprout, Users, Droplets, Wrench, 
   Fuel, Clock, Calendar, MapPin, 
-  ShieldAlert, Leaf, AlertTriangle,
+  ShieldAlert, Leaf, TriangleAlert,
   CreditCard, Banknote, QrCode, FileText,
   ArrowLeft, BadgeIndianRupee
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getFields } from '../../lib/api';
 
 interface ExpenseTrackerProps {
   onSave: (expense: any) => void;
@@ -31,14 +32,31 @@ const EXPENSE_CATEGORIES = [
   { id: 'other', label: 'Other', icon: Wrench, color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' },
 ];
 
-export function ExpenseTracker({ onSave, onClose, currentBudget, recentLabourTypes = [] }: ExpenseTrackerProps) {
+export function ExpenseTracker({ onSave, onClose, currentBudget, recentLabourTypes = [], initialFieldId }: ExpenseTrackerProps & { initialFieldId?: string }) {
   const [step, setStep] = useState<StepType>('category');
   const [selectedCategory, setSelectedCategory] = useState<CategoryType | null>(null);
+  const [availableFields, setAvailableFields] = useState<any[]>([]);
+
+  useEffect(() => {
+    getFields().then(fields => {
+      if (fields && fields.length > 0) {
+        setAvailableFields(fields);
+        // Set default field
+        if (initialFieldId) {
+             const found = fields.find((f: any) => f.id === initialFieldId);
+             if (found) setField(found.id);
+             else setField(fields[0].id);
+        } else {
+             setField(fields[0].id);
+        }
+      }
+    });
+  }, [initialFieldId]);
   
   // Common Data
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [field, setField] = useState('North Field');
+  const [field, setField] = useState(initialFieldId || '');
   const [description, setDescription] = useState('');
 
   // Machinery Data
@@ -471,6 +489,26 @@ export function ExpenseTracker({ onSave, onClose, currentBudget, recentLabourTyp
           </div>
         )}
 
+        {/* Common Tasks */}
+        <div className="space-y-3">
+          <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Common Tasks</label>
+          <div className="flex flex-wrap gap-2.5">
+            {['Land Prep', 'Sowing', 'Weeding', 'Irrigation', 'Spraying', 'Harvesting', 'Threshing', 'Winnowing'].map(task => (
+              <button
+                key={task}
+                onClick={() => setLabourType(task)}
+                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border relative overflow-hidden ${
+                  labourType === task 
+                  ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-500/25' 
+                  : 'bg-background hover:bg-muted text-muted-foreground border-border/60 hover:border-orange-200'
+                }`}
+              >
+                {task}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="space-y-5">
             <div className="space-y-2">
             <label className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest ml-1">Work Type</label>
@@ -551,9 +589,17 @@ export function ExpenseTracker({ onSave, onClose, currentBudget, recentLabourTyp
                 onChange={(e) => setField(e.target.value)}
                 className="w-full p-2 bg-muted/50 rounded-lg border border-border"
               >
-                <option>North Field</option>
-                <option>South Field</option>
-                <option>East Garden</option>
+                {availableFields.length > 0 ? (
+                  availableFields.map(f => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="North Field">North Field</option>
+                    <option value="South Field">South Field</option>
+                    <option value="East Garden">East Garden</option>
+                  </>
+                )}
               </select>
             </div>
          </div>
@@ -735,11 +781,19 @@ export function ExpenseTracker({ onSave, onClose, currentBudget, recentLabourTyp
 
         {/* Footer */}
         {step !== 'success' && (
-          <div className="flex-shrink-0 p-6 border-t border-border/40 bg-background/95 backdrop-blur-xl z-50 relative">
+          <div className="flex-shrink-0 p-6 border-t border-border/40 bg-background/95 backdrop-blur-xl z-50 relative flex gap-3">
+             {step !== 'category' && (
+                <button
+                  onClick={handleBack}
+                  className="px-6 py-4 rounded-2xl font-bold text-muted-foreground bg-muted/50 hover:bg-muted transition-colors"
+                >
+                  Back
+                </button>
+             )}
              <button
                onClick={handleNext}
                disabled={step === 'category' && !selectedCategory}
-               className="w-full py-4 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-2xl font-bold text-lg flex items-center justify-center gap-3 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-primary/25 active:scale-[0.98] ring-offset-2 focus:ring-2 ring-primary"
+               className="flex-1 py-4 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-2xl font-bold text-lg flex items-center justify-center gap-3 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-primary/25 active:scale-[0.98] ring-offset-2 focus:ring-2 ring-primary"
              >
                {step === 'payment' ? 'Save & Record' : 'Continue'}
                <ChevronRight className="w-5 h-5 stroke-[3]" />

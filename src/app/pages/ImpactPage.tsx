@@ -30,22 +30,29 @@ export function ImpactPage() {
   ];
 
   return (
-    <div className="min-h-screen py-20 px-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen py-[32px] px-[16px]">
+      <div className="max-w-7xl mx-auto relative z-10">
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Megrim&display=swap');
+        `}</style>
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-20"
+          className="text-center mb-24"
         >
-          <h1 className="text-4xl sm:text-5xl mb-6 text-foreground">
+          <span className="inline-block py-1 px-3 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider mb-6">
+            Real Results
+          </span>
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 font-['Megrim'] tracking-tight text-foreground">
             Impact That Matters
           </h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-light leading-relaxed">
             When farmers thrive, communities grow stronger. Our purpose is simple: support those who feed us.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-20">
+        <div className="grid md:grid-cols-2 gap-6 lg:gap-8 mb-32">
           {impacts.map((impact, index) => (
             <motion.div
               key={index}
@@ -53,24 +60,30 @@ export function ImpactPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="p-10 bg-card rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+              className="group relative overflow-hidden bg-card border border-border p-8 rounded-3xl hover:shadow-xl transition-all duration-300"
             >
-              <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
-                <impact.icon className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-2xl mb-4 text-foreground">
-                {impact.title}
-              </h3>
-              <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
-                {impact.description}
-              </p>
-              <div className="space-y-3">
-                {impact.metrics.map((metric, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-primary" />
-                    <span className="text-foreground/80">{metric}</span>
-                  </div>
-                ))}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-[100px] -mr-8 -mt-8 transition-transform group-hover:scale-110" />
+              
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300">
+                  <impact.icon className="w-7 h-7 text-primary" />
+                </div>
+                
+                <h3 className="text-2xl font-bold mb-4 text-foreground font-serif">
+                  {impact.title}
+                </h3>
+                <p className="text-muted-foreground mb-8 leading-relaxed">
+                  {impact.description}
+                </p>
+                
+                <div className="space-y-3 pt-6 border-t border-border">
+                  {impact.metrics.map((metric, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+                      <span className="text-sm font-medium text-foreground/80">{metric}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </motion.div>
           ))}
@@ -81,27 +94,31 @@ export function ImpactPage() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="relative py-20 px-8 bg-primary/5 rounded-3xl overflow-hidden"
+          className="relative rounded-3xl overflow-hidden bg-[#2A0F05] text-white overflow-hidden"
         >
-          <div className="relative z-10 max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl sm:text-4xl mb-6 text-foreground">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+          
+          <div className="relative z-10 px-8 py-20 md:py-32 text-center max-w-4xl mx-auto">
+            <h2 className="text-3xl md:text-5xl font-bold mb-8 font-serif">
               Every season, we learn together
             </h2>
-            <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+            <p className="text-lg md:text-xl text-white/70 mb-16 leading-relaxed max-w-2xl mx-auto">
               This isn't just about technology. It's about respecting the wisdom of farmers while offering support that truly helps.
             </p>
-            <div className="grid sm:grid-cols-3 gap-8 mt-12">
-              <div className="p-6 bg-card rounded-xl">
-                <p className="text-3xl mb-2 text-primary">Less</p>
-                <p className="text-muted-foreground">Waste & Cost</p>
+            
+            <div className="grid sm:grid-cols-3 gap-8">
+              <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <p className="text-4xl font-bold mb-2 text-[#E4490D]">Less</p>
+                <p className="text-white/60 text-sm uppercase tracking-widest font-medium">Waste & Cost</p>
               </div>
-              <div className="p-6 bg-card rounded-xl">
-                <p className="text-3xl mb-2 text-primary">More</p>
-                <p className="text-muted-foreground">Confidence</p>
+              <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <p className="text-4xl font-bold mb-2 text-[#E4490D]">More</p>
+                <p className="text-white/60 text-sm uppercase tracking-widest font-medium">Confidence</p>
               </div>
-              <div className="p-6 bg-card rounded-xl">
-                <p className="text-3xl mb-2 text-primary">Better</p>
-                <p className="text-muted-foreground">Future</p>
+              <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                <p className="text-4xl font-bold mb-2 text-[#E4490D]">Better</p>
+                <p className="text-white/60 text-sm uppercase tracking-widest font-medium">Future</p>
               </div>
             </div>
           </div>

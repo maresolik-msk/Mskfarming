@@ -4,7 +4,7 @@ import {
   Plus,
   Edit2,
   Trash2,
-  CheckCircle2,
+  CircleCheck,
   MapPin,
   Droplet,
   Sprout,
@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import groundnutImage from 'figma:asset/a2269ca7e4aa22479fcb11b79f47669430c6d63d.png';
 
 interface Field {
   id: string;
@@ -28,7 +29,19 @@ interface Field {
   progress?: number;
   location?: string;
   isActive?: boolean;
+  image_url?: string;
 }
+
+const CROP_IMAGES: Record<string, string> = {
+  'Paddy': 'https://images.unsplash.com/photo-1701665836468-4346c4d0d574?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwYWRkeSUyMHJpY2UlMjBmaWVsZCUyMGluZGlhfGVufDF8fHx8MTc2Njg1MjQyNnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+  'Wheat': 'https://images.unsplash.com/photo-1676993842545-e0b8265dee9f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3aGVhdCUyMGZpZWxkJTIwaW5kaWF8ZW58MXx8fHwxNzY2ODUyNDI2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+  'Sugarcane': 'https://images.unsplash.com/photo-1606707718537-af0e5460849b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdWdhcmNhbmUlMjBmaWVsZCUyMGluZGlhfGVufDF8fHx8MTc2Njg1MjQyNnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+  'Maize': 'https://images.unsplash.com/photo-1657520832269-cea57052ec7b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYWl6ZSUyMGNvcm4lMjBmaWVsZCUyMGluZGlhfGVufDF8fHx8MTc2Njg1MjQyNnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+  'Cotton': 'https://images.unsplash.com/photo-1707811179851-c1f93698ad46?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3R0b24lMjBmaWVsZCUyMGluZGlhfGVufDF8fHx8MTc2Njg1MjQyNnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+  'Soybean': 'https://images.unsplash.com/photo-1597474417024-3ca3baa9fb13?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb3liZWFuJTIwZmllbGQlMjBpbmRpYXxlbnwxfHx8fDE3NjY4NTI0MjZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+  'Groundnut': groundnutImage,
+  'Bajra': 'https://images.unsplash.com/photo-1724418020207-144b3ba54d2d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwZWFybCUyMG1pbGxldCUyMGNyb3B8ZW58MXx8fHwxNzY2ODUyNDQwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+};
 
 interface FieldManagementProps {
   fields: Field[];
@@ -165,7 +178,7 @@ export function FieldManagement({
                 {field.id === activeFieldId && (
                   <div className="absolute top-4 right-4">
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider border border-primary/20">
-                      <CheckCircle2 className="w-3 h-3" />
+                      <CircleCheck className="w-3 h-3" />
                       Active
                     </div>
                   </div>
@@ -173,8 +186,12 @@ export function FieldManagement({
 
                 <div className="flex items-start gap-4">
                   {/* Icon */}
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center text-3xl shadow-lg shrink-0">
-                    🌾
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center text-3xl shadow-lg shrink-0 overflow-hidden">
+                    {field.image_url ? (
+                      <img src={field.image_url} alt={field.crop} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>🌾</span>
+                    )}
                   </div>
 
                   {/* Info */}
@@ -355,6 +372,7 @@ export function AddEditFieldForm({ field, onSave, onCancel }: AddEditFieldFormPr
     onSave({
       ...formData,
       size: parseFloat(formData.size) || 0,
+      image_url: CROP_IMAGES[formData.crop] || '',
     } as any);
   };
 
@@ -461,13 +479,21 @@ export function AddEditFieldForm({ field, onSave, onCancel }: AddEditFieldFormPr
           {/* Current Crop (Optional) */}
           <div>
             <label className="block text-sm font-semibold mb-2">Current Crop (Optional)</label>
-            <input
-              type="text"
+            <select
               value={formData.crop}
               onChange={(e) => setFormData({ ...formData, crop: e.target.value })}
-              placeholder="e.g., Tomato, Wheat, Rice"
               className="w-full px-4 py-3 bg-background/50 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-            />
+            >
+              <option value="">Select a crop</option>
+              <option value="Paddy">Paddy (Rice)</option>
+              <option value="Wheat">Wheat</option>
+              <option value="Sugarcane">Sugarcane</option>
+              <option value="Maize">Maize</option>
+              <option value="Cotton">Cotton</option>
+              <option value="Soybean">Soybean</option>
+              <option value="Groundnut">Groundnut</option>
+              <option value="Bajra">Bajra (Pearl Millet)</option>
+            </select>
           </div>
 
           {/* Location (Optional) */}

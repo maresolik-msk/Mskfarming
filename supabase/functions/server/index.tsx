@@ -7,6 +7,14 @@ import { SOIL_MASTER_DATA } from "./soil_data.ts";
 import { CROP_CYCLES_DATABASE, getCropCycle, getCropsBySoil, getSoilsByCrop, processCropCycle } from "./crop_cycles_data.ts";
 import * as otpService from "./otp_service.ts";
 import * as authService from "./auth_service.ts";
+import { CropEngine, SimulationParams } from "./crop_model.ts";
+import { CropEngine as EngineV2 } from "./ce_simulation.ts";
+import { PADDY_PROFILE, WHEAT_PROFILE, MAIZE_PROFILE, GROUNDNUT_PROFILE, COTTON_PROFILE, SOYBEAN_PROFILE, SUGARCANE_PROFILE, BAJRA_PROFILE } from "./ce_data.ts";
+import { Field, DailyWeather, FarmOperation } from "./ce_models.ts";
+import { NUTRIENT_DATABASE } from "./nutrient_data.ts";
+import { CROP_MANAGEMENT_DATABASE } from "./crop_management_data.ts";
+
+import { processDailyHeartbeat } from "./daily_update.ts";
 
 const app = new Hono();
 
@@ -664,6 +672,270 @@ app.post("/make-server-6fdef95d/onboarding/complete", async (c) => {
   }
 });
 
+// ==================== NUTRIENT ROUTES ====================
+
+// Calculate and save nutrient plan
+app.post("/make-server-6fdef95d/nutrient/calculate", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const { cropType, sowingDate, fieldSizeAcres, fieldId } = await c.req.json();
+    
+    console.log(`\n🧪 Nutrient Calculation Request:`);
+    console.log(`Crop: ${cropType}, Sowing: ${sowingDate}, Size: ${fieldSizeAcres} acres`);
+    
+    // 1. Get Base Plan
+    // Handle fuzzy matching for crop names
+    const cropKey = Object.keys(NUTRIENT_DATABASE).find(k => 
+      k.toLowerCase() === cropType.toLowerCase() || 
+      cropType.toLowerCase().includes(k.toLowerCase())
+    ) || 'Wheat'; // Default fallback
+    
+    const basePlan = NUTRIENT_DATABASE[cropKey];
+    if (!basePlan) {
+      return c.json({ error: 'Nutrient data not available for this crop' }, 404);
+    }
+    
+    // 2. Generate Schedule based on sowing date and field size
+    const start = new Date(sowingDate);
+    const schedule = basePlan.stages.map(stage => {
+      // Calculate date
+      const stageDate = new Date(start);
+      stageDate.setDate(start.getDate() + stage.day_start);
+      
+      // Calculate quantities
+      const n_kg = (stage.nutrients.n * parseFloat(fieldSizeAcres)).toFixed(1);
+      const p_kg = (stage.nutrients.p * parseFloat(fieldSizeAcres)).toFixed(1);
+      const k_kg = (stage.nutrients.k * parseFloat(fieldSizeAcres)).toFixed(1);
+      
+      return {
+        ...stage,
+        date: stageDate.toISOString().split('T')[0],
+        quantities: {
+          n_kg,
+          p_kg,
+          k_kg
+        },
+        display_quantity: `N: ${n_kg}kg, P: ${p_kg}kg, K: ${k_kg}kg`
+      };
+    });
+    
+    // 3. Save Plan
+    const planId = `nutrient_plan:${verification.user.id}:${Date.now()}`;
+    const plan = {
+      id: planId,
+      user_id: verification.user.id,
+      field_id: fieldId || null,
+      crop_type: cropType,
+      sowing_date: sowingDate,
+      field_size_acres: fieldSizeAcres,
+      created_at: new Date().toISOString(),
+      schedule: schedule,
+      totals: {
+        n: (basePlan.total_n * parseFloat(fieldSizeAcres)).toFixed(1),
+        p: (basePlan.total_p * parseFloat(fieldSizeAcres)).toFixed(1),
+        k: (basePlan.total_k * parseFloat(fieldSizeAcres)).toFixed(1)
+      }
+    };
+    
+    await kv.set(planId, plan);
+    
+    // Index the plan
+    const userPlansKey = `user:${verification.user.id}:nutrient_plans`;
+    const existingPlans = await kv.get(userPlansKey) || [];
+    await kv.set(userPlansKey, [planId, ...existingPlans]);
+    
+    return c.json({ success: true, plan });
+    
+  } catch (error) {
+    console.error('Nutrient calculation error:', error);
+    return c.json({ error: 'Failed to calculate nutrients' }, 500);
+  }
+});
+
+// Get saved nutrient plans
+app.get("/make-server-6fdef95d/nutrient/plans", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const userPlansKey = `user:${verification.user.id}:nutrient_plans`;
+    const planIds = await kv.get(userPlansKey) || [];
+    
+    let plans = [];
+    if (planIds.length > 0) {
+      const plansData = await kv.mget(planIds);
+      plans = plansData.filter(p => p);
+    }
+    
+    return c.json({ plans });
+  } catch (error) {
+    console.error('Fetch nutrient plans error:', error);
+    return c.json({ error: 'Failed to fetch plans' }, 500);
+  }
+});
+
+// ==================== CROP MANAGEMENT ROUTES ====================
+
+// Calculate and save comprehensive crop management plan
+app.post("/make-server-6fdef95d/crop/management/calculate", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const { cropType, sowingDate, fieldSizeAcres, fieldId } = await c.req.json();
+    
+    console.log(`\n🚜 Crop Management Plan Request:`);
+    console.log(`Crop: ${cropType}, Sowing: ${sowingDate}, Size: ${fieldSizeAcres} acres`);
+    
+    // 1. Get Base Plan
+    const cropKey = Object.keys(CROP_MANAGEMENT_DATABASE).find(k => 
+      k.toLowerCase() === cropType.toLowerCase() || 
+      cropType.toLowerCase().includes(k.toLowerCase())
+    ) || 'Wheat';
+    
+    const basePlan = CROP_MANAGEMENT_DATABASE[cropKey];
+    if (!basePlan) {
+      return c.json({ error: 'Management data not available for this crop' }, 404);
+    }
+    
+    // 2. Generate Comprehensive Schedule
+    const start = new Date(sowingDate);
+    const schedule = basePlan.stages.map(stage => {
+      const stageDate = new Date(start);
+      stageDate.setDate(start.getDate() + stage.day_start);
+      
+      // Calculate nutrient quantities
+      const nutrient_quantities = {
+        n_kg: (stage.nutrients.n * parseFloat(fieldSizeAcres)).toFixed(1),
+        p_kg: (stage.nutrients.p * parseFloat(fieldSizeAcres)).toFixed(1),
+        k_kg: (stage.nutrients.k * parseFloat(fieldSizeAcres)).toFixed(1),
+        products: stage.nutrients.products || [],
+        micronutrients: stage.nutrients.micronutrients || []
+      };
+
+      return {
+        ...stage,
+        date: stageDate.toISOString().split('T')[0],
+        nutrient_quantities,
+        status: 'pending' // pending, completed, skipped
+      };
+    });
+    
+    // 3. Save Plan
+    const planId = `crop_mgmt_plan:${verification.user.id}:${Date.now()}`;
+    const plan = {
+      id: planId,
+      user_id: verification.user.id,
+      field_id: fieldId || null,
+      crop_type: cropType,
+      sowing_date: sowingDate,
+      field_size_acres: fieldSizeAcres,
+      created_at: new Date().toISOString(),
+      schedule: schedule,
+      summary: {
+         scientific_name: basePlan.scientific_name,
+         duration_days: basePlan.duration_days
+      }
+    };
+    
+    await kv.set(planId, plan);
+    
+    // Index the plan
+    const userPlansKey = `user:${verification.user.id}:crop_mgmt_plans`;
+    const existingPlans = await kv.get(userPlansKey) || [];
+    await kv.set(userPlansKey, [planId, ...existingPlans]);
+    
+    return c.json({ success: true, plan });
+    
+  } catch (error) {
+    console.error('Crop management calculation error:', error);
+    return c.json({ error: 'Failed to generate crop plan' }, 500);
+  }
+});
+
+// Get saved crop management plans
+app.get("/make-server-6fdef95d/crop/management/plans", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const userPlansKey = `user:${verification.user.id}:crop_mgmt_plans`;
+    const planIds = await kv.get(userPlansKey) || [];
+    
+    let plans = [];
+    if (planIds.length > 0) {
+      const plansData = await kv.mget(planIds);
+      plans = plansData.filter(p => p);
+    }
+    
+    return c.json({ plans });
+  } catch (error) {
+    console.error('Fetch crop management plans error:', error);
+    return c.json({ error: 'Failed to fetch plans' }, 500);
+  }
+});
+
+// Get static details for a crop
+app.get("/make-server-6fdef95d/crop/management/details/:cropType", async (c) => {
+  try {
+    const cropType = c.req.param('cropType');
+    
+    const cropKey = Object.keys(CROP_MANAGEMENT_DATABASE).find(k => 
+      k.toLowerCase() === cropType.toLowerCase() || 
+      cropType.toLowerCase().includes(k.toLowerCase())
+    );
+
+    if (!cropKey || !CROP_MANAGEMENT_DATABASE[cropKey]) {
+      return c.json({ error: 'Crop details not found' }, 404);
+    }
+
+    return c.json({ details: CROP_MANAGEMENT_DATABASE[cropKey] });
+  } catch (error) {
+    console.error('Fetch crop details error:', error);
+    return c.json({ error: 'Failed to fetch details' }, 500);
+  }
+});
+
+// ==================== SIMULATION ROUTES ====================
+
+// Trigger daily simulation heartbeat (Dynamic Weather Update)
+app.post("/make-server-6fdef95d/simulation/heartbeat", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const userId = verification.user.id;
+    console.log(`\n💓 Heartbeat triggered for user: ${userId}`);
+    
+    const result = await processDailyHeartbeat(userId);
+    
+    console.log(`Heartbeat result:`, result);
+    
+    return c.json(result);
+  } catch (error) {
+    console.error('Heartbeat error:', error);
+    return c.json({ error: 'Failed to process simulation heartbeat' }, 500);
+  }
+});
+
 // ==================== USER DATA ROUTES ====================
 
 // Get user dashboard data (Fields, Onboarding, etc.)
@@ -697,6 +969,15 @@ app.get("/make-server-6fdef95d/me/dashboard", async (c) => {
     if (cropIds.length > 0) {
       const cropsData = await kv.mget(cropIds);
       crops = cropsData.filter(c => c);
+      
+      // Enrich with image URLs
+      crops = crops.map((userCrop: any) => {
+        const cycle = CROP_CYCLES_DATABASE.find(c => c.crop_id === userCrop.crop_id);
+        return {
+          ...userCrop,
+          image_url: cycle?.image_url || null
+        };
+      });
     }
 
     // Onboarding status from user profile
@@ -731,6 +1012,19 @@ app.get("/make-server-6fdef95d/fields", async (c) => {
     if (fieldIds.length > 0) {
       const fieldsData = await kv.mget(fieldIds);
       fields = fieldsData.filter(f => f);
+      
+      // Enrich with crop images
+      fields = fields.map((field: any) => {
+        if (!field.crop) return field;
+        const cycle = CROP_CYCLES_DATABASE.find(c => 
+          c.crop_id === field.crop.toLowerCase().replace(/\s+/g, '_') || 
+          c.crop_name.toLowerCase() === field.crop.toLowerCase()
+        );
+        return {
+          ...field,
+          image_url: cycle?.image_url || null
+        };
+      });
     }
     
     return c.json(fields);
@@ -784,6 +1078,124 @@ app.post("/make-server-6fdef95d/fields", async (c) => {
   } catch (error) {
     console.error('Create field error:', error);
     return c.json({ error: 'Failed to create field' }, 500);
+  }
+});
+
+// ============= CROP INTELLIGENCE SIMULATION API =============
+
+app.post("/make-server-6fdef95d/simulation/run", async (c) => {
+  try {
+    console.log('=== CROP SIMULATION REQUEST ===');
+    
+    // Auth check optional for now to allow quick testing, but recommended
+    // const accessToken = getAccessTokenFromRequest(c);
+    // if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const params: SimulationParams = await c.req.json();
+    
+    console.log('Simulation params:', {
+      crop: params.crop_type,
+      soil: params.soil_type,
+      sowing: params.sowing_date,
+      water_pct: params.initial_soil_water_pct
+    });
+    
+    if (!params.crop_type || !params.sowing_date || !params.soil_type) {
+        return c.json({ error: 'Missing required parameters (crop_type, sowing_date, soil_type)' }, 400);
+    }
+    
+    // Run deterministic simulation
+    const result = CropEngine.runSimulation(params);
+    
+    console.log('Simulation complete.');
+    console.log(`Yield: ${result.summary.yield} kg/ha`);
+    console.log(`Duration: ${result.summary.days_to_maturity} days`);
+    
+    return c.json(result);
+    
+  } catch (error) {
+    console.error('Simulation error:', error);
+    return c.json({ error: 'Simulation failed: ' + error.message }, 500);
+  }
+});
+
+app.post("/make-server-6fdef95d/simulation/run-v2", async (c) => {
+  try {
+    console.log('=== CROP SIMULATION V2 REQUEST ===');
+    
+    const body = await c.req.json();
+    
+    // Parse inputs (with defaults for quick testing)
+    const startDate = body.startDate || "2024-06-15"; // Typical Kharif start
+    
+    // Select Crop Profile
+    let profile = PADDY_PROFILE;
+    if (body.cropType === 'Wheat') profile = WHEAT_PROFILE;
+    else if (body.cropType === 'Maize') profile = MAIZE_PROFILE;
+    else if (body.cropType === 'Groundnut') profile = GROUNDNUT_PROFILE;
+    else if (body.cropType === 'Cotton') profile = COTTON_PROFILE;
+    else if (body.cropType === 'Soybean') profile = SOYBEAN_PROFILE;
+    else if (body.cropType === 'Sugarcane') profile = SUGARCANE_PROFILE;
+    else if (body.cropType === 'Bajra') profile = BAJRA_PROFILE;
+    // Default to Paddy if Rice or unknown
+
+    // 1. Setup Field
+    const field: Field = {
+        id: "sim_field_01",
+        area_ha: 1.0,
+        soil_type: "Clay Loam",
+        soil_properties: {
+            ph: 6.5,
+            organic_matter_pct: 1.2,
+            texture: "Clay Loam",
+            nitrogen_level: "Medium"
+        },
+        water_holding_capacity_mm: 150, // High for paddy soil
+        wilting_point_mm: 60,
+        current_soil_water_mm: body.initialSoilWater ?? 100,
+        current_nitrogen_kg_ha: body.initialNitrogen ?? 50,
+        location: { lat: 30.0, lon: 75.0 } // Punjab
+    };
+
+    // 2. Setup Operations (mix of requested + default)
+    const operations: FarmOperation[] = body.operations || [];
+    
+    // 3. Generate Weather (Using the same synthetic generator or passed data)
+    const weatherHistory: DailyWeather[] = [];
+    const start = new Date(startDate);
+    for(let i=0; i<150; i++) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        
+        // Simple synthetic weather for Punjab Kharif (Hot, Monsoon rain)
+        const isMonsoon = i > 15 && i < 100; // July-Sept
+        const tmax = 30 + Math.random()*10 - (isMonsoon ? 5 : 0);
+        const tmin = 22 + Math.random()*5;
+        const rain = isMonsoon && Math.random() > 0.7 ? Math.random()*40 : 0;
+        
+        weatherHistory.push({
+            date: d.toISOString().split('T')[0],
+            t_max: parseFloat(tmax.toFixed(1)),
+            t_min: parseFloat(tmin.toFixed(1)),
+            rainfall_mm: parseFloat(rain.toFixed(1)),
+            humidity_pct: isMonsoon ? 80 : 40
+        });
+    }
+
+    // Run Engine
+    const result = EngineV2.simulateSeason(
+        field,
+        profile,
+        weatherHistory,
+        operations,
+        startDate
+    );
+    
+    return c.json(result);
+    
+  } catch (error) {
+    console.error('Simulation V2 error:', error);
+    return c.json({ error: 'Simulation failed: ' + error.message }, 500);
   }
 });
 
@@ -1168,6 +1580,7 @@ app.get("/make-server-6fdef95d/crops", (c) => {
           name: cycle.crop_name,
           season,
           emoji,
+          image_url: cycle.image_url,
           soil_types: getSoilsByCrop(cycle.crop_id).map(s => s.soil_id)
         });
       }
