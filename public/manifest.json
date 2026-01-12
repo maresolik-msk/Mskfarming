@@ -1,0 +1,55 @@
+{
+  "name": "MILA - Field Management Intelligence",
+  "short_name": "MILA",
+  "description": "AI-Powered Premium Field Management for Modern Farmers",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#812F0F",
+  "theme_color": "#812F0F",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "shortcuts": [
+    {
+      "name": "Scout Field",
+      "short_name": "Scout",
+      "description": "AI Crop Diagnosis",
+      "url": "/?action=scout",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Record Harvest",
+      "short_name": "Harvest",
+      "description": "Log Yield Data",
+      "url": "/?action=harvest",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ]
+}

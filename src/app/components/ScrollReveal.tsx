@@ -1,4 +1,4 @@
-import { motion, useInView, UseInViewOptions } from 'motion/react';
+import { motion, useInView } from 'motion/react';
 import { useRef, ReactNode } from 'react';
 
 interface ScrollRevealProps {
@@ -8,7 +8,7 @@ interface ScrollRevealProps {
   animation?: "fade-up" | "fade-in" | "scale-up" | "slide-right" | "slide-left";
   delay?: number;
   duration?: number;
-  viewport?: UseInViewOptions;
+  viewport?: any;
 }
 
 export function ScrollReveal({ 

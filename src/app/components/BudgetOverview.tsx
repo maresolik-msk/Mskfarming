@@ -96,7 +96,7 @@ export function BudgetOverview({ budget, expenses, onAddExpense, onBack, onUpdat
   );
 
   return (
-    <div className="h-full pb-24 animate-in fade-in slide-in-from-bottom-4">
+    <div className="h-full pb-24 animate-in fade-in slide-in-from-bottom-4 overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">

@@ -123,7 +123,7 @@ export function FarmMachinery({ onBack }: FarmMachineryProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 overflow-x-hidden">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between gap-4">

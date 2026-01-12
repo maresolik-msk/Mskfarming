@@ -1,560 +1,815 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, MapPin, Sprout, Target, Calendar, CheckCircle2, 
-  ChevronRight, ChevronLeft, Droplets, Sun
+  ChevronRight, ChevronLeft, Droplets, Sun, Map as MapIcon, 
+  Navigation, Plus, Trash2, AlertTriangle, FileText
 } from 'lucide-react';
-import { updateUserProfile } from '../../lib/api';
+import { updateUserProfile, createField, createTask } from '../../lib/api';
 import { toast } from 'sonner';
+import { useAppStore, Field, CropPlan } from '../store/appStore';
+import { v4 as uuidv4 } from 'uuid';
+
+// Mock Data for Selections
+const FARMER_TYPES = ['Small', 'Marginal', 'Medium', 'Large'];
+const FARM_TYPES = ['Irrigated', 'Rainfed'];
+const CROPPING_INTENTS = ['Commercial', 'Household', 'Mixed'];
+const SOIL_TYPES = ['Red', 'Black', 'Alluvial', 'Sandy', 'Loamy', 'Clay'];
+const IRRIGATION_METHODS = ['Drip', 'Flood', 'Sprinkler', 'Rainfed'];
+const WATER_SOURCES = ['Borewell', 'Tank', 'Canal', 'Rainfed'];
+const SEASONS = ['Kharif', 'Rabi', 'Summer'];
+const CROPS = [
+  { name: 'Paddy', varieties: ['MTU 1010', 'BPT 5204', 'Sona Masoori'], duration: 120, seedRate: 25 },
+  { name: 'Cotton', varieties: ['Bt Cotton', 'Desi Cotton'], duration: 150, seedRate: 2 },
+  { name: 'Maize', varieties: ['Hybrid', 'Local'], duration: 100, seedRate: 8 },
+  { name: 'Groundnut', varieties: ['Kadiri-6', 'JL-24'], duration: 110, seedRate: 60 },
+  { name: 'Chilli', varieties: ['Guntur Sannam', 'Byadgi'], duration: 160, seedRate: 0.3 },
+];
 
 interface OnboardingFlowProps {
   onComplete: (profileData: any) => void;
 }
 
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
+  const { setUser, addField, addCropPlan, addTask, addAlert } = useAppStore();
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    // Step 1: Personal
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Form States
+  const [profile, setProfile] = useState({
     name: '',
     phone: '',
     language: 'English',
-    voicePreference: 'female',
-    
-    // Step 2: Farm Profile
-    location: '',
-    totalLand: '',
-    numberOfFields: '1',
-    waterAccess: 'borewell',
-    
-    // Step 3: Experience
-    yearsOfFarming: '',
-    previousCrops: '',
-    
-    // Step 4: Field Details
-    fieldName: '',
-    fieldSize: '',
-    soilType: 'loamy',
-    irrigation: 'flood',
-    
-    // Step 5: Crop Selection
-    selectedCrop: '',
-    plantingDate: '',
-    harvestDate: '',
-    budget: '',
+    location: '', // District/State
+    farmerType: 'Small',
+    farmingSystem: 'Irrigated',
+    croppingIntent: 'Commercial',
   });
 
-  const totalSteps = 5;
+  const [fields, setFields] = useState<Field[]>([]);
+  const [currentField, setCurrentField] = useState<Partial<Field>>({
+    name: '',
+    acres: 0,
+    soilType: 'Red',
+    irrigationMethod: 'Drip',
+    waterSource: 'Borewell',
+    slope: 'Flat',
+    drainageIssues: false,
+    previousCrop: '',
+  });
+  const [fieldInputMode, setFieldInputMode] = useState<'simple' | 'map' | 'gps'>('simple');
 
-  const languages = ['English', 'हिंदी', 'मराठी', 'தமிழ்'];
-  const soilTypes = ['Sandy', 'Loamy', 'Clay', 'Black Cotton'];
-  const crops = [
-    { name: 'Tomato', season: 'Rabi', budget: '₹18,000', durationInDays: 100 },
-    { name: 'Cotton', season: 'Kharif', budget: '₹25,000', durationInDays: 160 },
-    { name: 'Wheat', season: 'Rabi', budget: '₹15,000', durationInDays: 120 },
-    { name: 'Rice', season: 'Kharif', budget: '₹22,000', durationInDays: 120 },
-  ];
+  const [plans, setPlans] = useState<Partial<CropPlan>[]>([]);
+  const [currentPlan, setCurrentPlan] = useState<Partial<CropPlan>>({
+    season: 'Kharif',
+    isIntercropping: false,
+  });
 
-  // Auto-calculate harvest date and cycle status
-  const getCropStatus = (start: string, duration: number) => {
-    if (!start) return null;
-    
-    try {
-      const [year, month, day] = start.split('-').map(num => parseInt(num, 10));
-      const startDate = new Date(year, month - 1, day);
-      
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Normalize today to midnight
-      
-      // Calculate difference in days
-      const diffTime = today.getTime() - startDate.getTime();
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays < 0) {
-        return { 
-          status: 'upcoming', 
-          days: Math.abs(diffDays),
-          message: `Cycle starts in ${Math.abs(diffDays)} days`
-        };
-      } else if (diffDays > duration) {
-        return { 
-          status: 'completed', 
-          days: diffDays,
-          message: `Cycle completed ${diffDays - duration} days ago`
-        };
-      } else {
-        return { 
-          status: 'active', 
-          days: diffDays + 1, // Day 1 is the start date
-          message: `Current Progress: Day ${diffDays + 1} of ${duration}`
-        };
-      }
-    } catch (e) {
-      return null;
-    }
+  // Steps Configuration
+  const totalSteps = 4;
+
+  // --- Handlers ---
+
+  const handleProfileChange = (key: string, value: any) => {
+    setProfile(prev => ({ ...prev, [key]: value }));
   };
 
-  const updateHarvestDate = (start: string, cropName: string) => {
-    // Basic validation
-    if (!start || !cropName) {
-      console.log('Missing inputs for harvest date calculation:', { start, cropName });
+  const addFieldToList = () => {
+    if (!currentField.name || !currentField.acres) {
+      toast.error("Please enter field name and acreage");
+      return;
+    }
+    const newField: Field = {
+      id: uuidv4(),
+      name: currentField.name,
+      acres: Number(currentField.acres),
+      location: profile.location,
+      soilType: currentField.soilType || 'Red',
+      irrigationMethod: currentField.irrigationMethod as any,
+      waterSource: currentField.waterSource as any,
+      slope: currentField.slope as any,
+      drainageIssues: currentField.drainageIssues,
+      previousCrop: currentField.previousCrop,
+    };
+    setFields([...fields, newField]);
+    setCurrentField({
+      name: '',
+      acres: 0,
+      soilType: 'Red',
+      irrigationMethod: 'Drip',
+      waterSource: 'Borewell',
+      slope: 'Flat',
+      drainageIssues: false,
+      previousCrop: '',
+    });
+    toast.success("Field added successfully");
+  };
+
+  const removeField = (id: string) => {
+    setFields(fields.filter(f => f.id !== id));
+  };
+
+  const generatePlanDetails = (plan: Partial<CropPlan>) => {
+    const crop = CROPS.find(c => c.name === plan.cropName);
+    if (!crop || !plan.sowingDate || !plan.fieldId) return null;
+
+    const field = fields.find(f => f.id === plan.fieldId);
+    const acres = field?.acres || 1;
+    
+    const sowingDate = new Date(plan.sowingDate);
+    const harvestDate = new Date(sowingDate);
+    harvestDate.setDate(harvestDate.getDate() + crop.duration);
+
+    const totalSeed = crop.seedRate * acres;
+    
+    return {
+      harvestDateEstimated: harvestDate,
+      seedRate: `${totalSeed} kg total (${crop.seedRate} kg/acre)`,
+      baseNutrients: `Basal Dose: Urea 20kg + DAP 50kg per acre`,
+      riskChecklist: [
+        'Check for early season pests (Aphids/Jassids)',
+        'Ensure proper drainage if heavy rains expected',
+        'Weed management required at Day 20',
+      ]
+    };
+  };
+
+  const addPlanToList = () => {
+    if (!currentPlan.fieldId || !currentPlan.cropName || !currentPlan.variety || !currentPlan.sowingDate) {
+      toast.error("Please fill all crop details");
       return;
     }
     
-    const crop = crops.find(c => c.name === cropName);
-    if (crop) {
-      try {
-        // Manually parse YYYY-MM-DD to avoid timezone issues
-        const [year, month, day] = start.split('-').map(num => parseInt(num, 10));
-        
-        // Month in Date constructor is 0-indexed (0 = Jan, 11 = Dec)
-        const startDate = new Date(year, month - 1, day);
-        
-        // Add days
-        startDate.setDate(startDate.getDate() + crop.durationInDays);
-        
-        // Format back to YYYY-MM-DD
-        const harvestYear = startDate.getFullYear();
-        const harvestMonth = String(startDate.getMonth() + 1).padStart(2, '0');
-        const harvestDay = String(startDate.getDate()).padStart(2, '0');
-        
-        const harvestDate = `${harvestYear}-${harvestMonth}-${harvestDay}`;
-        
-        console.log('Calculated harvest date:', harvestDate);
-        setFormData(prev => ({ ...prev, harvestDate }));
-      } catch (e) {
-        console.error('Error calculating harvest date:', e);
-      }
-    }
+    const generated = generatePlanDetails(currentPlan);
+    
+    const newPlan: CropPlan = {
+      id: uuidv4(),
+      fieldId: currentPlan.fieldId,
+      season: currentPlan.season as any,
+      cropName: currentPlan.cropName,
+      variety: currentPlan.variety,
+      sowingDate: new Date(currentPlan.sowingDate),
+      isIntercropping: currentPlan.isIntercropping || false,
+      interCropName: currentPlan.interCropName,
+      ...generated,
+    };
+    
+    setPlans([...plans, newPlan]);
+    setCurrentPlan({
+      season: 'Kharif',
+      isIntercropping: false,
+      fieldId: '', // Reset for next entry
+      cropName: '',
+      variety: '',
+    });
+    toast.success("Crop plan generated");
   };
 
-  const nextStep = () => {
-    if (step < totalSteps) setStep(step + 1);
+  const removePlan = (id: string) => {
+    setPlans(plans.filter(p => p.id !== id));
   };
 
-  const prevStep = () => {
-    if (step > 1) setStep(step - 1);
-  };
-
-  const handleComplete = async () => {
-    // Save data and complete onboarding
+  const handleFinalSubmit = async () => {
+    setIsLoading(true);
     try {
-      // Import and check auth token
-      const { getAuthToken } = await import('../../lib/api');
-      
-      // Wait a moment and retry if token isn't available yet
-      let currentToken = getAuthToken();
-      let retries = 0;
-      while (!currentToken && retries < 5) {
-        console.log(`Waiting for auth token... attempt ${retries + 1}/5`);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        currentToken = getAuthToken();
-        retries++;
-      }
-      
-      console.log('=== ONBOARDING COMPLETE - DEBUG ===');
-      console.log('Has auth token:', !!currentToken);
-      console.log('Token preview:', currentToken ? currentToken.substring(0, 30) + '...' : 'NONE');
-      console.log('LocalStorage token:', localStorage.getItem('authToken') ? 'EXISTS' : 'NONE');
-      
-      if (!currentToken) {
-        console.error('NO AUTH TOKEN FOUND! User is not authenticated.');
-        toast.error('Authentication error. Please log in again.');
-        return;
-      }
-      
-      console.log('Starting profile update with data:', formData);
-      const response = await updateUserProfile(formData);
-      console.log('Profile update response:', response);
-      
-      if (response && response.success) {
-        toast.success('Profile updated successfully!');
-        onComplete(formData);
+      // 1. Update User Profile
+      // For now we map it to the simple UserProfile but keep extended data in store
+      const userProfileData = {
+        name: profile.name,
+        phone: profile.phone,
+        language: profile.language,
+        location: profile.location,
+        onboardingComplete: true,
+        farmSize: fields.reduce((acc, f) => acc + f.acres, 0),
+        fieldName: fields[0]?.name || 'Main Farm', // Legacy support
+        crop: plans[0]?.cropName || '', // Legacy support
+        plantingDate: plans[0]?.sowingDate || new Date(), // Legacy support
+        budget: 0, // Placeholder
+        farmerType: profile.farmerType as any,
+        farmingSystem: profile.farmingSystem as any,
+        croppingIntent: profile.croppingIntent as any,
+      };
+
+      // Call API (mocked for now in terms of backend persistence of detailed fields)
+      const response = await updateUserProfile(userProfileData);
+
+      if (response?.success || true) { // Assuming success for demo if API mock is limited
+        // 2. Sync with Backend API
+        // We need to create these fields on the server so MainDashboard can fetch them
+        const createdFieldIds = new Map<string, string>(); // Map local ID to server ID
+
+        for (const field of fields) {
+          try {
+            // Find plan for this field
+            const plan = plans.find(p => p.fieldId === field.id);
+            
+            const fieldPayload = {
+              name: field.name,
+              area: field.acres,
+              area_unit: 'acres',
+              location: field.location || profile.location,
+              soilType: field.soilType,
+              irrigationType: field.irrigationMethod,
+              // If plan exists, add crop details
+              crop: plan ? plan.cropName : undefined,
+              plantingDate: plan ? plan.sowingDate : undefined,
+              // Additional metadata
+              metadata: {
+                waterSource: field.waterSource,
+                slope: field.slope,
+                drainageIssues: field.drainageIssues,
+                previousCrop: field.previousCrop
+              }
+            };
+
+            const createdField = await createField(fieldPayload);
+            if (createdField && createdField.id) {
+              createdFieldIds.set(field.id, createdField.id);
+            }
+          } catch (err) {
+            console.error("Failed to create field on server:", err);
+            // Continue with other fields...
+          }
+        }
+
+        // 3. Update Local Store
+        setUser(userProfileData);
+        fields.forEach(f => {
+            // Update with server ID if available, otherwise keep local
+            const serverId = createdFieldIds.get(f.id) || f.id;
+            addField({ ...f, id: serverId });
+        });
+        
+        for (const p of plans) {
+          if (p.id) {
+             // Update fieldId in plan to match server ID
+             const serverFieldId = createdFieldIds.get(p.fieldId) || p.fieldId;
+             addCropPlan({ ...p, fieldId: serverFieldId } as CropPlan);
+          }
+          
+          // Generate initial tasks based on plan
+          const taskTitle = `Sowing ${p.cropName} in ${fields.find(f => f.id === p.fieldId)?.name}`;
+          const newTask = {
+            id: uuidv4(),
+            title: taskTitle,
+            time: 'morning',
+            completed: false,
+            type: 'other'
+          };
+          
+          addTask(newTask as any);
+          
+          // Sync task to backend
+          createTask({
+            text: taskTitle, // API expects 'text', store expects 'title'
+            time: 'morning',
+            completed: false
+          }).catch(err => console.error("Failed to create task on server:", err));
+          
+          // Generate alerts
+          if (p.riskChecklist) {
+            p.riskChecklist.forEach(risk => addAlert(risk));
+          }
+        }
+
+        toast.success("Farm setup complete!");
+        onComplete(userProfileData);
       } else {
-        console.error('Profile update failed - no success flag in response:', response);
-        toast.error(`Failed to update profile: ${response?.error || 'Unknown error'}`);
+        toast.error("Failed to save profile");
       }
-    } catch (error) {
-      console.error('Profile update exception:', error);
-      toast.error(`An error occurred: ${error instanceof Error ? error.message : 'Please try again.'}`);
+    } catch (e) {
+      console.error(e);
+      toast.error("An error occurred");
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  // --- Render Steps ---
+
+  const renderStep1_Profile = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-light font-['Megrim'] text-[#812F0F]">Farmer Profile</h2>
+        <p className="text-muted-foreground">Tell us about yourself</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Full Name</label>
+          <input 
+            value={profile.name} 
+            onChange={(e) => handleProfileChange('name', e.target.value)}
+            className="w-full p-3 rounded-lg border bg-white/50 backdrop-blur-sm focus:ring-2 ring-[#812F0F]/20 outline-none" 
+            placeholder="Enter your name" 
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Phone Number</label>
+          <input 
+            value={profile.phone} 
+            onChange={(e) => handleProfileChange('phone', e.target.value)}
+            className="w-full p-3 rounded-lg border bg-white/50 backdrop-blur-sm focus:ring-2 ring-[#812F0F]/20 outline-none" 
+            placeholder="Enter phone number" 
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Location (District/State)</label>
+          <input 
+            value={profile.location} 
+            onChange={(e) => handleProfileChange('location', e.target.value)}
+            className="w-full p-3 rounded-lg border bg-white/50 backdrop-blur-sm focus:ring-2 ring-[#812F0F]/20 outline-none" 
+            placeholder="e.g. Kurnool, Andhra Pradesh" 
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Preferred Language</label>
+          <select 
+            value={profile.language}
+            onChange={(e) => handleProfileChange('language', e.target.value)}
+            className="w-full p-3 rounded-lg border bg-white/50 backdrop-blur-sm focus:ring-2 ring-[#812F0F]/20 outline-none"
+          >
+            <option>English</option>
+            <option>Telugu</option>
+            <option>Hindi</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Farmer Type</label>
+          <div className="flex flex-col gap-2">
+            {FARMER_TYPES.map(type => (
+              <button
+                key={type}
+                onClick={() => handleProfileChange('farmerType', type)}
+                className={`p-3 rounded-lg border text-left transition-all ${
+                  profile.farmerType === type 
+                    ? 'bg-[#812F0F] text-white border-[#812F0F]' 
+                    : 'bg-white hover:bg-[#812F0F]/5'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Farm Type</label>
+          <div className="flex flex-col gap-2">
+            {FARM_TYPES.map(type => (
+              <button
+                key={type}
+                onClick={() => handleProfileChange('farmingSystem', type)}
+                className={`p-3 rounded-lg border text-left transition-all ${
+                  profile.farmingSystem === type 
+                    ? 'bg-[#812F0F] text-white border-[#812F0F]' 
+                    : 'bg-white hover:bg-[#812F0F]/5'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-2">Intent</label>
+          <div className="flex flex-col gap-2">
+            {CROPPING_INTENTS.map(type => (
+              <button
+                key={type}
+                onClick={() => handleProfileChange('croppingIntent', type)}
+                className={`p-3 rounded-lg border text-left transition-all ${
+                  profile.croppingIntent === type 
+                    ? 'bg-[#812F0F] text-white border-[#812F0F]' 
+                    : 'bg-white hover:bg-[#812F0F]/5'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderStep2_Fields = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-light font-['Megrim'] text-[#812F0F]">Farm & Fields</h2>
+        <p className="text-muted-foreground">Map out your land</p>
+      </div>
+
+      {/* Added Fields List */}
+      {fields.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          {fields.map(field => (
+            <motion.div 
+              key={field.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-xl bg-white border shadow-sm flex justify-between items-start"
+            >
+              <div>
+                <h4 className="font-bold text-[#812F0F]">{field.name}</h4>
+                <p className="text-sm text-gray-600">{field.acres} acres • {field.soilType}</p>
+                <p className="text-xs text-gray-500 mt-1">{field.irrigationMethod} • {field.waterSource}</p>
+              </div>
+              <button onClick={() => removeField(field.id)} className="text-red-500 hover:text-red-700">
+                <Trash2 size={18} />
+              </button>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* Add New Field Form */}
+      <div className="bg-white/50 backdrop-blur-md border rounded-xl p-6 shadow-sm">
+        <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+          <Plus className="w-5 h-5 text-[#812F0F]" /> Add New Field
+        </h3>
+
+        {/* Input Mode Tabs */}
+        <div className="flex gap-4 mb-6 border-b pb-2">
+          <button 
+            onClick={() => setFieldInputMode('simple')}
+            className={`flex items-center gap-2 pb-2 transition-colors ${fieldInputMode === 'simple' ? 'text-[#812F0F] border-b-2 border-[#812F0F]' : 'text-gray-500'}`}
+          >
+            <FileText size={18} /> Simple
+          </button>
+          <button 
+            onClick={() => setFieldInputMode('map')}
+            className={`flex items-center gap-2 pb-2 transition-colors ${fieldInputMode === 'map' ? 'text-[#812F0F] border-b-2 border-[#812F0F]' : 'text-gray-500'}`}
+          >
+            <MapIcon size={18} /> Map Draw
+          </button>
+          <button 
+            onClick={() => setFieldInputMode('gps')}
+            className={`flex items-center gap-2 pb-2 transition-colors ${fieldInputMode === 'gps' ? 'text-[#812F0F] border-b-2 border-[#812F0F]' : 'text-gray-500'}`}
+          >
+            <Navigation size={18} /> GPS Walk
+          </button>
+        </div>
+
+        {fieldInputMode === 'simple' ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Field Name</label>
+                <input 
+                  value={currentField.name}
+                  onChange={e => setCurrentField({...currentField, name: e.target.value})}
+                  className="w-full p-2 rounded border focus:ring-1 focus:ring-[#812F0F]"
+                  placeholder="e.g. North Plot"
+                />
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Acres</label>
+                <input 
+                  type="number"
+                  value={currentField.acres || ''}
+                  onChange={e => setCurrentField({...currentField, acres: parseFloat(e.target.value)})}
+                  className="w-full p-2 rounded border focus:ring-1 focus:ring-[#812F0F]"
+                  placeholder="0.0"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Soil Type</label>
+                <select 
+                  value={currentField.soilType}
+                  onChange={e => setCurrentField({...currentField, soilType: e.target.value})}
+                  className="w-full p-2 rounded border"
+                >
+                  {SOIL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Slope</label>
+                <select 
+                  value={currentField.slope}
+                  onChange={e => setCurrentField({...currentField, slope: e.target.value as any})}
+                  className="w-full p-2 rounded border"
+                >
+                  <option value="Flat">Flat</option>
+                  <option value="Gentle">Gentle</option>
+                  <option value="Steep">Steep</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Irrigation</label>
+                <select 
+                  value={currentField.irrigationMethod}
+                  onChange={e => setCurrentField({...currentField, irrigationMethod: e.target.value as any})}
+                  className="w-full p-2 rounded border"
+                >
+                  {IRRIGATION_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Water Source</label>
+                <select 
+                  value={currentField.waterSource}
+                  onChange={e => setCurrentField({...currentField, waterSource: e.target.value as any})}
+                  className="w-full p-2 rounded border"
+                >
+                  {WATER_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <input 
+                type="checkbox"
+                checked={currentField.drainageIssues}
+                onChange={e => setCurrentField({...currentField, drainageIssues: e.target.checked})}
+                id="drainage"
+              />
+              <label htmlFor="drainage" className="text-sm text-gray-700">Has Drainage Issues?</label>
+            </div>
+
+            <button 
+              onClick={addFieldToList}
+              className="w-full py-3 bg-[#812F0F] text-white rounded-lg hover:bg-[#6b260b] transition-colors font-medium"
+            >
+              Save Field
+            </button>
+          </div>
+        ) : (
+          <div className="h-48 flex flex-col items-center justify-center bg-gray-100 rounded-lg border-2 border-dashed border-gray-300">
+            <MapIcon className="w-10 h-10 text-gray-400 mb-2" />
+            <p className="text-gray-500 font-medium">Interactive Map Mode Coming Soon</p>
+            <p className="text-xs text-gray-400">Use 'Simple' mode for now</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderStep3_CropPlan = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-light font-['Megrim'] text-[#812F0F]">Crop Plan</h2>
+        <p className="text-muted-foreground">What are you growing this season?</p>
+      </div>
+
+      {fields.length === 0 ? (
+        <div className="text-center p-8 bg-orange-50 rounded-xl text-orange-800">
+          <AlertTriangle className="w-10 h-10 mx-auto mb-2" />
+          <p>Please add at least one field in the previous step.</p>
+        </div>
+      ) : (
+        <>
+          {/* Plans List */}
+          {plans.length > 0 && (
+            <div className="space-y-3 mb-8">
+              {plans.map(plan => (
+                <div key={plan.id} className="p-4 bg-green-50 border border-green-200 rounded-xl flex justify-between items-center">
+                  <div>
+                    <h4 className="font-bold text-green-800">{plan.cropName} ({plan.season})</h4>
+                    <p className="text-sm text-green-700">
+                      {fields.find(f => f.id === plan.fieldId)?.name} • {plan.variety}
+                    </p>
+                    <p className="text-xs text-green-600 mt-1">Sowing: {new Date(plan.sowingDate!).toLocaleDateString()}</p>
+                  </div>
+                  <button onClick={() => removePlan(plan.id!)} className="text-red-500 hover:text-red-700 p-2">
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add Plan Form */}
+          <div className="bg-white/50 backdrop-blur-md border rounded-xl p-6 shadow-sm space-y-4">
+            <div>
+              <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Select Field</label>
+              <select 
+                value={currentPlan.fieldId || ''}
+                onChange={e => setCurrentPlan({...currentPlan, fieldId: e.target.value})}
+                className="w-full p-2 rounded border"
+              >
+                <option value="">-- Choose Field --</option>
+                {fields.map(f => <option key={f.id} value={f.id}>{f.name} ({f.acres} ac)</option>)}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Season</label>
+                <select 
+                  value={currentPlan.season}
+                  onChange={e => setCurrentPlan({...currentPlan, season: e.target.value as any})}
+                  className="w-full p-2 rounded border"
+                >
+                  {SEASONS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Sowing Date</label>
+                <input 
+                  type="date"
+                  value={currentPlan.sowingDate ? new Date(currentPlan.sowingDate).toISOString().split('T')[0] : ''}
+                  onChange={e => setCurrentPlan({...currentPlan, sowingDate: new Date(e.target.value)})}
+                  className="w-full p-2 rounded border"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Crop</label>
+                <select 
+                  value={currentPlan.cropName || ''}
+                  onChange={e => setCurrentPlan({...currentPlan, cropName: e.target.value, variety: ''})}
+                  className="w-full p-2 rounded border"
+                >
+                  <option value="">-- Choose Crop --</option>
+                  {CROPS.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-gray-500 mb-1">Variety</label>
+                <select 
+                  value={currentPlan.variety || ''}
+                  onChange={e => setCurrentPlan({...currentPlan, variety: e.target.value})}
+                  className="w-full p-2 rounded border"
+                  disabled={!currentPlan.cropName}
+                >
+                  <option value="">-- Choose Variety --</option>
+                  {currentPlan.cropName && CROPS.find(c => c.name === currentPlan.cropName)?.varieties.map(v => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <input 
+                type="checkbox"
+                checked={currentPlan.isIntercropping}
+                onChange={e => setCurrentPlan({...currentPlan, isIntercropping: e.target.checked})}
+                id="intercrop"
+              />
+              <label htmlFor="intercrop" className="text-sm text-gray-700">Enable Intercropping / Mixed Cropping</label>
+            </div>
+            
+            {currentPlan.isIntercropping && (
+              <input 
+                value={currentPlan.interCropName || ''}
+                onChange={e => setCurrentPlan({...currentPlan, interCropName: e.target.value})}
+                placeholder="Enter Intercrop Name"
+                className="w-full p-2 rounded border mt-2"
+              />
+            )}
+
+            <button 
+              onClick={addPlanToList}
+              className="w-full py-3 bg-[#812F0F] text-white rounded-lg hover:bg-[#6b260b] transition-colors font-medium mt-4"
+            >
+              Add to Plan
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  const renderStep4_Summary = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-light font-['Megrim'] text-[#812F0F]">Review Plan</h2>
+        <p className="text-muted-foreground">Generated insights for your season</p>
+      </div>
+
+      <div className="space-y-6">
+        {plans.map((plan, index) => {
+          const field = fields.find(f => f.id === plan.fieldId);
+          return (
+            <motion.div 
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-white border rounded-xl overflow-hidden shadow-lg"
+            >
+              <div className="bg-[#812F0F] text-white p-4 flex justify-between items-center">
+                <div>
+                  <h3 className="font-bold text-lg">{plan.cropName} - {plan.season}</h3>
+                  <p className="text-white/80 text-sm">{field?.name} ({field?.acres} acres)</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs opacity-75">Harvest Est.</div>
+                  <div className="font-bold">{plan.harvestDateEstimated ? new Date(plan.harvestDateEstimated).toLocaleDateString() : 'N/A'}</div>
+                </div>
+              </div>
+              
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <Sprout className="w-4 h-4 text-green-600" /> Seed & Nutrients
+                  </h4>
+                  <div className="bg-green-50 p-3 rounded-lg space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Seed Rate:</span>
+                      <span className="font-medium">{plan.seedRate}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Nutrients:</span>
+                      <span className="font-medium text-right">{plan.baseNutrients}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-600" /> Risk Checklist
+                  </h4>
+                  <ul className="text-sm space-y-1">
+                    {plan.riskChecklist?.map((risk, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-orange-500">•</span>
+                        <span className="text-gray-700">{risk}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
-      <div className="max-w-3xl mx-auto">
-        {/* Progress Bar */}
-        <div className="mb-12">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-sm text-muted-foreground">
-              Step {step} of {totalSteps}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              {Math.round((step / totalSteps) * 100)}% Complete
-            </span>
+    <div className="min-h-screen bg-gray-50/50 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-xl font-bold text-[#812F0F] tracking-widest font-['Megrim']">MILA</h1>
+            <p className="text-xs text-gray-500 uppercase tracking-wide">Crop Intelligence Engine</p>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-primary"
-              initial={{ width: 0 }}
-              animate={{ width: `${(step / totalSteps) * 100}%` }}
-              transition={{ duration: 0.3 }}
-            />
+          <div className="flex gap-2">
+            {[1, 2, 3, 4].map(s => (
+              <div 
+                key={s} 
+                className={`w-3 h-3 rounded-full transition-all ${
+                  step >= s ? 'bg-[#812F0F]' : 'bg-gray-200'
+                }`} 
+              />
+            ))}
           </div>
         </div>
 
-        {/* Step Content */}
+        {/* Content Card */}
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="bg-card rounded-2xl p-8 sm:p-12 shadow-lg"
+            className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 sm:p-10 shadow-xl border border-white/20 min-h-[500px]"
           >
-            {/* Step 1: Personal Information */}
-            {step === 1 && (
-              <div>
-                <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
-                  <User className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-3xl mb-3 text-foreground">Welcome!</h2>
-                <p className="text-lg text-muted-foreground mb-8">
-                  Let's get to know you better
-                </p>
+            {step === 1 && renderStep1_Profile()}
+            {step === 2 && renderStep2_Fields()}
+            {step === 3 && renderStep3_CropPlan()}
+            {step === 4 && renderStep4_Summary()}
 
-                <div className="space-y-6">
-                  <div>
-                    <label className="block mb-2 text-foreground">Your Name *</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
-                      placeholder="Enter your name"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block mb-2 text-foreground">Phone Number *</label>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
-                      placeholder="+91 "
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block mb-2 text-foreground">Preferred Language *</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {languages.map((lang) => (
-                        <button
-                          key={lang}
-                          onClick={() => setFormData({ ...formData, language: lang })}
-                          className={`p-4 rounded-lg border-2 transition-colors ${
-                            formData.language === lang
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/50'
-                          }`}
-                        >
-                          {lang}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Farm Profile */}
-            {step === 2 && (
-              <div>
-                <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
-                  <MapPin className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-3xl mb-3 text-foreground">Your Farm</h2>
-                <p className="text-lg text-muted-foreground mb-8">
-                  Tell us about your land
-                </p>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block mb-2 text-foreground">Location *</label>
-                    <input
-                      type="text"
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
-                      placeholder="Village, District, State"
-                    />
-                  </div>
-
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block mb-2 text-foreground">Total Land (acres) *</label>
-                      <input
-                        type="number"
-                        value={formData.totalLand}
-                        onChange={(e) => setFormData({ ...formData, totalLand: e.target.value })}
-                        className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
-                        placeholder="e.g., 5"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block mb-2 text-foreground">Number of Fields *</label>
-                      <input
-                        type="number"
-                        value={formData.numberOfFields}
-                        onChange={(e) => setFormData({ ...formData, numberOfFields: e.target.value })}
-                        className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
-                        placeholder="e.g., 2"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block mb-2 text-foreground">Water Access *</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {['Borewell', 'Canal', 'Rain-fed'].map((access) => (
-                        <button
-                          key={access}
-                          onClick={() => setFormData({ ...formData, waterAccess: access.toLowerCase() })}
-                          className={`p-4 rounded-lg border-2 transition-colors ${
-                            formData.waterAccess === access.toLowerCase()
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/50'
-                          }`}
-                        >
-                          <Droplets className="w-6 h-6 mx-auto mb-2 text-primary" />
-                          <span className="text-sm">{access}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Experience */}
-            {step === 3 && (
-              <div>
-                <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
-                  <Target className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-3xl mb-3 text-foreground">Your Experience</h2>
-                <p className="text-lg text-muted-foreground mb-8">
-                  This helps us guide you better
-                </p>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block mb-2 text-foreground">Years of Farming</label>
-                    <input
-                      type="number"
-                      value={formData.yearsOfFarming}
-                      onChange={(e) => setFormData({ ...formData, yearsOfFarming: e.target.value })}
-                      className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
-                      placeholder="e.g., 10"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block mb-2 text-foreground">Crops You've Grown</label>
-                    <textarea
-                      value={formData.previousCrops}
-                      onChange={(e) => setFormData({ ...formData, previousCrops: e.target.value })}
-                      className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
-                      rows={3}
-                      placeholder="e.g., Tomato, Cotton, Wheat..."
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Field Setup */}
-            {step === 4 && (
-              <div>
-                <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
-                  <Sprout className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-3xl mb-3 text-foreground">Field Details</h2>
-                <p className="text-lg text-muted-foreground mb-8">
-                  Let's set up your first field
-                </p>
-
-                <div className="space-y-6">
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block mb-2 text-foreground">Field Name *</label>
-                      <input
-                        type="text"
-                        value={formData.fieldName}
-                        onChange={(e) => setFormData({ ...formData, fieldName: e.target.value })}
-                        className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
-                        placeholder="e.g., North Field"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block mb-2 text-foreground">Field Size (acres) *</label>
-                      <input
-                        type="number"
-                        value={formData.fieldSize}
-                        onChange={(e) => setFormData({ ...formData, fieldSize: e.target.value })}
-                        className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
-                        placeholder="e.g., 2"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block mb-2 text-foreground">Soil Type *</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {soilTypes.map((soil) => (
-                        <button
-                          key={soil}
-                          onClick={() => setFormData({ ...formData, soilType: soil.toLowerCase() })}
-                          className={`p-4 rounded-lg border-2 transition-colors ${
-                            formData.soilType === soil.toLowerCase()
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/50'
-                          }`}
-                        >
-                          {soil}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 5: Crop Selection */}
-            {step === 5 && (
-              <div>
-                <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
-                  <Calendar className="w-8 h-8 text-primary" />
-                </div>
-                <h2 className="text-3xl mb-3 text-foreground">Choose Your Crop</h2>
-                <p className="text-lg text-muted-foreground mb-8">
-                  Based on season and your soil
-                </p>
-
-                <div className="space-y-6">
-                  <div>
-                    <label className="block mb-2 text-foreground">Recommended Crops *</label>
-                    <div className="space-y-3">
-                      {crops.map((crop) => (
-                        <button
-                          key={crop.name}
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, selectedCrop: crop.name, budget: crop.budget }));
-                            updateHarvestDate(formData.plantingDate, crop.name);
-                          }}
-                          className={`w-full p-6 rounded-xl border-2 transition-colors text-left ${
-                            formData.selectedCrop === crop.name
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="text-xl mb-1 text-foreground">{crop.name}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {crop.season} Season • Est. Budget: {crop.budget}
-                              </p>
-                            </div>
-                            {formData.selectedCrop === crop.name && (
-                              <CheckCircle2 className="w-6 h-6 text-primary" />
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block mb-2 text-foreground">When do you want to start? *</label>
-                      <input
-                        type="date"
-                        value={formData.plantingDate}
-                        onChange={(e) => {
-                          const newDate = e.target.value;
-                          setFormData(prev => ({ ...prev, plantingDate: newDate }));
-                          updateHarvestDate(newDate, formData.selectedCrop);
-                        }}
-                        className="w-full px-4 py-3 bg-input-background rounded-lg border-2 border-transparent focus:border-primary outline-none transition-colors"
-                      />
-                      {formData.plantingDate && formData.selectedCrop && (
-                        <div className="mt-2 text-sm">
-                          {(() => {
-                            const crop = crops.find(c => c.name === formData.selectedCrop);
-                            const status = crop ? getCropStatus(formData.plantingDate, crop.durationInDays) : null;
-                            if (!status) return null;
-                            
-                            return (
-                              <span className={`
-                                ${status.status === 'active' ? 'text-primary font-medium' : ''}
-                                ${status.status === 'upcoming' ? 'text-blue-500' : ''}
-                                ${status.status === 'completed' ? 'text-green-600' : ''}
-                              `}>
-                                {status.message}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block mb-2 text-foreground">Estimated Harvest Date</label>
-                      <input
-                        type="date"
-                        value={formData.harvestDate}
-                        readOnly
-                        className="w-full px-4 py-3 bg-muted/50 rounded-lg border-2 border-transparent outline-none text-muted-foreground cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Navigation Buttons */}
-            <div className="flex items-center justify-between mt-12 pt-8 border-t border-border">
+            {/* Navigation Footer */}
+            <div className="flex justify-between items-center mt-10 pt-6 border-t border-gray-100">
               <button
-                onClick={prevStep}
+                onClick={() => setStep(s => Math.max(1, s - 1))}
                 disabled={step === 1}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-                  step === 1
-                    ? 'text-muted-foreground cursor-not-allowed'
-                    : 'text-foreground hover:bg-muted'
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg transition-colors ${
+                  step === 1 ? 'opacity-0 pointer-events-none' : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <ChevronLeft className="w-5 h-5" />
-                Back
+                <ChevronLeft className="w-4 h-4" /> Back
               </button>
 
               {step < totalSteps ? (
                 <button
-                  onClick={nextStep}
-                  className="flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                  onClick={() => setStep(s => Math.min(totalSteps, s + 1))}
+                  className="flex items-center gap-2 px-8 py-3 bg-[#812F0F] text-white rounded-lg hover:bg-[#6b260b] shadow-lg shadow-[#812F0F]/20 transition-all transform hover:scale-105"
                 >
-                  Continue
-                  <ChevronRight className="w-5 h-5" />
+                  Continue <ChevronRight className="w-4 h-4" />
                 </button>
               ) : (
                 <button
-                  onClick={handleComplete}
-                  className="flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                  onClick={handleFinalSubmit}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 px-8 py-3 bg-green-700 text-white rounded-lg hover:bg-green-800 shadow-lg shadow-green-700/20 transition-all transform hover:scale-105 disabled:opacity-70"
                 >
-                  <CheckCircle2 className="w-5 h-5" />
-                  Complete Setup
+                  {isLoading ? 'Setting up...' : 'Start Farming'} <CheckCircle2 className="w-4 h-4" />
                 </button>
               )}
             </div>

@@ -94,7 +94,7 @@ export function UserProfile({ onBack, onProfileUpdate }: UserProfileProps) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto overflow-x-hidden">
       <div className="flex items-center gap-2 mb-6">
         <button onClick={onBack} className="p-2 hover:bg-muted rounded-full">
           <svg className="w-5 h-5 rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">

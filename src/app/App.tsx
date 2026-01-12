@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Toaster } from 'sonner';
+import './i18n'; // Import i18n first
 import { Navigation } from './components/Navigation';
 import { LoginScreen } from './components/LoginScreen';
 import { OnboardingFlow } from './components/OnboardingFlow';
@@ -17,10 +18,11 @@ import { GetStartedPage } from './pages/GetStartedPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { getSession, logout as apiLogout, getUserProfile } from '../lib/api';
 import { useAppStore } from './store/appStore';
-import './i18n';
 import { useTranslation } from 'react-i18next';
 import { AppFooter } from './components/AppFooter';
 import { ScrollToTop } from './components/ScrollToTop';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+import LazyLoading from '../imports/LazyLoading';
 
 function App() {
   const { t } = useTranslation();
@@ -100,14 +102,18 @@ function App() {
     // Dispatch custom event to notify other components
     window.dispatchEvent(new Event('authStateChanged'));
     
-    // SKIP Onboarding Screen - Go straight to Dashboard
-    // We will show a tour guide instead
-    console.log('✓ Skipping onboarding screen -> Going to Dashboard');
-    setHasCompletedOnboarding(true);
-    localStorage.setItem('hasOnboarded', 'true');
+    // Check if user has onboarded (legacy check) or force new onboarding
+    const hasOnboarded = localStorage.getItem('hasOnboarded') === 'true';
     
-    // Set a flag to trigger the tour in the dashboard
-    localStorage.setItem('showDashboardTour', 'true');
+    // For now, we want to show the new Onboarding Flow to users to set up their farm
+    // So we default to FALSE unless explicitly set.
+    // In a real app, we would check user.user_metadata.onboardingComplete
+    
+    if (user?.user_metadata?.onboardingComplete || hasOnboarded) {
+         setHasCompletedOnboarding(true);
+    } else {
+         setHasCompletedOnboarding(false);
+    }
   };
 
   const handleOnboardingComplete = async (profileData: any) => {
@@ -142,34 +148,27 @@ function App() {
 
   // Show loading state while checking auth
   if (isCheckingAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary flex items-center justify-center text-3xl animate-pulse">
-            🌱
-          </div>
-          <p className="text-muted-foreground">{t('common.loading')}</p>
-        </div>
-        <Toaster position="top-center" richColors />
-      </div>
-    );
+    return <LazyLoading />;
   }
 
   // Default: Show marketing website
   return (
     <Router>
       <ScrollToTop />
-      <div className="min-h-screen bg-background">
-        <Routes>
-          {/* Login/Auth Routes */}
-          <Route 
-            path="/login" 
-            element={
+      <div className="min-h-screen bg-background overflow-x-hidden">
+        <Suspense fallback={<LazyLoading />}>
+          <Routes>
+            {/* Login/Auth Routes */}
+            <Route 
+              path="/login" 
+              element={
               !isLoggedIn ? (
                 <>
                   <LoginScreen onLogin={handleLogin} />
                   <Toaster position="top-center" richColors />
                 </>
+              ) : !hasCompletedOnboarding ? (
+                <OnboardingFlow onComplete={handleOnboardingComplete} />
               ) : (
                 <>
                   <MainDashboard 
@@ -214,8 +213,10 @@ function App() {
           <Route path="/contact" element={<><Navigation /><ContactPage /><AppFooter /></>} />
           <Route path="/get-started" element={<><Navigation /><GetStartedPage /><AppFooter /></>} />
           <Route path="/dashboard" element={<><Navigation /><DashboardPage /></>} />
-        </Routes>
+          </Routes>
+        </Suspense>
       </div>
+      <PWAInstallPrompt />
     </Router>
   );
 }

@@ -4,7 +4,6 @@ import { Menu, X, Sprout } from 'lucide-react';
 import { useState, useEffect, MouseEvent } from 'react';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { MilaLogo } from './MilaLogo';
-import Logo from '../../imports/Logo';
 
 export function Navigation() {
   const location = useLocation();

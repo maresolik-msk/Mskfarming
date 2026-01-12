@@ -191,7 +191,7 @@ export function HomePage() {
                 </button>
                 <Link
                   to="/get-started"
-                  className="px-8 py-4 bg-white/5 backdrop-blur-sm border border-white/0 text-white rounded-x0 hover:bg-white/10 transition-all font-semibold text-lg flex items-center justify-center text-center text-[16px]"
+                  className="px-8 py-4 bg-white/5 backdrop-blur-sm border border-white/0 text-white rounded-[0px] hover:bg-white/10 transition-all font-semibold text-lg flex items-center justify-center text-center text-[16px]"
                 >
                   See How It Works
                 </Link>

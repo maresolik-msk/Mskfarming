@@ -121,7 +121,7 @@ export function CropSimulator() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Configuration Panel */}
         <Card className="md:col-span-1 h-fit">

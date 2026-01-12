@@ -139,7 +139,7 @@ export function HomeView({
       variants={container}
       initial="hidden"
       animate="show"
-      className="space-y-6 pt-[24px] pr-[0px] pb-[80px] pl-[0px] px-[0px] py-[24px]"
+      className="space-y-6 pt-[24px] pr-[0px] pb-[80px] pl-[0px] px-[0px] py-[24px] overflow-x-hidden"
     >
       {/* Level 1: Context & Greeting */}
       <motion.div variants={item} className="flex flex-col gap-1">

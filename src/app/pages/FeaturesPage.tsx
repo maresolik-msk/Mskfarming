@@ -46,9 +46,7 @@ export function FeaturesPage() {
 
   return (
     <div className="min-h-screen py-[32px] px-[16px] bg-background">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Megrim&display=swap');
-      `}</style>
+
 
       <div className="max-w-7xl mx-auto">
         <motion.div

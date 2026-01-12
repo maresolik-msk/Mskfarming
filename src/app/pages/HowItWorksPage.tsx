@@ -48,9 +48,7 @@ export function HowItWorksPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Megrim&display=swap');
-      `}</style>
+
 
       {/* Hero Section */}
       <section className="py-[32px] px-[16px] text-center">

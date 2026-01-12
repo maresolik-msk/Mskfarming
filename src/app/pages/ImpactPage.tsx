@@ -32,9 +32,7 @@ export function ImpactPage() {
   return (
     <div className="min-h-screen py-[32px] px-[16px]">
       <div className="max-w-7xl mx-auto relative z-10">
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Megrim&display=swap');
-        `}</style>
+
         
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -94,10 +92,10 @@ export function ImpactPage() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="relative rounded-3xl overflow-hidden bg-[#2A0F05] text-white overflow-hidden"
+          className="relative rounded-[2rem] overflow-hidden bg-[#2A0F05] text-white"
         >
           {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
           
           <div className="relative z-10 px-8 py-20 md:py-32 text-center max-w-4xl mx-auto">
             <h2 className="text-3xl md:text-5xl font-bold mb-8 font-serif">

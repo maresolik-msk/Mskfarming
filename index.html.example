@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Primary Meta Tags -->
+  <title>MILA - AI-Powered Field Management Intelligence</title>
+  <meta name="title" content="MILA - AI-Powered Field Management Intelligence">
+  <meta name="description" content="Premium field management platform for modern farmers. AI-powered scouting, harvest tracking, and expense management.">
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#812F0F">
+  
+  <!-- iOS Specific Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MILA">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon-192.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/icon-192.png">
+  <link rel="shortcut icon" href="/icon-192.png">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://your-domain.com/">
+  <meta property="og:title" content="MILA - AI-Powered Field Management">
+  <meta property="og:description" content="Premium field management platform for modern farmers">
+  <meta property="og:image" content="/icon-512.png">
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://your-domain.com/">
+  <meta property="twitter:title" content="MILA - AI-Powered Field Management">
+  <meta property="twitter:description" content="Premium field management platform for modern farmers">
+  <meta property="twitter:image" content="/icon-512.png">
+  
+  <!-- Preload critical assets -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- Microsoft Tile -->
+  <meta name="msapplication-TileColor" content="#812F0F">
+  <meta name="msapplication-TileImage" content="/icon-192.png">
+</head>
+<body>
+  <noscript>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+      <h1>MILA</h1>
+      <p>You need to enable JavaScript to run this app.</p>
+    </div>
+  </noscript>
+  
+  <div id="root"></div>
+  
+  <!-- Main app entry point - adjust path as needed -->
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

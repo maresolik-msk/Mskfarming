@@ -36,20 +36,68 @@ export interface UserProfile {
   location: string;
   onboardingComplete: boolean;
   farmSize: number;
-  fieldName: string;
-  crop: string;
-  plantingDate: Date;
+  fieldName: string; // Deprecated, use fields array
+  crop: string; // Deprecated, use cropPlans
+  plantingDate: Date; // Deprecated
   budget: number;
+  
+  // New Profile Fields
+  farmerType?: 'Small' | 'Marginal' | 'Medium' | 'Large';
+  farmingSystem?: 'Irrigated' | 'Rainfed'; // Farm type
+  croppingIntent?: 'Commercial' | 'Household' | 'Mixed';
+}
+
+export interface Field {
+  id: string;
+  name: string;
+  acres: number;
+  location: string; // Village/Block
+  soilType: string;
+  irrigationMethod?: 'Drip' | 'Flood' | 'Sprinkler' | 'Rainfed';
+  waterSource?: 'Borewell' | 'Tank' | 'Canal' | 'Rainfed';
+  slope?: 'Flat' | 'Gentle' | 'Steep';
+  drainageIssues?: boolean;
+  previousCrop?: string;
+  boundary?: { lat: number; lng: number }[]; // For map/GPS
+}
+
+export interface CropPlan {
+  id: string;
+  fieldId: string;
+  season: 'Kharif' | 'Rabi' | 'Summer';
+  cropName: string;
+  variety: string;
+  sowingDate: Date;
+  isIntercropping: boolean;
+  interCropName?: string;
+  
+  // Auto-generated data
+  harvestDateEstimated?: Date;
+  riskChecklist?: string[];
+  seedRate?: string;
+  baseNutrients?: string;
 }
 
 interface AppState {
   // User
   user: UserProfile | null;
   setUser: (user: UserProfile) => void;
+  updateUser: (updates: Partial<UserProfile>) => void;
+  
+  // Farm & Fields
+  fields: Field[];
+  addField: (field: Field) => void;
+  updateField: (id: string, updates: Partial<Field>) => void;
+  deleteField: (id: string) => void;
+
+  // Crop Plans
+  cropPlans: CropPlan[];
+  addCropPlan: (plan: CropPlan) => void;
   
   // Tasks
   tasks: Task[];
   toggleTask: (id: string) => void;
+  addTask: (task: Task) => void; // Added for plan generation
   
   // Journal
   journalEntries: JournalEntry[];
@@ -66,6 +114,7 @@ interface AppState {
   
   // Alerts
   alerts: string[];
+  addAlert: (alert: string) => void; // Added for plan generation
 }
 
 export const useAppStore = create<AppState>()(
@@ -73,6 +122,21 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       user: null,
       setUser: (user) => set({ user }),
+      updateUser: (updates) => set((state) => ({ 
+        user: state.user ? { ...state.user, ...updates } : null 
+      })),
+
+      fields: [],
+      addField: (field) => set((state) => ({ fields: [...state.fields, field] })),
+      updateField: (id, updates) => set((state) => ({
+        fields: state.fields.map(f => f.id === id ? { ...f, ...updates } : f)
+      })),
+      deleteField: (id) => set((state) => ({
+        fields: state.fields.filter(f => f.id !== id)
+      })),
+
+      cropPlans: [],
+      addCropPlan: (plan) => set((state) => ({ cropPlans: [...state.cropPlans, plan] })),
 
       tasks: [
         {
@@ -103,6 +167,7 @@ export const useAppStore = create<AppState>()(
             task.id === id ? { ...task, completed: !task.completed } : task
           ),
         })),
+      addTask: (task) => set((state) => ({ tasks: [...state.tasks, task] })),
 
       journalEntries: [],
       addJournalEntry: (entry) =>
@@ -141,6 +206,7 @@ export const useAppStore = create<AppState>()(
         'Fertilizer application due in 3 days (NPK 19:19:19 - 10kg)',
         'Harvest window opens in 2 weeks',
       ],
+      addAlert: (alert) => set((state) => ({ alerts: [...state.alerts, alert] })),
     }),
     {
       name: 'farm-companion-store',

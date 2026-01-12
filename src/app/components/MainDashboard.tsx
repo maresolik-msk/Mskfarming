@@ -25,7 +25,13 @@ import {
   TrendingUp,
   Leaf,
   PawPrint,
-  Wrench
+  Wrench,
+  Search,
+  ClipboardList,
+  Droplets,
+  ScanLine,
+  Wheat,
+  MapPin
 } from 'lucide-react';
 import { WeeklySummary } from './WeeklySummary';
 import { HomeView } from './HomeView';
@@ -55,6 +61,10 @@ import { CropSimulator } from './CropSimulator';
 import { AnimalHusbandry } from './AnimalHusbandry';
 import { FarmMachinery } from './FarmMachinery';
 import { CropManager } from './CropManager';
+import { FieldScouting } from './FieldScouting';
+import { InputApplicationsLog } from './InputApplicationsLog';
+import { HarvestRecording } from './HarvestRecording';
+import { EnhancedFieldManagement } from './EnhancedFieldManagement';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetClose } from './ui/sheet';
 import { toast } from 'sonner';
 import { 
@@ -136,7 +146,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [showExpenseTracker, setShowExpenseTracker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [activeView, setActiveView] = useState<'dashboard' | 'journal' | 'expenses' | 'field' | 'market' | 'profile' | 'crop_sim' | 'crop_manager' | 'animals' | 'machinery'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'expenses' | 'profile' | 'crop_manager' | 'scouting' | 'inputs' | 'harvest'>('dashboard'); // Launch features only
 
   // Soil Testing State
   const [showSoilTestSelection, setShowSoilTestSelection] = useState(false);
@@ -616,7 +626,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background pt-[0px] pr-[0px] pb-[24px] pl-[0px]">
+    <div className="min-h-screen bg-background pt-[0px] pr-[0px] pb-[24px] pl-[0px] overflow-x-hidden">
       <Joyride
         steps={tourSteps}
         run={runTour}
@@ -855,33 +865,12 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
 
                     <SheetClose asChild>
                       <button 
-                        onClick={() => setShowJournalHistory(true)}
-                        className="flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
-                      >
-                        <History className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                        <span className="font-medium text-[15px]">{t('menu.journalHistory')}</span>
-                      </button>
-                    </SheetClose>
-
-                    <SheetClose asChild>
-                      <button 
                         onClick={() => setActiveView('expenses')}
                         className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'expenses' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
                       >
                         <Calculator className="w-5 h-5" />
                         <span className="font-semibold text-[15px]">{t('menu.expenses')}</span>
                         {activeView === 'expenses' && <div className="w-2 h-2 rounded-full bg-white ml-auto shadow-sm" />}
-                      </button>
-                    </SheetClose>
-                    
-                    <SheetClose asChild>
-                      <button 
-                        onClick={() => setActiveView('market')}
-                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'market' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
-                      >
-                        <TrendingUp className="w-5 h-5" />
-                        <span className="font-semibold text-[15px]">{t('menu.marketPrices')}</span>
-                        {activeView === 'market' && <div className="w-2 h-2 rounded-full bg-white ml-auto shadow-sm" />}
                       </button>
                     </SheetClose>
 
@@ -896,6 +885,8 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                       </button>
                     </SheetClose>
 
+                    {/* HIDDEN FOR LAUNCH: Journal History, Market Prices */}
+
                     <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-6" />
                     
                     <div className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-[0.15em] mb-4 px-3">
@@ -904,67 +895,35 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
 
                     <SheetClose asChild>
                       <button 
-                        onClick={() => setActiveView('crop_sim')}
-                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'crop_sim' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
+                        onClick={() => setActiveView('scouting')}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'scouting' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
                       >
-                        <div className="w-5 h-5" style={activeView === 'crop_sim' ? { '--fill-0': '#ffffff' } as CSSProperties : undefined}>
-                          <Logo />
-                        </div>
-                        <span className="font-semibold text-[15px]">{t('menu.cropSimulator')}</span>
+                        <Search className="w-5 h-5" />
+                        <span className="font-semibold text-[15px]">Field Scouting</span>
                       </button>
                     </SheetClose>
 
                     <SheetClose asChild>
                       <button 
-                        onClick={() => setActiveView('animals')}
-                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'animals' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
+                        onClick={() => setActiveView('inputs')}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'inputs' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
                       >
-                        <PawPrint className="w-5 h-5" />
-                        <span className="font-semibold text-[15px]">Animal Husbandry</span>
+                        <ClipboardList className="w-5 h-5" />
+                        <span className="font-semibold text-[15px]">Input Applications</span>
                       </button>
                     </SheetClose>
 
                     <SheetClose asChild>
                       <button 
-                        onClick={() => setActiveView('machinery')}
-                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'machinery' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
+                        onClick={() => setActiveView('harvest')}
+                        className={`flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${activeView === 'harvest' ? 'bg-[#812F0F] text-white shadow-lg shadow-[#812F0F]/20' : 'hover:bg-muted/60 text-foreground hover:scale-[1.02]'}`}
                       >
-                        <Wrench className="w-5 h-5" />
-                        <span className="font-semibold text-[15px]">Machinery & Tools</span>
+                        <Wheat className="w-5 h-5" />
+                        <span className="font-semibold text-[15px]">Harvest Records</span>
                       </button>
                     </SheetClose>
 
-                    <SheetClose asChild>
-                      <button 
-                        onClick={() => setShowSeedSelection(true)}
-                        className="flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
-                      >
-                        <div className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors">
-                          <Logo />
-                        </div>
-                        <span className="font-medium text-[15px]">Seed Selection</span>
-                      </button>
-                    </SheetClose>
-
-                    <SheetClose asChild>
-                      <button 
-                        onClick={handleTestSoil}
-                        className="flex items-center gap-4 px-5 py-4 rounded-[0px] hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
-                      >
-                        <FlaskConical className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                        <span className="font-medium text-[15px]">{t('menu.soilTesting')}</span>
-                      </button>
-                    </SheetClose>
-
-                    <SheetClose asChild>
-                      <button 
-                        onClick={() => setShowFieldMonitoring(true)}
-                        className="flex items-center gap-4 px-5 py-4 rounded-2xl hover:bg-muted/60 text-foreground transition-all duration-300 group hover:scale-[1.02]"
-                      >
-                        <Satellite className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                        <span className="font-medium text-[15px]">{t('features.satelliteMonitoring')}</span>
-                      </button>
-                    </SheetClose>
+                    {/* HIDDEN FOR LAUNCH: Crop Simulator, Animal Husbandry, Machinery, Seed Selection, Soil Testing, Satellite Monitoring */}
                     
                     <div className="mt-auto pt-8">
                       <SheetClose asChild>
@@ -990,26 +949,85 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
         {activeView === 'dashboard' ? (
           <>
             {availableFields.length === 0 ? (
-              <div className="text-center py-10 animate-in fade-in slide-in-from-bottom-4">
-                <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 p-6">
-                   <Logo />
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-16 px-6"
+              >
+                {/* Futuristic welcome card with glassmorphism */}
+                <div className="relative max-w-2xl mx-auto">
+                  {/* Ambient glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F]/20 via-amber-500/10 to-orange-400/20 blur-3xl -z-10 animate-pulse" />
+                  
+                  <div className="backdrop-blur-xl bg-gradient-to-br from-white/10 to-white/5 dark:from-white/5 dark:to-white/[0.02] border border-white/20 dark:border-white/10 rounded-[32px] p-12 shadow-2xl relative overflow-hidden">
+                    {/* Decorative gradient overlay */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#812F0F]/20 via-amber-500/10 to-transparent rounded-full blur-3xl -z-10" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-orange-400/20 via-amber-300/10 to-transparent rounded-full blur-3xl -z-10" />
+                    
+                    {/* Logo with enhanced styling */}
+                    <motion.div 
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="relative w-32 h-32 mx-auto mb-8"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F] to-amber-600 rounded-3xl rotate-6 opacity-20 blur-xl animate-pulse" />
+                      <div className="relative w-full h-full bg-gradient-to-br from-[#812F0F]/20 to-amber-500/20 rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-2xl p-8">
+                        <Logo />
+                      </div>
+                    </motion.div>
+                    
+                    <motion.h2 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-4xl font-bold mb-4 bg-gradient-to-r from-[#812F0F] via-amber-600 to-orange-500 bg-clip-text text-transparent"
+                      style={{ fontFamily: 'Megrim, cursive' }}
+                    >
+                      {t('dashboard.welcomeMessage')}
+                    </motion.h2>
+                    
+                    <motion.p 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.4 }}
+                      className="text-muted-foreground/80 mb-10 max-w-md mx-auto text-lg leading-relaxed"
+                    >
+                      {t('dashboard.welcomeSub')}
+                    </motion.p>
+                    
+                    <motion.button
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setShowAddFieldModal(true)}
+                      className="group relative px-10 py-5 bg-gradient-to-r from-[#812F0F] via-[#9a3810] to-[#812F0F] text-white rounded-3xl font-bold text-lg shadow-2xl shadow-[#812F0F]/40 flex items-center gap-3 mx-auto overflow-hidden"
+                    >
+                      {/* Shimmer effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                      
+                      <Plus className="w-6 h-6 relative z-10" />
+                      <span className="relative z-10">{t('dashboard.addNewField')}</span>
+                      
+                      {/* Golden hour glow */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-amber-400/20 to-amber-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    </motion.button>
+                  </div>
                 </div>
-                <h2 className="text-2xl font-bold mb-2">{t('dashboard.welcomeMessage')}</h2>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  {t('dashboard.welcomeSub')}
-                </p>
-                <button
-                  onClick={() => setShowAddFieldModal(true)}
-                  className="px-8 py-4 bg-[#812F0F] text-white rounded-2xl font-bold text-lg shadow-xl shadow-[#812F0F]/20 hover:scale-105 transition-transform flex items-center gap-2 mx-auto"
-                >
-                  <Plus className="w-6 h-6" />
-                  {t('dashboard.addNewField')}
-                </button>
-              </div>
+              </motion.div>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <HomeView 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  {/* Enhanced HomeView container */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="relative"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F]/10 via-amber-500/5 to-orange-400/10 rounded-[32px] blur-2xl -z-10" />
+                    <HomeView 
                     farmerName={userProfile?.name || farmerName}
                     cropInfo={cropInfo}
                     tasks={tasks}
@@ -1034,171 +1052,249 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                       }
                     }}
                   />
+                  </motion.div>
                   
-                  <div className="space-y-4">
-                      {/* Krishi Karma Widget */}
-                      <KrishiKarmaWidget 
-                        points={karmaPoints} 
-                        level={karmaLevel} 
-                        nextLevelPoints={nextLevelPoints} 
-                      />
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="space-y-6"
+                  >
+                      {/* Krishi Karma Widget with glow */}
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 via-orange-400/10 to-[#812F0F]/20 rounded-[28px] blur-xl -z-10" />
+                        <KrishiKarmaWidget 
+                          points={karmaPoints} 
+                          level={karmaLevel} 
+                          nextLevelPoints={nextLevelPoints} 
+                        />
+                      </div>
 
-                      {/* Daily Tasks */}
-                      <div className="bg-card border border-border rounded-3xl p-5 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-[#812F0F]/10 flex items-center justify-center">
-                              <CheckCircle2 className="w-4 h-4 text-[#812F0F]" />
-                            </div>
-                            <h3 className="font-bold text-foreground">Today's Tasks</h3>
-                          </div>
-                          <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                            {tasks.filter(t => t.completed).length}/{tasks.length}
-                          </span>
-                        </div>
+                      {/* Daily Tasks with premium glassmorphism */}
+                      <div className="relative group">
+                        {/* Ambient glow */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F]/20 via-amber-500/10 to-orange-400/10 rounded-[28px] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
                         
-                        <div className="space-y-3">
-                          {tasks.length === 0 ? (
-                            <div className="text-center py-6 text-muted-foreground text-sm">
-                              <p>No tasks yet.</p>
-                              <p className="text-xs mt-1">Add a field to get recommendations.</p>
-                            </div>
-                          ) : (
-                            tasks.map(task => (
-                              <div 
-                                key={task.id}
-                                onClick={() => toggleTask(task.id)}
-                                className={`flex items-start gap-3 p-3 rounded-2xl transition-all cursor-pointer border ${
-                                  task.completed 
-                                    ? 'bg-muted/30 border-transparent opacity-60' 
-                                    : 'bg-card border-border hover:border-primary/30 hover:bg-muted/20'
-                                }`}
-                              >
-                                <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                                  task.completed
-                                    ? 'bg-[#812F0F] border-[#812F0F]'
-                                    : 'border-muted-foreground/30'
-                                }`}>
-                                  {task.completed && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
-                                </div>
-                                <div className="flex-1">
-                                  <p className={`text-sm font-medium transition-all ${
-                                    task.completed ? 'text-muted-foreground line-through' : 'text-foreground'
-                                  }`}>
-                                    {task.text}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                                    {task.time}
-                                  </p>
-                                </div>
+                        <div className="backdrop-blur-xl bg-gradient-to-br from-white/80 to-white/60 dark:from-white/5 dark:to-white/[0.02] border border-white/30 dark:border-white/10 rounded-[28px] p-6 shadow-xl relative overflow-hidden">
+                          {/* Top gradient accent */}
+                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#812F0F]/50 to-transparent" />
+                          
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                              <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-[#812F0F] to-amber-600 flex items-center justify-center shadow-lg shadow-[#812F0F]/30">
+                                <CheckCircle2 className="w-5 h-5 text-white" />
+                                {/* Icon glow */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F] to-amber-600 rounded-2xl blur-md opacity-50 -z-10" />
                               </div>
-                            ))
-                          )}
+                              <h3 className="font-bold text-foreground text-lg">Today's Tasks</h3>
+                            </div>
+                            <span className="text-sm font-bold text-muted-foreground backdrop-blur-sm bg-gradient-to-br from-muted/80 to-muted/60 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
+                              {tasks.filter(t => t.completed).length}/{tasks.length}
+                            </span>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            {tasks.length === 0 ? (
+                              <div className="text-center py-10">
+                                <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center backdrop-blur-sm border border-white/20">
+                                  <ClipboardList className="w-10 h-10 text-muted-foreground/40" />
+                                </div>
+                                <p className="text-muted-foreground font-medium">No tasks yet.</p>
+                                <p className="text-xs text-muted-foreground/60 mt-2">Add a field to get recommendations.</p>
+                              </div>
+                            ) : (
+                              tasks.map((task, idx) => (
+                                <motion.div 
+                                  key={task.id}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: idx * 0.05 }}
+                                  onClick={() => toggleTask(task.id)}
+                                  className={`group/task relative flex items-start gap-3 p-4 rounded-2xl transition-all cursor-pointer border overflow-hidden ${
+                                    task.completed 
+                                      ? 'bg-gradient-to-br from-muted/40 to-muted/20 border-white/10 opacity-60' 
+                                      : 'bg-gradient-to-br from-white/60 to-white/40 dark:from-white/5 dark:to-white/[0.02] border-white/30 dark:border-white/10 hover:border-[#812F0F]/40 hover:shadow-lg hover:shadow-[#812F0F]/10 backdrop-blur-sm'
+                                  }`}
+                                >
+                                  {/* Hover gradient effect */}
+                                  {!task.completed && (
+                                    <div className="absolute inset-0 bg-gradient-to-r from-[#812F0F]/5 via-amber-500/5 to-orange-400/5 opacity-0 group-hover/task:opacity-100 transition-opacity duration-300" />
+                                  )}
+                                  
+                                  <div className={`relative mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                                    task.completed
+                                      ? 'bg-gradient-to-br from-[#812F0F] to-amber-600 border-[#812F0F] shadow-lg shadow-[#812F0F]/30'
+                                      : 'border-muted-foreground/30 group-hover/task:border-[#812F0F]/50 group-hover/task:scale-110'
+                                  }`}>
+                                    {task.completed && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                  </div>
+                                  
+                                  <div className="flex-1 relative z-10">
+                                    <p className={`text-sm font-medium transition-all ${
+                                      task.completed ? 'text-muted-foreground line-through' : 'text-foreground'
+                                    }`}>
+                                      {task.text}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground/70 mt-1.5 flex items-center gap-1">
+                                      {task.time}
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              ))
+                            )}
+                          </div>
                         </div>
                       </div>
-                  </div>
+                  </motion.div>
                 </div>
                 
-                {/* Quick Actions Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-20">
-                  <button 
-                    onClick={() => setShowFarmingJournal(true)}
-                    className="flex flex-col items-center gap-2 p-4 bg-card border border-border rounded-2xl hover:bg-muted/50 transition-all group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <span className="text-xs font-medium text-center">Log Activity</span>
-                  </button>
+                {/* Premium Quick Actions Grid with glassmorphism */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="relative mb-20"
+                >
+                  {/* Section ambient glow */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F]/10 via-amber-500/5 to-orange-400/10 rounded-3xl blur-3xl -z-10" />
                   
-                  <button 
-                    onClick={() => setActiveView('expenses')}
-                    className="flex flex-col items-center gap-2 p-4 bg-card border border-border rounded-2xl hover:bg-muted/50 transition-all group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Wallet className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <span className="text-xs font-medium text-center">Add Expense</span>
-                  </button>
-                  
-                  <button 
-                    onClick={handleTestSoil}
-                    className="flex flex-col items-center gap-2 p-4 bg-card border border-border rounded-2xl hover:bg-muted/50 transition-all group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <FlaskConical className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <span className="text-xs font-medium text-center">Test Soil</span>
-                  </button>
-                  
-                  <button 
-                    onClick={() => setShowSeedSelection(true)}
-                    className="flex flex-col items-center gap-2 p-4 bg-card border border-border rounded-2xl hover:bg-muted/50 transition-all group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center group-hover:scale-110 transition-transform p-3">
-                      <Logo />
-                    </div>
-                    <span className="text-xs font-medium text-center">Seed Select</span>
-                  </button>
-                </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {[
+                      { 
+                        icon: ScanLine, 
+                        label: 'Scout Field', 
+                        onClick: () => setActiveView('scouting'),
+                        gradient: 'from-emerald-500 to-green-500',
+                        bgGradient: 'from-emerald-100 to-green-100 dark:from-emerald-900/20 dark:to-green-900/20'
+                      },
+                      { 
+                        icon: Droplets, 
+                        label: 'Log Input', 
+                        onClick: () => setActiveView('inputs'),
+                        gradient: 'from-blue-500 to-cyan-500',
+                        bgGradient: 'from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20'
+                      },
+                      { 
+                        icon: Wheat, 
+                        label: 'Harvest', 
+                        onClick: () => setActiveView('harvest'),
+                        gradient: 'from-amber-500 to-orange-500',
+                        bgGradient: 'from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20'
+                      },
+                      { 
+                        icon: Wallet, 
+                        label: 'Add Expense', 
+                        onClick: () => setActiveView('expenses'),
+                        gradient: 'from-[#812F0F] to-rose-600',
+                        bgGradient: 'from-rose-100 to-red-100 dark:from-rose-900/20 dark:to-red-900/20'
+                      }
+                    ].map((action, idx) => (
+                      <motion.button
+                        key={idx}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.3 + idx * 0.1 }}
+                        whileHover={{ scale: 1.05, y: -4 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={action.onClick}
+                        className="group/action relative flex flex-col items-center gap-3 p-5 backdrop-blur-xl bg-gradient-to-br from-white/70 to-white/50 dark:from-white/5 dark:to-white/[0.02] border border-white/30 dark:border-white/10 rounded-3xl hover:border-white/50 dark:hover:border-white/20 transition-all overflow-hidden shadow-lg hover:shadow-xl"
+                      >
+                        {/* Animated gradient background on hover */}
+                        <div className={`absolute inset-0 bg-gradient-to-br ${action.bgGradient} opacity-0 group-hover/action:opacity-100 transition-opacity duration-500`} />
+                        
+                        {/* Icon container with premium styling */}
+                        <div className={`relative w-14 h-14 rounded-2xl bg-gradient-to-br ${action.bgGradient} flex items-center justify-center group-hover/action:scale-110 transition-all duration-300 shadow-lg`}>
+                          {action.icon && <action.icon className={`w-6 h-6 bg-gradient-to-br ${action.gradient} bg-clip-text text-transparent`} style={{ WebkitTextFillColor: 'transparent', WebkitBackgroundClip: 'text', backgroundClip: 'text' }} />}
+                          {/* Icon glow effect */}
+                          <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} rounded-2xl blur-xl opacity-0 group-hover/action:opacity-50 transition-opacity -z-10`} />
+                        </div>
+                        
+                        <span className="relative text-xs font-bold text-center text-foreground/80 group-hover/action:text-foreground transition-colors z-10">
+                          {action.label}
+                        </span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
               </>
             )}
           </>
-        ) : activeView === 'crop_sim' ? (
-          <div className="p-4 pt-2">
-            <div className="flex items-center gap-2 mb-6">
-              <button onClick={() => setActiveView('dashboard')} className="p-2 hover:bg-muted rounded-full">
-                <ChevronDown className="w-5 h-5 rotate-90" />
-              </button>
-              <h2 className="text-xl font-bold">Crop Intelligence Engine</h2>
-            </div>
-            <CropSimulator />
-          </div>
         ) : activeView === 'crop_manager' ? (
-          <div className="p-4 md:p-6 min-h-screen bg-background/50">
-            <button 
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="p-4 md:p-6 min-h-screen bg-gradient-to-br from-background/50 via-background/30 to-background/50"
+          >
+            <motion.button 
+              whileHover={{ scale: 1.02, x: -3 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setActiveView('dashboard')} 
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4 md:mb-6 group"
+              className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors mb-6 md:mb-8 group backdrop-blur-sm"
             >
-              <div className="p-1.5 rounded-full bg-muted/50 group-hover:bg-muted transition-colors">
-                 <ChevronDown className="w-4 h-4 rotate-90" />
+              <div className="p-2 rounded-2xl bg-gradient-to-br from-muted/60 to-muted/40 group-hover:from-muted/80 group-hover:to-muted/60 transition-all backdrop-blur-sm border border-white/20 shadow-sm">
+                <ChevronDown className="w-4 h-4 rotate-90" />
               </div>
-              <span className="font-medium text-sm">Back to Dashboard</span>
-            </button>
+              <span className="font-bold text-sm">Back to Dashboard</span>
+            </motion.button>
             <CropManager />
-          </div>
+          </motion.div>
         ) : activeView === 'expenses' ? (
-          <BudgetOverview 
-            budget={budget}
-            expenses={currentFieldExpenses}
-            onAddExpense={() => setShowExpenseTracker(true)}
-            onBack={() => setActiveView('dashboard')}
-            onUpdateBudget={handleUpdateBudget}
-          />
-        ) : activeView === 'market' ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <button onClick={() => setActiveView('dashboard')} className="p-2 hover:bg-muted rounded-full">
-                <ChevronDown className="w-5 h-5 rotate-90" />
-              </button>
-              <h2 className="text-xl font-bold">Market Prices</h2>
-            </div>
-            <div className="p-8 text-center text-muted-foreground bg-card border border-border rounded-2xl">
-              <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Market prices module loading...</p>
-            </div>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <BudgetOverview 
+              budget={budget}
+              expenses={currentFieldExpenses}
+              onAddExpense={() => setShowExpenseTracker(true)}
+              onBack={() => setActiveView('dashboard')}
+              onUpdateBudget={handleUpdateBudget}
+            />
+          </motion.div>
         ) : activeView === 'profile' ? (
-          <UserProfile 
-            onBack={() => setActiveView('dashboard')} 
-            onProfileUpdate={(updatedProfile) => {
-              setUserProfile(updatedProfile);
-            }}
-          />
-        ) : activeView === 'animals' ? (
-          <AnimalHusbandry onBack={() => setActiveView('dashboard')} />
-        ) : activeView === 'machinery' ? (
-          <FarmMachinery onBack={() => setActiveView('dashboard')} />
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            <UserProfile 
+              onBack={() => setActiveView('dashboard')} 
+              onProfileUpdate={(updatedProfile) => {
+                setUserProfile(updatedProfile);
+              }}
+            />
+          </motion.div>
+        ) : activeView === 'scouting' ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 md:p-6"
+          >
+            <FieldScouting 
+              fields={availableFields} 
+              onClose={() => setActiveView('dashboard')} 
+            />
+          </motion.div>
+        ) : activeView === 'inputs' ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 md:p-6"
+          >
+            <InputApplicationsLog 
+              fields={availableFields} 
+              onClose={() => setActiveView('dashboard')} 
+            />
+          </motion.div>
+        ) : activeView === 'harvest' ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 md:p-6"
+          >
+            <HarvestRecording 
+              fields={availableFields} 
+              onClose={() => setActiveView('dashboard')} 
+            />
+          </motion.div>
         ) : null}
       </div>
 
@@ -1230,13 +1326,13 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
         <div className="w-16" />
 
         <button 
-          onClick={() => setActiveView('market')}
+          onClick={() => setActiveView('scouting')}
           className={`flex flex-col items-center gap-1 p-2 rounded-xl min-w-[64px] transition-all ${
-            activeView === 'market' ? 'text-[#812F0F]' : 'text-muted-foreground hover:text-foreground'
+            activeView === 'scouting' ? 'text-[#812F0F]' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <TrendingUp className={`w-6 h-6 ${activeView === 'market' ? 'fill-current' : ''}`} />
-          <span className="text-[10px] font-medium">Market</span>
+          <Search className={`w-6 h-6 ${activeView === 'scouting' ? 'fill-current' : ''}`} />
+          <span className="text-[10px] font-medium">Scouting</span>
         </button>
 
         <button 
@@ -1264,45 +1360,65 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
               exit={{ opacity: 0, y: 20, scale: 0.9 }}
               className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-[320px]"
             >
-              <div className="bg-card/95 backdrop-blur-md border border-border shadow-2xl rounded-3xl p-4 grid grid-cols-2 gap-3">
+              <div className="bg-card/95 backdrop-blur-md border border-border shadow-2xl rounded-3xl p-4 flex flex-col gap-3">
+               {/* Scout Field */}
+               <button 
+                 onClick={() => { setShowQuickAddMenu(false); setActiveView('scouting'); }}
+                 className="flex flex-row items-center justify-start gap-4 p-3 hover:bg-muted/50 rounded-2xl transition-all group w-full relative overflow-hidden"
+               >
+                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                 <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm relative z-10">
+                    <ScanLine className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                 </div>
+                 <div className="flex flex-col items-start relative z-10">
+                    <span className="text-base font-semibold text-foreground">Scout Field</span>
+                    <span className="text-xs text-muted-foreground">AI Crop Diagnosis</span>
+                 </div>
+               </button>
+
+               {/* Log Input */}
+               <button 
+                 onClick={() => { setShowQuickAddMenu(false); setActiveView('inputs'); }}
+                 className="flex flex-row items-center justify-start gap-4 p-3 hover:bg-muted/50 rounded-2xl transition-all group w-full relative overflow-hidden"
+               >
+                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                 <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm relative z-10">
+                    <Droplets className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                 </div>
+                 <div className="flex flex-col items-start relative z-10">
+                    <span className="text-base font-semibold text-foreground">Log Input</span>
+                    <span className="text-xs text-muted-foreground">Fertilizer & Sprays</span>
+                 </div>
+               </button>
+
+               {/* Record Harvest */}
+               <button 
+                 onClick={() => { setShowQuickAddMenu(false); setActiveView('harvest'); }}
+                 className="flex flex-row items-center justify-start gap-4 p-3 hover:bg-muted/50 rounded-2xl transition-all group w-full relative overflow-hidden"
+               >
+                 <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                 <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm relative z-10">
+                    <Wheat className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                 </div>
+                 <div className="flex flex-col items-start relative z-10">
+                    <span className="text-base font-semibold text-foreground">Record Harvest</span>
+                    <span className="text-xs text-muted-foreground">Yield & Production</span>
+                 </div>
+               </button>
+
+               {/* Add Expense */}
                <button 
                  onClick={() => { setShowQuickAddMenu(false); setShowExpenseTracker(true); }}
-                 className="flex flex-col items-center justify-center gap-2 p-4 hover:bg-muted/50 rounded-2xl transition-all group"
+                 className="flex flex-row items-center justify-start gap-4 p-3 hover:bg-muted/50 rounded-2xl transition-all group w-full relative overflow-hidden"
                >
-                 <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-                    <Wallet className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                 <div className="absolute inset-0 bg-gradient-to-r from-[#812F0F]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                 <div className="w-12 h-12 rounded-full bg-[#812F0F]/10 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm relative z-10">
+                    <Wallet className="w-6 h-6 text-[#812F0F]" />
                  </div>
-                 <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground">Expense</span>
-               </button>
-
-               <button 
-                 onClick={() => { setShowQuickAddMenu(false); setShowFarmingJournal(true); }}
-                 className="flex flex-col items-center justify-center gap-2 p-4 hover:bg-muted/50 rounded-2xl transition-all group"
-               >
-                 <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-                    <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                 <div className="flex flex-col items-start relative z-10">
+                    <span className="text-base font-semibold text-foreground">Add Expense</span>
+                    <span className="text-xs text-muted-foreground">Costs & Revenue</span>
                  </div>
-                 <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground">Log Activity</span>
-               </button>
-
-               <button 
-                 onClick={() => { setShowQuickAddMenu(false); setShowVoiceJournal(true); }}
-                 className="flex flex-col items-center justify-center gap-2 p-4 hover:bg-muted/50 rounded-2xl transition-all group"
-               >
-                 <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-                    <Mic className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                 </div>
-                 <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground">Voice Note</span>
-               </button>
-
-               <button 
-                 onClick={() => { setShowQuickAddMenu(false); setShowPhotoCapture(true); }}
-                 className="flex flex-col items-center justify-center gap-2 p-4 hover:bg-muted/50 rounded-2xl transition-all group"
-               >
-                 <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-                    <Camera className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                 </div>
-                 <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground">Take Photo</span>
                </button>
               </div>
             </motion.div>
@@ -1505,7 +1621,8 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
         />
       )}
 
-      <MSChatbot />
+      {/* MSChatbot - Hidden for now */}
+      {/* <MSChatbot /> */}
       
       {/* Demo Helper - Shows prototype hints */}
       <DemoHelper />

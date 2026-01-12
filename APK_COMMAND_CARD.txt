@@ -1,0 +1,103 @@
+╔════════════════════════════════════════════════════════════╗
+║                                                            ║
+║          🌾 MILA APK - ONE-PAGE COMMAND CARD 🌾           ║
+║                                                            ║
+╚════════════════════════════════════════════════════════════╝
+
+┌────────────────────────────────────────────────────────────┐
+│  ⚡ BUILD APK IN 3 COMMANDS                                │
+└────────────────────────────────────────────────────────────┘
+
+  1️⃣  npm run build
+  2️⃣  npx cap add android
+  3️⃣  cd android && ./gradlew assembleDebug
+
+  ✅ APK: android/app/build/outputs/apk/debug/app-debug.apk
+
+
+┌────────────────────────────────────────────────────────────┐
+│  🚀 OR USE AUTOMATED SCRIPT (EASIER)                       │
+└────────────────────────────────────────────────────────────┘
+
+  bash scripts/build-apk.sh
+
+  ✅ Does all 3 steps automatically!
+
+
+┌────────────────────────────────────────────────────────────┐
+│  📋 PREREQUISITE                                           │
+└────────────────────────────────────────────────────────────┘
+
+  Android Studio (download once)
+  → https://developer.android.com/studio
+
+
+┌────────────────────────────────────────────────────────────┐
+│  📱 INSTALL ON PHONE                                       │
+└────────────────────────────────────────────────────────────┘
+
+  1. Copy app-debug.apk to phone
+  2. Open file on phone
+  3. Tap "Install"
+  4. Done! 🎉
+
+
+┌────────────────────────────────────────────────────────────┐
+│  🆘 TROUBLESHOOTING                                        │
+└────────────────────────────────────────────────────────────┘
+
+  Build fails?
+  → cd android && ./gradlew clean && ./gradlew assembleDebug
+
+  APK won't install?
+  → Settings → Security → Allow unknown sources
+
+  Need more help?
+  → Read: BUILD_ANDROID_APK.md
+
+
+┌────────────────────────────────────────────────────────────┐
+│  📊 BUILD TIME                                             │
+└────────────────────────────────────────────────────────────┘
+
+  First build:  10-15 minutes ⏱️
+  After that:   2-5 minutes ⚡
+
+
+┌────────────────────────────────────────────────────────────┐
+│  ✅ WHAT YOU GET                                           │
+└────────────────────────────────────────────────────────────┘
+
+  ✅ app-debug.apk (~50-70 MB)
+  ✅ Works on Android 5.0+
+  ✅ Offline support
+  ✅ Deep Burgundy theme
+  ✅ All MILA features
+  ✅ Ready to install
+
+
+┌────────────────────────────────────────────────────────────┐
+│  🚀 START NOW                                              │
+└────────────────────────────────────────────────────────────┘
+
+  # Install Android Studio (if needed)
+
+  # Then run:
+  bash scripts/build-apk.sh
+
+  # Get APK:
+  android/app/build/outputs/apk/debug/app-debug.apk
+
+
+┌────────────────────────────────────────────────────────────┐
+│  📚 MORE INFO                                              │
+└────────────────────────────────────────────────────────────┘
+
+  Quick start:     START_HERE_APK.md
+  Detailed guide:  BUILD_ANDROID_APK.md
+  All docs:        DOCUMENTATION_INDEX.md
+
+
+╔════════════════════════════════════════════════════════════╗
+║  🌾 Your MILA APK is ready to build! 🌾                   ║
+╚════════════════════════════════════════════════════════════╝

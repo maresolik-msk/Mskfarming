@@ -72,8 +72,8 @@ export function ContactPage() {
                 <div>
                   <h3 className="text-xl font-bold text-foreground mb-2">Call Us</h3>
                   <p className="text-muted-foreground mb-2">Mon-Fri from 9am to 6pm</p>
-                  <a href="tel:+910000000000" className="text-foreground font-medium hover:text-primary transition-colors">
-                    +91 630 33O 1002
+                  <a href="tel:+916303301002" className="text-foreground font-medium hover:text-primary transition-colors">
+                    +91 630 330 1002
                   </a>
                 </div>
               </div>

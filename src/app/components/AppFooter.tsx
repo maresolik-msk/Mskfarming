@@ -115,7 +115,7 @@ export function AppFooter() {
                     </div>
                     
                     <div className="flex flex-col gap-2 mt-2">
-                        <p className="text-[12px] text-white/40 font-['Inter',sans-serif]">© 2025 MILA</p>
+                        <p className="text-[12px] text-white/40 font-['Inter',sans-serif]">© 2026 MILA</p>
                         <div className="flex items-center gap-2 text-[12px] font-['Inter',sans-serif]">
                             <span className="text-white/40 uppercase">System Status:</span>
                             <span className="text-[#ff7640] uppercase animate-pulse">Operational</span>
