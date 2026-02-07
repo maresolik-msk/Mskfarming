@@ -3,7 +3,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { Toaster } from 'sonner';
 import './i18n'; // Import i18n first
 import { Navigation } from './components/Navigation';
-import { LoginScreen } from './components/LoginScreen';
+import LoginSignup from './components/LoginSignup';
 import { OnboardingFlow } from './components/OnboardingFlow';
 import { MainDashboard } from './components/MainDashboard';
 import { HomePage } from './pages/HomePage';
@@ -45,7 +45,21 @@ function App() {
           console.log('Restored session from storage:', session.user);
           setCurrentUser(session.user);
           setIsLoggedIn(true);
-          setHasCompletedOnboarding(true);
+          
+          // Check various places where onboarding status might be stored
+          // for session restoration (same logic as handleLogin)
+          const isProfileComplete = 
+            session.user?.profile_complete === true || 
+            session.user?.onboardingComplete === true ||
+            session.user?.user_metadata?.onboardingComplete === true || 
+            session.user?.onboarding_status?.completed === true ||
+            localStorage.getItem('hasOnboarded') === 'true';
+
+          if (isProfileComplete) {
+              setHasCompletedOnboarding(true);
+          } else {
+              setHasCompletedOnboarding(false);
+          }
         } else {
           // No valid session found on server.
           // We strictly require server-side validation now.
@@ -105,11 +119,16 @@ function App() {
     // Check if user has onboarded (legacy check) or force new onboarding
     const hasOnboarded = localStorage.getItem('hasOnboarded') === 'true';
     
-    // For now, we want to show the new Onboarding Flow to users to set up their farm
-    // So we default to FALSE unless explicitly set.
-    // In a real app, we would check user.user_metadata.onboardingComplete
+    // Check various places where onboarding status might be stored to support both
+    // custom auth (profile_complete) and Supabase auth (user_metadata)
+    const isProfileComplete = 
+      user?.profile_complete === true || 
+      user?.onboardingComplete === true ||
+      user?.user_metadata?.onboardingComplete === true || 
+      user?.onboarding_status?.completed === true ||
+      hasOnboarded;
     
-    if (user?.user_metadata?.onboardingComplete || hasOnboarded) {
+    if (isProfileComplete) {
          setHasCompletedOnboarding(true);
     } else {
          setHasCompletedOnboarding(false);
@@ -164,7 +183,7 @@ function App() {
               element={
               !isLoggedIn ? (
                 <>
-                  <LoginScreen onLogin={handleLogin} />
+                  <LoginSignup onLogin={handleLogin} />
                   <Toaster position="top-center" richColors />
                 </>
               ) : !hasCompletedOnboarding ? (
@@ -187,7 +206,7 @@ function App() {
             element={
               !isLoggedIn ? (
                 <>
-                  <LoginScreen onLogin={handleLogin} />
+                  <LoginSignup onLogin={handleLogin} />
                   <Toaster position="top-center" richColors />
                 </>
               ) : (

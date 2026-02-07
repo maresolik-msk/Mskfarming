@@ -86,6 +86,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import Logo from '../../imports/Logo';
+import navSvgPaths from '../../imports/svg-3v74inh3nv';
 
 interface MainDashboardProps {
   farmerName: string;
@@ -653,32 +654,44 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
 
       {/* Header */}
       <div className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 py-3 pt-[12px] pr-[16px] pb-[8px] pl-[16px]">
-          {/* Header Bar */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="relative group cursor-pointer">
-                <div className="absolute inset-0 bg-[#812F0F]/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative w-11 h-11 rounded-full bg-gradient-to-br from-[#812F0F] to-[#963714] flex items-center justify-center text-xl shrink-0 text-nill-lg border border-white/10">
-                  <div className="w-6 h-6" style={{ '--fill-0': '#ffffff' } as CSSProperties}>
-                    <Logo />
+        <div className="bg-white w-full">
+            <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between relative">
+              {/* Left Section: Logo + Field Selector */}
+              <div className="flex items-center gap-[5px]">
+                {/* Logo */}
+                <div className="flex flex-col gap-[4px] items-center justify-center relative w-[39px] shrink-0">
+                  <div className="h-[17.265px] w-[14.695px] relative">
+                    <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 14.695 17.265">
+                      <g transform="translate(0.000 0.000)">
+                         <path d="M8.47307 0.00687398C10.6232 -0.183865 13.1844 3.64264 13.4181 5.53753C13.9513 9.86155 11.871 13.7255 7.29343 14.426C5.19323 14.7476 3.13356 14.0508 1.46492 12.8014C0.767548 12.3046 -0.713274 11.0509 0.404062 10.2155C1.41972 9.45563 3.46445 10.683 4.642 10.8669C6.47118 11.149 8.33714 10.6867 9.82376 9.58385C12.3498 7.7109 12.8524 4.21924 10.2571 2.19374C9.72616 1.77944 6.26667 1.159 8.47307 0.00687398ZM3.0006 12.8116C3.70479 13.1825 4.43828 13.5444 5.23667 13.6639C7.84382 14.053 11.0959 12.5237 12.3441 10.1766C13.0618 8.82763 13.2623 7.01038 12.9693 5.52649C12.9346 5.34626 12.8033 5.14032 12.6259 5.07144C12.4362 5.75658 12.3085 6.56631 12.1152 7.18992C11.698 8.53448 10.3891 9.95609 9.16762 10.653C8.1748 11.2289 7.04454 11.5257 5.89693 11.5103C5.34948 11.5081 5.16613 11.4678 4.66032 11.4128C3.9291 11.3344 2.28741 10.5958 1.87792 11.3688C1.8873 11.9697 2.50922 12.5398 3.0006 12.8116Z" fill="#8C3412" transform="translate(1.194 0.000)" />
+                         <path d="M4.76191 0.0035675C5.33043 -0.0428909 5.82877 0.370096 5.63758 0.910364C5.35057 1.72117 4.09449 1.67266 3.35961 2.08279C1.83572 2.93324 0.865114 4.49613 0.333363 6.16978C0.275566 6.45998 0.262747 6.55966 0.128692 6.83517L0.0457726 6.80361C-0.160949 5.64805 0.366842 4.04346 0.940707 3.05078C1.84085 1.49394 3.02272 0.478106 4.76191 0.0035675Z" fill="#8C3412" transform="translate(2.346 0.000) rotate(10)" />
+                         <path d="M0.939117 0.00162399C1.47784 -0.0203292 1.96725 0.17821 2.1562 0.724158C2.25407 1.01428 2.22485 1.33233 2.07569 1.6005C1.85978 1.98887 1.6421 2.05994 1.25282 2.17211C-0.162721 2.26074 -0.528326 0.579747 0.939117 0.00162399Z" fill="#8C3412" transform="translate(6.088 7.355)" />
+                         <path d="M0.438896 0.0111797C0.731748 -0.048614 1.01863 0.137289 1.08379 0.429076C1.14908 0.720935 0.968568 1.01133 0.678116 1.08198C0.485328 1.12887 0.282251 1.06791 0.147073 0.922672C0.0118945 0.777438 -0.0343304 0.570503 0.0260918 0.381449C0.0865826 0.192469 0.244462 0.0508956 0.438896 0.0111797Z" fill="#8C3412" transform="translate(0.000 16.167)" />
+                      </g>
+                    </svg>
                   </div>
+                  <p className="font-['Inter:Regular',sans-serif] font-normal leading-[15px] not-italic relative shrink-0 text-[#8c3412] text-[10px] tracking-[1px] uppercase">mila</p>
                 </div>
-              </div>
-              <div>
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5 no-underline">{t('mila')}</div>
+                
+                {/* Field Selector */}
                 <div className="relative group">
                   <button 
-                    id="tour-field-selector"
-                    onClick={() => setShowFieldSelector(!showFieldSelector)}
-                    className="flex items-center gap-2 text-foreground font-bold text-lg hover:text-primary transition-colors"
+                     type="button"
+                     id="tour-field-selector"
+                     onClick={() => setShowFieldSelector(!showFieldSelector)}
+                     className="flex items-center gap-3 px-2 py-1 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer select-none touch-manipulation outline-none focus:outline-none active:scale-95 duration-100"
+                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    {currentField?.name || t('dashboard.selectField')}
-                    <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                       <ChevronDown className="w-3 h-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <span className="font-['Inter:Bold',sans-serif] font-bold text-[#2a0f05] text-[18px] text-center">
+                      {currentField?.name || t('dashboard.selectField')}
+                    </span>
+                    <div className="bg-[#ebe6df] flex items-center justify-center rounded-full w-[20px] h-[20px]">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M2.99781 4.49671L5.99561 7.49451L8.99342 4.49671" stroke="#6B5C5C" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </div>
                   </button>
-                  
+
                   {/* Premium Field Selector Dropdown */}
                   <AnimatePresence>
                   {showFieldSelector && (
@@ -703,12 +716,14 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                           }`}
                         >
                           <button
+                            type="button"
                             onClick={() => {
                               setSelectedFieldId(field.id);
                               setShowFieldSelector(false);
                               toast.success(t('common.switch_field_success', { fieldName: field.name }));
                             }}
-                            className="flex-1 text-left flex items-center gap-3"
+                            className="flex-1 text-left flex items-center gap-3 cursor-pointer select-none touch-manipulation outline-none focus:outline-none"
+                            style={{ WebkitTapHighlightColor: 'transparent' }}
                           >
                             {/* Crop Image */}
                             <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-white/10">
@@ -733,17 +748,19 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                           {/* Edit and Delete Actions */}
                           <div className="flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setFieldToEdit(field);
                                 setShowEditFieldModal(true);
                                 setShowFieldSelector(false);
                               }}
-                              className={`p-1.5 rounded-lg transition-colors ${
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer select-none touch-manipulation outline-none focus:outline-none ${
                                 selectedFieldId === field.id
                                   ? 'hover:bg-white/20 text-white'
                                   : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                               }`}
+                              style={{ WebkitTapHighlightColor: 'transparent' }}
                               title="Edit field"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -751,6 +768,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                               </svg>
                             </button>
                             <button
+                              type="button"
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 if (confirm(`Delete "${field.name}"? This cannot be undone.`)) {
@@ -771,11 +789,12 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                                   }
                                 }
                               }}
-                              className={`p-1.5 rounded-lg transition-colors ${
+                              className={`p-1.5 rounded-lg transition-colors cursor-pointer select-none touch-manipulation outline-none focus:outline-none ${
                                 selectedFieldId === field.id
                                   ? 'hover:bg-white/20 text-white'
                                   : 'hover:bg-destructive/10 text-muted-foreground hover:text-destructive'
                               }`}
+                              style={{ WebkitTapHighlightColor: 'transparent' }}
                               title="Delete field"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -789,11 +808,13 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                       {/* Add New Field Button */}
                       <div className="border-t border-white/10 mt-1 pt-1">
                         <button
+                          type="button"
                           onClick={() => {
                             setShowAddFieldModal(true);
                             setShowFieldSelector(false);
                           }}
-                          className="w-full text-left px-4 py-3 rounded-xl transition-all flex items-center gap-2 hover:bg-[#812F0F]/10 text-[#812F0F] group"
+                          className="w-full text-left px-4 py-3 rounded-xl transition-all flex items-center gap-2 hover:bg-[#812F0F]/10 text-[#812F0F] group cursor-pointer select-none touch-manipulation outline-none focus:outline-none"
+                          style={{ WebkitTapHighlightColor: 'transparent' }}
                         >
                           <Plus className="w-4 h-4" />
                           <span className="font-medium text-sm">{t('dashboard.addNewField')}</span>
@@ -805,18 +826,20 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                   </AnimatePresence>
                 </div>
               </div>
-            </div>
             
-            <div className="flex items-center gap-3">
-      
-              
+              {/* Right Section: Menu */}
+              <div className="flex items-center gap-3">
               <Sheet>
                 <SheetTrigger asChild>
                   <button
+                    type="button"
                     id="tour-menu-button"
-                    className="w-10 h-10 rounded-[0px] bg-card/50 backdrop-blur-sm border border-border/50 hover:bg-muted hover:border-border transition-all flex items-center justify-center text-muted-foreground hover:text-foreground shadow-sm"
+                    className="w-10 h-10 flex items-center justify-center text-[#893211] hover:bg-muted/50 rounded-full transition-colors cursor-pointer select-none touch-manipulation outline-none focus:outline-none active:scale-95 duration-100"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <Menu className="w-5 h-5" />
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M4 18H20C20.55 18 21 17.55 21 17C21 16.45 20.55 16 20 16H4C3.45 16 3 16.45 3 17C3 17.55 3.45 18 4 18ZM4 13H20C20.55 13 21 12.55 21 12C21 11.45 20.55 11 20 11H4C3.45 11 3 11.45 3 12C3 12.55 3.45 13 4 13ZM3 7C3 7.55 3.45 8 4 8H20C20.55 8 21 7.55 21 7C21 6.45 20.55 6 20 6H4C3.45 6 3 6.45 3 7Z" fill="#893211"/>
+                    </svg>
                   </button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[300px] sm:w-[350px] border-l border-white/10 bg-card/95 backdrop-blur-xl overflow-y-auto">
@@ -940,12 +963,12 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                 </SheetContent>
               </Sheet>
             </div>
+            </div>
           </div>
-        </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-4xl px-[16px] pb-20 py-[0px] mt-[0px] mr-[0px] mb-[44px] ml-[0px]">
+      <div className="max-w-4xl px-[16px] pt-[0px] pb-[32px] mx-[0px] mt-[0px] mb-[32px]">
         {activeView === 'dashboard' ? (
           <>
             {availableFields.length === 0 ? (
@@ -1301,48 +1324,98 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
       {/* Bottom Navigation Bar - Only show when NOT in a full-screen modal mode like Expense Tracker */}
       {true && (
       <>
-      <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-xl border-t border-border px-2 py-2 pb-6 z-40 flex justify-around items-center">
+      <div className="fixed bottom-0 left-0 right-0 bg-[rgba(247,246,242,0.8)] backdrop-blur-xl border-t border-[rgba(129,47,15,0.15)] pl-[13.652px] pr-[13.677px] pt-[0.776px] pb-6 z-40 flex justify-between items-center content-stretch" data-name="Container">
         <button 
+          type="button"
           onClick={() => setActiveView('dashboard')}
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl min-w-[64px] transition-all ${
-            activeView === 'dashboard' ? 'text-[#812F0F]' : 'text-muted-foreground hover:text-foreground'
-          }`}
+          className="h-[58.962px] relative rounded-[20px] shrink-0 w-[63.994px] flex flex-col items-center justify-center gap-[3.989px] py-[7.99px] cursor-pointer select-none touch-manipulation outline-none focus:outline-none active:scale-95 transition-transform duration-100"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+          data-name="Button"
         >
-          <LayoutDashboard className={`w-6 h-6 ${activeView === 'dashboard' ? 'fill-current' : ''}`} />
-          <span className="text-[10px] font-medium">Home</span>
+          <div className="relative shrink-0 size-[24px]" data-name="ph:farm-duotone">
+            <div className="bg-clip-padding border-0 border-[transparent] border-solid overflow-clip relative rounded-[inherit] size-full">
+              <div className="absolute inset-[9.38%_6.25%_12.42%_6.25%]" data-name="Group">
+                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 21 18.7683">
+                  <g id="Group">
+                    <path d={navSvgPaths.p3eec5a00} fill={activeView === 'dashboard' ? "#812F0F" : "#6b5c5c"} id="Vector" opacity="0.2" />
+                    <path d={navSvgPaths.p20707f00} fill={activeView === 'dashboard' ? "#812F0F" : "#6b5c5c"} id="Vector_2" />
+                  </g>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div className="h-[14.998px] relative shrink-0 w-[28.226px]" data-name="Text">
+             <p className={`-translate-x-1/2 absolute font-['Inter:Medium',sans-serif] font-medium leading-[15px] left-[14.5px] not-italic text-[10px] text-center top-[0.55px] ${activeView === 'dashboard' ? 'text-[#812f0f]' : 'text-[#6b5c5c]'}`}>Home</p>
+          </div>
         </button>
 
         <button 
+          type="button"
           onClick={() => setActiveView('expenses')}
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl min-w-[64px] transition-all ${
-            activeView === 'expenses' ? 'text-[#812F0F]' : 'text-muted-foreground hover:text-foreground'
-          }`}
+          className="h-[58.962px] relative rounded-[20px] shrink-0 w-[63.994px] flex flex-col items-center justify-center gap-[3.989px] py-[7.99px] cursor-pointer select-none touch-manipulation outline-none focus:outline-none active:scale-95 transition-transform duration-100"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+          data-name="Button"
         >
-          <Wallet className={`w-6 h-6 ${activeView === 'expenses' ? 'fill-current' : ''}`} />
-          <span className="text-[10px] font-medium">Expenses</span>
+          <div className="relative shrink-0 size-[24px]" data-name="solar:wallet-bold-duotone">
+            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+              <g id="solar:wallet-bold-duotone">
+                <path d={navSvgPaths.p5a56000} fill={activeView === 'expenses' ? "#812F0F" : "#6b5c5c"} id="Vector" />
+                <path clipRule="evenodd" d={navSvgPaths.pefb70} fill={activeView === 'expenses' ? "#812F0F" : "#6b5c5c"} fillRule="evenodd" id="Vector_2" />
+                <path d={navSvgPaths.p7fc9480} fill={activeView === 'expenses' ? "#812F0F" : "#6b5c5c"} id="Vector_3" opacity="0.5" />
+              </g>
+            </svg>
+          </div>
+          <div className="h-[14.998px] relative shrink-0 w-[46.304px]" data-name="Text">
+             <p className={`-translate-x-1/2 absolute font-['Inter:Medium',sans-serif] font-medium leading-[15px] left-[23.5px] not-italic text-[10px] text-center top-[0.55px] ${activeView === 'expenses' ? 'text-[#812f0f]' : 'text-[#6b5c5c]'}`}>Expenses</p>
+          </div>
         </button>
 
         {/* Spacer for FAB */}
-        <div className="w-16" />
+        <div className="h-0 shrink-0 w-[63.994px]" data-name="Container" />
 
         <button 
+          type="button"
           onClick={() => setActiveView('scouting')}
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl min-w-[64px] transition-all ${
-            activeView === 'scouting' ? 'text-[#812F0F]' : 'text-muted-foreground hover:text-foreground'
-          }`}
+          className="h-[58.962px] relative rounded-[20px] shrink-0 w-[63.994px] flex flex-col items-center justify-center gap-[3.989px] py-[7.99px] cursor-pointer select-none touch-manipulation outline-none focus:outline-none active:scale-95 transition-transform duration-100"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+          data-name="Button"
         >
-          <Search className={`w-6 h-6 ${activeView === 'scouting' ? 'fill-current' : ''}`} />
-          <span className="text-[10px] font-medium">Scouting</span>
+          <div className="relative shrink-0 size-[24px]" data-name="si:search-duotone">
+            <div className="bg-clip-padding border-0 border-[transparent] border-solid overflow-clip relative rounded-[inherit] size-full">
+              <div className="absolute inset-[12.5%]" data-name="Group">
+                <div className="absolute inset-[-4.17%]">
+                  <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 19.5 19.5">
+                    <g id="Group">
+                      <path d={navSvgPaths.p37f6d900} fill={activeView === 'scouting' ? "#812F0F" : "#6b5c5c"} fillOpacity="0.16" id="Vector" />
+                      <path d={navSvgPaths.p35b6400} id="Vector_2" stroke={activeView === 'scouting' ? "#812F0F" : "#6b5c5c"} strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" />
+                    </g>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="h-[14.998px] relative shrink-0 w-[42.4px]" data-name="Text">
+             <p className={`-translate-x-1/2 absolute font-['Inter:Medium',sans-serif] font-medium leading-[15px] left-[21.5px] not-italic text-[10px] text-center top-[0.55px] ${activeView === 'scouting' ? 'text-[#812f0f]' : 'text-[#6b5c5c]'}`}>Scouting</p>
+          </div>
         </button>
 
         <button 
+          type="button"
           onClick={() => setActiveView('profile')}
-          className={`flex flex-col items-center gap-1 p-2 rounded-xl min-w-[64px] transition-all ${
-            activeView === 'profile' ? 'text-[#812F0F]' : 'text-muted-foreground hover:text-foreground'
-          }`}
+          className="h-[58.962px] relative rounded-[20px] shrink-0 w-[63.994px] flex flex-col items-center justify-center gap-[3.989px] py-[7.99px] cursor-pointer select-none touch-manipulation outline-none focus:outline-none active:scale-95 transition-transform duration-100"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+          data-name="Button"
         >
-          <User className={`w-6 h-6 ${activeView === 'profile' ? 'fill-current' : ''}`} />
-          <span className="text-[10px] font-medium">Profile</span>
+          <div className="relative shrink-0 size-[24px]" data-name="fluent:person-16-filled">
+            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+              <g id="fluent:person-16-filled">
+                <path d={navSvgPaths.p195e7ef0} fill={activeView === 'profile' ? "#E4D6CE" : "#E4D6CE"} id="Vector" stroke={activeView === 'profile' ? "#812F0F" : "#6b5c5c"} />
+              </g>
+            </svg>
+          </div>
+          <div className="h-[14.998px] relative shrink-0 w-[30.857px]" data-name="Text">
+             <p className={`-translate-x-1/2 absolute font-['Inter:Medium',sans-serif] font-medium leading-[15px] left-[15.5px] not-italic text-[10px] text-center top-[0.55px] ${activeView === 'profile' ? 'text-[#812f0f]' : 'text-[#6b5c5c]'}`}>Profile</p>
+          </div>
         </button>
       </div>
 

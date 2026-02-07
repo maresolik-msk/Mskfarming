@@ -179,7 +179,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         phone: profile.phone,
         language: profile.language,
         location: profile.location,
-        onboardingComplete: true,
+        onboardingComplete: true, // Legacy support
+        profile_complete: true,   // Standard flag for auth service
         farmSize: fields.reduce((acc, f) => acc + f.acres, 0),
         fieldName: fields[0]?.name || 'Main Farm', // Legacy support
         crop: plans[0]?.cropName || '', // Legacy support
