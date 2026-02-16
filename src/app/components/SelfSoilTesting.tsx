@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { X, ChevronRight, Droplets, Hand, Palette, TestTube, Mountain, Sparkles, HelpCircle } from 'lucide-react';
+import { X, ChevronRight, Droplets, Hand, Palette, TestTube, Mountain, Sparkles, HelpCircle, Bug, Wind, FlaskConical, Pin } from 'lucide-react';
 
 interface SelfSoilTestingProps {
   onClose: () => void;
@@ -69,13 +69,57 @@ export function SelfSoilTesting({ onClose, onSelectTest }: SelfSoilTestingProps)
     },
     {
       id: 'ph',
-      name: 'pH Test (Optional)',
+      name: 'pH Test (Vinegar & Baking Soda)',
       icon: TestTube,
       emoji: '🧪',
       duration: '5 minutes',
       difficulty: 'medium',
-      description: 'Check if soil is acidic, normal, or alkaline',
+      description: 'Check if soil is acidic, neutral, or alkaline using household items',
       whyItMatters: 'Some crops need specific pH to grow well',
+      mandatory: false,
+    },
+    {
+      id: 'jar_test',
+      name: 'Jar Settling Test',
+      icon: FlaskConical,
+      emoji: '🫙',
+      duration: '24 hours (5 min active)',
+      difficulty: 'easy',
+      description: 'See exact sand/silt/clay % by settling soil in water',
+      whyItMatters: 'Most accurate DIY texture test — confirms your soil type precisely',
+      mandatory: false,
+    },
+    {
+      id: 'smell',
+      name: 'Soil Smell Test',
+      icon: Wind,
+      emoji: '👃',
+      duration: '1 minute',
+      difficulty: 'easy',
+      description: 'Smell freshly dug soil to check microbial health',
+      whyItMatters: 'Good soil smells earthy — bad smell means unhealthy microbes',
+      mandatory: false,
+    },
+    {
+      id: 'worm_count',
+      name: 'Earthworm Count',
+      icon: Bug,
+      emoji: '🪱',
+      duration: '10 minutes',
+      difficulty: 'easy',
+      description: 'Count earthworms in a 1-foot cube of soil',
+      whyItMatters: 'Earthworms = healthy soil biology. More worms = better fertility',
+      mandatory: false,
+    },
+    {
+      id: 'compaction',
+      name: 'Compaction Test',
+      icon: Pin,
+      emoji: '📌',
+      duration: '5 minutes',
+      difficulty: 'easy',
+      description: 'Push a wire into soil to check for hardpan/compaction layers',
+      whyItMatters: 'Compaction blocks roots and water — causes 20-40% yield loss',
       mandatory: false,
     },
   ];
@@ -196,8 +240,8 @@ export function SelfSoilTesting({ onClose, onSelectTest }: SelfSoilTestingProps)
                         <Sparkles className="w-6 h-6 text-amber-200" />
                     </div>
                     <div className="text-left">
-                        <div className="font-bold text-lg mb-0.5">Do Complete Test (All 5)</div>
-                        <div className="text-sm text-white/80">Get full soil profile - <span className="text-amber-200 font-medium">Recommended!</span></div>
+                        <div className="font-bold text-lg mb-0.5">Do Complete Test (All 9)</div>
+                        <div className="text-sm text-white/80">Most accurate soil profile - <span className="text-amber-200 font-medium">Highly Recommended!</span></div>
                     </div>
                     </div>
                     <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-all">

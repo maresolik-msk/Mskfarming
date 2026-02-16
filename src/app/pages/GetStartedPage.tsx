@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { User, Users2, Globe } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 export function GetStartedPage() {
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ export function GetStartedPage() {
   const languages = ['English', 'हिंदी', 'मराठी', 'தமிழ்', 'తెలుగు', 'ગુજરાતી', 'ਪੰਜਾਬੀ'];
 
   return (
-    <div className="min-h-screen py-20 px-4">
+    <div className="min-h-screen py-20 px-4 bg-background">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

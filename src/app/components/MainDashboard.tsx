@@ -62,6 +62,7 @@ import { CropSimulator } from './CropSimulator';
 import { AnimalHusbandry } from './AnimalHusbandry';
 import { FarmMachinery } from './FarmMachinery';
 import { CropManager } from './CropManager';
+import { CropCycleTracker } from './CropCycleTracker';
 import { FieldScouting } from './FieldScouting';
 import { InputApplicationsLog } from './InputApplicationsLog';
 import { HarvestRecording } from './HarvestRecording';
@@ -148,7 +149,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [showExpenseTracker, setShowExpenseTracker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [activeView, setActiveView] = useState<'dashboard' | 'expenses' | 'profile' | 'crop_manager' | 'scouting' | 'inputs' | 'harvest'>('dashboard'); // Launch features only
+  const [activeView, setActiveView] = useState<'dashboard' | 'expenses' | 'profile' | 'crop_manager' | 'crop_cycle' | 'scouting' | 'inputs' | 'harvest'>('dashboard'); // Launch features only
 
   // Soil Testing State
   const [showSoilTestSelection, setShowSoilTestSelection] = useState(false);
@@ -165,6 +166,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   const [displayedSoilResult, setDisplayedSoilResult] = useState<any>(null);
   const [viewingStoredProfile, setViewingStoredProfile] = useState(false);
   const [showSoilSummary, setShowSoilSummary] = useState(false);
+  const [accumulatedTests, setAccumulatedTests] = useState<Record<string, string>>({});
 
   // Farming Journal State
   const [showFarmingJournal, setShowFarmingJournal] = useState(false);
@@ -463,7 +465,14 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   };
 
   const handleSelfTestComplete = (result: any) => {
-    setSelfTestResults([...selfTestResults, result]);
+    const updated = [...selfTestResults, result];
+    setSelfTestResults(updated);
+    // Accumulate test observations into a flat map for composite analysis
+    const newAccumulated = { ...accumulatedTests };
+    if (result.testType && result.observation) {
+      newAccumulated[result.testType] = result.observation;
+    }
+    setAccumulatedTests(newAccumulated);
     setDisplayedSoilResult(result);
     setViewingStoredProfile(false);
     setShowGuidedSoilTest(false);
@@ -854,16 +863,16 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                        {/* Logo Icon */}
                        <div className="relative w-[19.59px] h-[23px]">
                            <div className="absolute inset-0">
-                                <svg className="block size-full" fill="none" viewBox="0 0 17.9997 19.3422" style={{ position: 'absolute', top: '0', left: '0' }}>
+                                <svg className="block" fill="none" viewBox="0 0 17.9997 19.3422" style={{ position: 'absolute', top: 0, left: 0, width: '18px', height: '19.34px' }}>
                                     <path d="M11.2974 0.00916691C14.1643 -0.245196 17.5792 4.85771 17.8908 7.38467C18.6017 13.151 15.8281 18.3038 9.72458 19.238C6.92431 19.667 4.17808 18.7376 1.95323 17.0716C1.0234 16.409 -0.951032 14.7371 0.538749 13.623C1.89297 12.6097 4.61927 14.2465 6.18933 14.4918C8.62825 14.868 11.1162 14.2514 13.0983 12.7807C16.4664 10.283 17.1366 5.62665 13.6761 2.9255C12.9682 2.373 8.35556 1.54561 11.2974 0.00916691ZM4.00081 17.0852C4.93973 17.5797 5.91771 18.0624 6.98223 18.2217C10.4584 18.7406 14.7946 16.7012 16.4589 13.5712C17.4157 11.7722 17.683 9.34882 17.2924 7.36994C17.2461 7.1296 17.0711 6.85496 16.8345 6.76311C16.5817 7.67679 16.4114 8.75662 16.1536 9.58824C15.5974 11.3813 13.8521 13.2771 12.2235 14.2064C10.8997 14.9745 9.39273 15.3703 7.86258 15.3498C7.13264 15.3468 6.88817 15.293 6.21375 15.2198C5.2388 15.1152 3.04988 14.1302 2.5039 15.1611C2.5164 15.9625 3.34563 16.7227 4.00081 17.0852Z" fill="#812F0F" />
                                 </svg>
-                                <svg className="block size-full" fill="none" viewBox="0 0 7.57222 9.11516" style={{ position: 'absolute', top: '15.97%', left: '0' }}>
+                                <svg className="block" fill="none" viewBox="0 0 7.57222 9.11516" style={{ position: 'absolute', top: '15.97%', left: 0, width: '7.57px', height: '9.12px' }}>
                                     <path d="M6.34921 0.00475751C7.10724 -0.0571979 7.77169 0.493548 7.51677 1.21403C7.1341 2.2953 5.45932 2.23061 4.47948 2.77755C2.44763 3.91167 1.15349 5.99589 0.444484 8.22782C0.367422 8.61481 0.350329 8.74775 0.17159 9.11516L0.0610302 9.07308C-0.214598 7.53206 0.489122 5.39223 1.25428 4.06842C2.45446 1.99227 4.0303 0.637587 6.34921 0.00475751Z" fill="#812F0F" />
                                 </svg>
-                                <svg className="block size-full" fill="none" viewBox="0 0 2.95086 2.90115" style={{ position: 'absolute', top: '41.43%', left: '42.6%' }}>
+                                <svg className="block" fill="none" viewBox="0 0 2.95086 2.90115" style={{ position: 'absolute', top: '41.43%', left: '42.6%', width: '2.95px', height: '2.9px' }}>
                                     <path d="M1.25216 0.0021657C1.97046 -0.0271104 2.62301 0.237655 2.87494 0.965713C3.00543 1.35261 2.96647 1.77675 2.76758 2.13438C2.47971 2.65229 2.18947 2.74707 1.67042 2.89665C-0.216961 3.01485 -0.704435 0.773132 1.25216 0.0021657Z" fill="#812F0F" />
                                 </svg>
-                                <svg className="block size-full" fill="none" viewBox="0 0 1.46284 1.46362" style={{ position: 'absolute', top: '0', left: '45.5%' }}>
+                                <svg className="block" fill="none" viewBox="0 0 1.46284 1.46362" style={{ position: 'absolute', top: 0, left: '45.5%', width: '1.46px', height: '1.46px' }}>
                                     <path d="M0.585195 0.0149089C0.975665 -0.0648301 1.35818 0.183084 1.44505 0.572202C1.53211 0.961416 1.29142 1.34868 0.904155 1.44289C0.647104 1.50543 0.376335 1.42412 0.196097 1.23044C0.0158593 1.03677 -0.0457739 0.760805 0.0347891 0.508689C0.115443 0.25667 0.325949 0.0678727 0.585195 0.0149089Z" fill="#812F0F" />
                                 </svg>
                            </div>
@@ -911,6 +920,21 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                                  </svg>
                              </div>
                              <span className={`font-['Inter'] font-semibold text-[15px] ${activeView === 'crop_manager' ? 'text-white' : 'text-[#2a0f05]'}`}>Crop Manager</span>
+                         </button>
+                         </SheetClose>
+
+                         {/* Crop Cycle Tracker */}
+                         <SheetClose asChild>
+                         <button 
+                             onClick={() => setActiveView('crop_cycle')}
+                             className={`w-full flex items-center gap-[16px] px-[20px] py-[14px] transition-colors ${activeView === 'crop_cycle' ? 'bg-[#812f0f]' : 'hover:bg-[#812f0f]/5'}`}
+                         >
+                             <div className="w-[24px] h-[24px]">
+                                 <svg viewBox="0 0 24 24" fill="none">
+                                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z" fill={activeView === 'crop_cycle' ? "white" : "#2A0F05"} />
+                                 </svg>
+                             </div>
+                             <span className={`font-['Inter'] font-semibold text-[15px] ${activeView === 'crop_cycle' ? 'text-white' : 'text-[#2a0f05]'}`}>Crop Cycle</span>
                          </button>
                          </SheetClose>
 
@@ -1262,30 +1286,36 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                         label: 'Scout Field', 
                         onClick: () => setActiveView('scouting'),
                         gradient: 'from-emerald-500 to-green-500',
-                        bgGradient: 'from-emerald-100 to-green-100 dark:from-emerald-900/20 dark:to-green-900/20'
+                        bgGradient: 'from-emerald-100 to-green-100 dark:from-emerald-900/20 dark:to-green-900/20',
+                        iconColor: 'text-emerald-600 dark:text-emerald-400'
                       },
                       { 
                         icon: Droplets, 
                         label: 'Log Input', 
                         onClick: () => setActiveView('inputs'),
                         gradient: 'from-blue-500 to-cyan-500',
-                        bgGradient: 'from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20'
+                        bgGradient: 'from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20',
+                        iconColor: 'text-blue-600 dark:text-blue-400'
                       },
                       { 
                         icon: Wheat, 
                         label: 'Harvest', 
                         onClick: () => setActiveView('harvest'),
                         gradient: 'from-amber-500 to-orange-500',
-                        bgGradient: 'from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20'
+                        bgGradient: 'from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20',
+                        iconColor: 'text-amber-600 dark:text-amber-400'
                       },
                       { 
                         icon: Wallet, 
                         label: 'Add Expense', 
                         onClick: () => setActiveView('expenses'),
                         gradient: 'from-[#812F0F] to-rose-600',
-                        bgGradient: 'from-rose-100 to-red-100 dark:from-rose-900/20 dark:to-red-900/20'
+                        bgGradient: 'from-rose-100 to-red-100 dark:from-rose-900/20 dark:to-red-900/20',
+                        iconColor: 'text-[#812F0F] dark:text-rose-400'
                       }
-                    ].map((action, idx) => (
+                    ].map((action, idx) => {
+                      const Icon = action.icon;
+                      return (
                       <motion.button
                         key={idx}
                         initial={{ opacity: 0, scale: 0.9 }}
@@ -1301,7 +1331,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                         
                         {/* Icon container with premium styling */}
                         <div className={`relative w-14 h-14 rounded-2xl bg-gradient-to-br ${action.bgGradient} flex items-center justify-center group-hover/action:scale-110 transition-all duration-300 shadow-lg`}>
-                          {action.icon && <action.icon className={`w-6 h-6 bg-gradient-to-br ${action.gradient} bg-clip-text text-transparent`} style={{ WebkitTextFillColor: 'transparent', WebkitBackgroundClip: 'text', backgroundClip: 'text' }} />}
+                          {Icon && <Icon className={`w-6 h-6 ${action.iconColor}`} />}
                           {/* Icon glow effect */}
                           <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} rounded-2xl blur-xl opacity-0 group-hover/action:opacity-50 transition-opacity -z-10`} />
                         </div>
@@ -1310,7 +1340,8 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                           {action.label}
                         </span>
                       </motion.button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </motion.div>
               </>
@@ -1334,6 +1365,27 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
               <span className="font-bold text-sm">Back to Dashboard</span>
             </motion.button>
             <CropManager />
+          </motion.div>
+        ) : activeView === 'crop_cycle' ? (
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="min-h-screen bg-gradient-to-br from-background/50 via-background/30 to-background/50"
+          >
+            <div className="px-4 pt-4 md:px-6 md:pt-6">
+              <motion.button 
+                whileHover={{ scale: 1.02, x: -3 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setActiveView('dashboard')} 
+                className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors mb-4 group backdrop-blur-sm"
+              >
+                <div className="p-2 rounded-2xl bg-gradient-to-br from-muted/60 to-muted/40 group-hover:from-muted/80 group-hover:to-muted/60 transition-all backdrop-blur-sm border border-white/20 shadow-sm">
+                  <ChevronDown className="w-4 h-4 rotate-90" />
+                </div>
+                <span className="font-bold text-sm">Back to Dashboard</span>
+              </motion.button>
+            </div>
+            <CropCycleTracker />
           </motion.div>
         ) : activeView === 'expenses' ? (
           <motion.div
@@ -1664,6 +1716,8 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
           onSaveProfile={handleSaveSoilProfile}
           fields={availableFields}
           isSaved={viewingStoredProfile}
+          accumulatedTests={accumulatedTests}
+          onRunAnotherTest={() => { setShowSoilSummary(false); setShowSelfSoilTesting(true); }}
         />
       )}
 

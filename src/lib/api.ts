@@ -1193,3 +1193,86 @@ export async function getCropDetails(cropType: string) {
   const response = await apiRequest(`/crop/management/details/${cropType}`);
   return response;
 }
+
+// ============= CROP CYCLE TRACKER API =============
+
+export async function activateCropCycle(data: {
+  crop_name: string;
+  sowing_date: string;
+  soil_type?: string;
+  field_id?: string;
+  field_name?: string;
+}) {
+  const response = await apiRequest('/crop-cycle/activate', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return response;
+}
+
+export async function getActiveCropCycles() {
+  const response = await apiRequest('/crop-cycle/active');
+  return response;
+}
+
+export async function getCropCycleDetail(cycleId: string) {
+  const response = await apiRequest(`/crop-cycle/${encodeURIComponent(cycleId)}`);
+  return response;
+}
+
+export async function updateCropCycleActivity(
+  cycleId: string,
+  activityId: string,
+  updates: { status?: string; notes?: string }
+) {
+  const response = await apiRequest(`/crop-cycle/${encodeURIComponent(cycleId)}/activity/${encodeURIComponent(activityId)}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  });
+  return response;
+}
+
+export async function addCustomActivity(
+  cycleId: string,
+  data: { title: string; date: string; type?: string; stage_id?: number; stage_name?: string; priority?: string; notes?: string }
+) {
+  const response = await apiRequest(`/crop-cycle/${encodeURIComponent(cycleId)}/activity`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return response;
+}
+
+export async function deleteCustomActivity(cycleId: string, activityId: string) {
+  const response = await apiRequest(`/crop-cycle/${encodeURIComponent(cycleId)}/activity/${encodeURIComponent(activityId)}`, {
+    method: 'DELETE',
+  });
+  return response;
+}
+
+export async function getCropCycleActivities(cycleId: string, from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const response = await apiRequest(`/crop-cycle/${encodeURIComponent(cycleId)}/activities?${params.toString()}`);
+  return response;
+}
+
+// ============= SOIL ANALYSIS API =============
+
+export async function analyzeSoilComposite(data: {
+  tests: Record<string, string>;
+  region?: string;
+  field_id?: string;
+}) {
+  const response = await apiRequest('/soil/analyze', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return response;
+}
+
+export async function getSoilAnalysisHistory() {
+  const response = await apiRequest('/soil/history');
+  return response;
+}

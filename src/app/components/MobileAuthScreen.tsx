@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Leaf, ArrowRight, Check, AlertCircle, Loader2, Phone, Hash, CheckCircle, User, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';

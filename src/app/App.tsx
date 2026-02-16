@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router';
 import { useState, useEffect, Suspense } from 'react';
 import { Toaster } from 'sonner';
 import './i18n'; // Import i18n first

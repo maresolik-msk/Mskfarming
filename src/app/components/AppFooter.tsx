@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Instagram, Twitter, Linkedin, Facebook } from 'lucide-react';
 import { RainEffect } from './RainEffect';
 import { MilaLogo } from './MilaLogo';
@@ -10,9 +10,14 @@ export function AppFooter() {
   };
 
   return (
-    <div className="bg-[#812f0f] relative w-full overflow-hidden font-sans">
+    <div className="bg-[#812f0f] relative w-full overflow-hidden font-sans min-h-[500px]">
+        {/* Atmospheric sky gradient — darker at the top for storm realism */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#2a1008]/90 via-[#4a1a0a]/40 to-transparent pointer-events-none z-0" />
+        {/* Subtle dark vignette for cinematic depth */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,transparent_40%,rgba(20,8,3,0.35)_100%)] pointer-events-none z-0" />
+
         {/* Background Illustration - Precisely positioned as per import */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[393px] h-[370px] pointer-events-none">
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[393px] h-[370px] pointer-events-none z-0">
              <img src={imgFooterIllustrstion1} alt="" className="w-full h-full object-cover" />
         </div>
         

@@ -30,7 +30,7 @@ export function ImpactPage() {
   ];
 
   return (
-    <div className="min-h-screen py-[32px] px-[16px]">
+    <div className="min-h-screen py-[32px] px-[16px] bg-background">
       <div className="max-w-7xl mx-auto relative z-10">
 
         

@@ -40,6 +40,8 @@ export function GuidedSoilTest({ testType, onClose, onComplete }: GuidedSoilTest
   const [selectedObservation, setSelectedObservation] = useState('');
   const [checklistCompleted, setChecklistCompleted] = useState<{ [key: number]: boolean }>({});
   const [showVideo, setShowVideo] = useState(false);
+  const [confidenceLevel, setConfidenceLevel] = useState(0.7);
+  const [sampleSpots, setSampleSpots] = useState(1);
 
   const getTestConfig = () => {
     switch (testType) {
@@ -106,17 +108,31 @@ export function GuidedSoilTest({ testType, onClose, onComplete }: GuidedSoilTest
               value: 'sandy',
             },
             {
-              id: 'loamy',
-              label: 'Ball Forms, Breaks Easily',
+              id: 'sandy_loam',
+              label: 'Weak Ball, Crumbles Easily',
               emoji: '🟡',
-              description: 'Forms ball but breaks when making ribbon',
+              description: 'Forms weak ball but falls apart quickly, feels gritty',
+              value: 'sandy_loam',
+            },
+            {
+              id: 'loamy',
+              label: 'Good Ball, Short Ribbon',
+              emoji: '🟢',
+              description: 'Forms solid ball, ribbon breaks at 1-2 cm — best soil!',
               value: 'loamy',
             },
             {
+              id: 'clay_loam',
+              label: 'Firm Ball, Medium Ribbon',
+              emoji: '🟠',
+              description: 'Firm ball, ribbon 2-4 cm, slightly sticky',
+              value: 'clay_loam',
+            },
+            {
               id: 'clay',
-              label: 'Sticky Ball & Long Ribbon',
+              label: 'Very Sticky, Long Ribbon',
               emoji: '🟤',
-              description: 'Very sticky, makes long ribbon without breaking',
+              description: 'Very sticky ball, ribbon over 5 cm without breaking',
               value: 'clay',
             },
           ],
@@ -279,76 +295,422 @@ export function GuidedSoilTest({ testType, onClose, onComplete }: GuidedSoilTest
               id: 'dark',
               label: 'Dark Brown / Black',
               emoji: '🟤',
-              description: 'Rich dark color, looks fertile',
+              description: 'Rich dark color, looks fertile — high organic matter',
               value: 'dark_high_organic',
             },
             {
+              id: 'dark_brown',
+              label: 'Medium Brown',
+              emoji: '🫘',
+              description: 'Brownish color, moderate organic content',
+              value: 'dark_brown',
+            },
+            {
               id: 'red',
-              label: 'Red / Yellow / Orange',
+              label: 'Red / Reddish Brown',
               emoji: '🟠',
-              description: 'Reddish or yellowish tint',
+              description: 'Reddish tint — iron-rich soil, medium organic matter',
               value: 'red_medium_organic',
+            },
+            {
+              id: 'yellow',
+              label: 'Yellow / Orange',
+              emoji: '🟡',
+              description: 'Yellowish tint — leached soil, low-medium organic',
+              value: 'yellow_orange',
             },
             {
               id: 'light',
               label: 'Light Brown / Grey',
               emoji: '⚪',
-              description: 'Pale, light colored',
+              description: 'Pale, light colored — low organic matter',
               value: 'light_low_organic',
+            },
+            {
+              id: 'white',
+              label: 'White / Grey with Crust',
+              emoji: '🧂',
+              description: 'White patches or crust — possible salt/alkaline problem',
+              value: 'white_grey',
             },
           ],
         };
 
       case 'ph':
         return {
-          name: 'pH Test (Simple)',
+          name: 'pH Test (Vinegar & Baking Soda)',
           emoji: '🧪',
           steps: [
             {
               id: 1,
-              title: 'Prepare Soil Water',
-              instruction: 'Mix 2 spoons of soil with 4 spoons of clean water. Stir well and wait 5 minutes.',
-              visual: 'illustration-mix',
-              voiceText: 'Mix 2 spoons soil with 4 spoons water and wait',
+              title: 'Collect Two Soil Samples',
+              instruction: 'Take 2 tablespoons of soil and put into two separate cups or bowls.',
+              visual: 'illustration-cups',
+              voiceText: 'Put 2 spoons of soil into two separate cups',
               checklist: [
-                'Mixed 2 spoons soil',
-                'Added 4 spoons water',
-                'Stirred well and waited',
+                'Prepared 2 clean cups',
+                'Put 2 spoons soil in each cup',
               ],
             },
             {
               id: 2,
-              title: 'Taste Test (Optional)',
-              instruction: 'OPTIONAL: Touch a tiny drop to tongue tip. Does it feel sour, normal, or soapy?',
-              visual: 'illustration-taste',
-              voiceText: 'Optional: Test if it feels sour, normal, or soapy',
+              title: 'Vinegar Test (Acid Check)',
+              instruction: 'Pour 2 spoons of regular vinegar (sirka) on the FIRST cup of soil. Watch for fizzing or bubbles.',
+              visual: 'illustration-vinegar',
+              voiceText: 'Pour vinegar on first cup. If it fizzes, soil is alkaline.',
               checklist: [
-                'Understood this is optional',
-                'Can skip if not comfortable',
+                'Poured vinegar on first cup',
+                'Watched for 30 seconds',
+                'Noted if bubbles appeared',
+              ],
+            },
+            {
+              id: 3,
+              title: 'Baking Soda Test (Alkaline Check)',
+              instruction: 'Add a little water to the SECOND cup to make soil moist, then add 2 spoons baking soda (meetha soda). Watch for fizzing.',
+              visual: 'illustration-soda',
+              voiceText: 'Add water then baking soda to second cup. If it fizzes, soil is acidic.',
+              checklist: [
+                'Added water to second cup',
+                'Added baking soda',
+                'Watched for fizzing',
               ],
             },
           ],
           observations: [
             {
-              id: 'acidic',
-              label: 'Sour / Vinegar Like',
+              id: 'very_acidic',
+              label: 'Strong Fizz with Baking Soda',
               emoji: '🍋',
-              description: 'Feels acidic or sour',
+              description: 'Second cup fizzed a lot — soil is strongly acidic',
+              value: 'very_acidic',
+            },
+            {
+              id: 'acidic',
+              label: 'Some Fizz with Baking Soda',
+              emoji: '🟡',
+              description: 'Second cup fizzed a little — soil is mildly acidic',
               value: 'acidic',
             },
             {
               id: 'neutral',
-              label: 'Normal / No Special Taste',
-              emoji: '⚪',
-              description: 'Neutral, no strong taste',
+              label: 'No Fizz in Either Cup',
+              emoji: '🟢',
+              description: 'Neither cup fizzed — soil is neutral (ideal!)',
               value: 'neutral',
             },
             {
+              id: 'slightly_alkaline',
+              label: 'Some Fizz with Vinegar',
+              emoji: '🟠',
+              description: 'First cup fizzed a little — soil is mildly alkaline',
+              value: 'slightly_alkaline',
+            },
+            {
               id: 'alkaline',
-              label: 'Bitter / Soapy',
+              label: 'Strong Fizz with Vinegar',
               emoji: '🧼',
-              description: 'Slightly bitter or soapy feeling',
-              value: 'alkaline',
+              description: 'First cup fizzed a lot — soil is strongly alkaline',
+              value: 'very_alkaline',
+            },
+          ],
+        };
+
+      case 'jar_test':
+        return {
+          name: 'Jar Settling Test',
+          emoji: '🫙',
+          steps: [
+            {
+              id: 1,
+              title: 'Prepare the Jar',
+              instruction: 'Fill a clean glass jar (mason jar or tall glass bottle) 1/3 full with soil from 6 inches deep. Remove stones and roots.',
+              visual: 'illustration-jar-fill',
+              voiceText: 'Fill a glass jar one third with clean soil',
+              checklist: [
+                'Got a clean glass jar',
+                'Filled 1/3 with soil',
+                'Removed stones and roots',
+              ],
+            },
+            {
+              id: 2,
+              title: 'Add Water & Shake',
+              instruction: 'Fill the jar with water to almost full. Add 1 teaspoon salt or dish soap. Close lid and shake vigorously for 2 minutes.',
+              visual: 'illustration-jar-shake',
+              voiceText: 'Fill with water, add salt, close and shake hard for 2 minutes',
+              checklist: [
+                'Filled with water',
+                'Added 1 teaspoon salt',
+                'Closed lid tightly',
+                'Shook for 2 full minutes',
+              ],
+            },
+            {
+              id: 3,
+              title: 'Let it Settle (24 hours)',
+              instruction: 'Put the jar on a flat surface and DO NOT disturb it for 24 hours. Sand settles in 1 min, silt in 2-4 hours, clay in 24 hours. You\'ll see distinct layers.',
+              visual: 'illustration-jar-settle',
+              voiceText: 'Leave jar undisturbed for 24 hours. You will see layers of sand, silt, and clay.',
+              checklist: [
+                'Placed on flat surface',
+                'Waited 24 hours',
+                'Can see distinct layers',
+              ],
+            },
+          ],
+          observations: [
+            {
+              id: 'mostly_sand',
+              label: 'Bottom Layer is Biggest (>60%)',
+              emoji: '⚪',
+              description: 'Thick sand at bottom, thin middle and top — Sandy soil',
+              value: 'mostly_sand',
+            },
+            {
+              id: 'sand_silt_mix',
+              label: 'Bottom & Middle Layers are Equal',
+              emoji: '🟡',
+              description: 'Good sand layer + good silt layer — Sandy Loam',
+              value: 'sand_silt_mix',
+            },
+            {
+              id: 'balanced',
+              label: 'Three Roughly Equal Layers',
+              emoji: '🟢',
+              description: 'Similar sized layers of sand, silt, clay — Loam (best!)',
+              value: 'balanced',
+            },
+            {
+              id: 'mostly_silt',
+              label: 'Middle Layer is Biggest',
+              emoji: '🟠',
+              description: 'Thin bottom, thick middle, thin top — Silty soil',
+              value: 'mostly_silt',
+            },
+            {
+              id: 'silt_clay_mix',
+              label: 'Middle & Top Layers are Biggest',
+              emoji: '🔵',
+              description: 'Little sand, lots of silt and clay — Silty Clay',
+              value: 'silt_clay_mix',
+            },
+            {
+              id: 'mostly_clay',
+              label: 'Top Layer is Biggest, Water Cloudy',
+              emoji: '🟤',
+              description: 'Little sand, thin silt, thick clay, murky water — Heavy Clay',
+              value: 'mostly_clay',
+            },
+          ],
+        };
+
+      case 'smell':
+        return {
+          name: 'Soil Smell Test',
+          emoji: '👃',
+          steps: [
+            {
+              id: 1,
+              title: 'Dig Fresh Soil',
+              instruction: 'Dig 4-6 inches deep and immediately take a handful of FRESH soil. This test works best just after light rain or watering.',
+              visual: 'illustration-fresh-dig',
+              voiceText: 'Dig 4 to 6 inches deep and take a handful of fresh soil',
+              checklist: [
+                'Dug 4-6 inches deep',
+                'Soil is freshly dug',
+                'Took a handful',
+              ],
+            },
+            {
+              id: 2,
+              title: 'Smell the Soil',
+              instruction: 'Bring the soil close to your nose and take a deep breath. Healthy soil has a pleasant "petrichor" (after-rain) smell. Unhealthy soil smells sour or like chemicals.',
+              visual: 'illustration-smell',
+              voiceText: 'Smell the soil deeply. Healthy soil smells like fresh earth after rain.',
+              checklist: [
+                'Brought soil near nose',
+                'Took a deep breath',
+                'Identified the smell',
+              ],
+            },
+          ],
+          observations: [
+            {
+              id: 'earthy_sweet',
+              label: 'Sweet, Earthy, Like After Rain',
+              emoji: '🌱',
+              description: 'Pleasant earthy smell — excellent microbial life',
+              value: 'earthy_sweet',
+            },
+            {
+              id: 'earthy_mild',
+              label: 'Mild Earthy Smell',
+              emoji: '🟢',
+              description: 'Some earth smell but not strong — decent biology',
+              value: 'earthy_mild',
+            },
+            {
+              id: 'no_smell',
+              label: 'No Particular Smell',
+              emoji: '⚪',
+              description: 'Smells like nothing — low microbial activity',
+              value: 'no_smell',
+            },
+            {
+              id: 'sour_rotten',
+              label: 'Sour, Rotten, Metallic',
+              emoji: '🔴',
+              description: 'Bad smell — waterlogged or anaerobic conditions',
+              value: 'sour_rotten',
+            },
+          ],
+        };
+
+      case 'worm_count':
+        return {
+          name: 'Earthworm Count Test',
+          emoji: '🪱',
+          steps: [
+            {
+              id: 1,
+              title: 'Mark a Square Area',
+              instruction: 'Mark a 1 foot x 1 foot (30cm x 30cm) square area in your field. Choose a spot with some plant cover, not bare ground.',
+              visual: 'illustration-square',
+              voiceText: 'Mark a 1 foot by 1 foot area in your field',
+              checklist: [
+                'Found spot with plant cover',
+                'Marked 1 foot square',
+              ],
+            },
+            {
+              id: 2,
+              title: 'Dig 1 Foot Deep',
+              instruction: 'Carefully dig out all the soil in this square, 1 foot deep. Put the soil on a sheet or clean surface.',
+              visual: 'illustration-dig-square',
+              voiceText: 'Dig out all soil in the square, 1 foot deep',
+              checklist: [
+                'Dug carefully',
+                'Went 1 foot deep',
+                'Put soil on clean surface',
+              ],
+            },
+            {
+              id: 3,
+              title: 'Count Earthworms',
+              instruction: 'Break apart the soil gently and count ALL earthworms you see. Include big and small ones. Be patient and thorough!',
+              visual: 'illustration-count',
+              voiceText: 'Break apart soil gently and count all earthworms',
+              checklist: [
+                'Broke apart soil gently',
+                'Counted all worms carefully',
+                'Put soil back after counting',
+              ],
+            },
+          ],
+          observations: [
+            {
+              id: 'many',
+              label: '10 or More Worms',
+              emoji: '🟢',
+              description: 'Excellent! Rich, biologically active soil',
+              value: 'many_10plus',
+            },
+            {
+              id: 'several',
+              label: '5 to 9 Worms',
+              emoji: '🟡',
+              description: 'Good soil health, but can improve',
+              value: 'several_5_10',
+            },
+            {
+              id: 'few',
+              label: '1 to 4 Worms',
+              emoji: '🟠',
+              description: 'Below average — soil needs more organic matter',
+              value: 'few_1_4',
+            },
+            {
+              id: 'none',
+              label: 'No Worms Found',
+              emoji: '🔴',
+              description: 'Poor soil biology — needs urgent organic improvement',
+              value: 'none',
+            },
+          ],
+        };
+
+      case 'compaction':
+        return {
+          name: 'Compaction Test (Wire/Stick)',
+          emoji: '📌',
+          steps: [
+            {
+              id: 1,
+              title: 'Get a Wire or Stick',
+              instruction: 'Find a stiff wire (like a bicycle spoke or clothes hanger wire) or a thin metal rod about 1 foot (30cm) long. A pointed stick also works.',
+              visual: 'illustration-wire',
+              voiceText: 'Get a stiff wire or thin metal rod, about 1 foot long',
+              checklist: [
+                'Found stiff wire or thin rod',
+                'Wire is about 1 foot long',
+                'Wire has a pointed end',
+              ],
+            },
+            {
+              id: 2,
+              title: 'Push Into Soil',
+              instruction: 'Push the wire straight down into moist soil (not dry, not waterlogged). Use steady, even pressure — do not hammer it. Try 3-5 spots across your field.',
+              visual: 'illustration-push',
+              voiceText: 'Push wire straight down into moist soil. Try 3 to 5 spots.',
+              checklist: [
+                'Soil is moist, not dry',
+                'Pushed wire straight down',
+                'Tried at 3-5 different spots',
+                'Used steady pressure only',
+              ],
+            },
+            {
+              id: 3,
+              title: 'Observe Resistance',
+              instruction: 'Note how easily the wire goes in. Does it go smoothly, or does it stop at a hard layer? The depth where it stops tells you about compaction.',
+              visual: 'illustration-observe-resistance',
+              voiceText: 'Note how deep the wire goes and how much force is needed',
+              checklist: [
+                'Noted the resistance',
+                'Checked depth wire reached',
+                'Tried multiple spots to confirm',
+              ],
+            },
+          ],
+          observations: [
+            {
+              id: 'wire_easy',
+              label: 'Wire Goes In Easily (Full Depth)',
+              emoji: '🟢',
+              description: 'No resistance — wire goes 10+ inches with gentle push. Excellent!',
+              value: 'wire_easy',
+            },
+            {
+              id: 'wire_moderate',
+              label: 'Some Resistance at 6-8 Inches',
+              emoji: '🟡',
+              description: 'Wire goes 6-8 inches then hits mild resistance',
+              value: 'wire_moderate',
+            },
+            {
+              id: 'wire_hard',
+              label: 'Stops at 3-5 Inches',
+              emoji: '🟠',
+              description: 'Wire hits hard layer at 3-5 inches — moderate compaction',
+              value: 'wire_hard',
+            },
+            {
+              id: 'wire_impossible',
+              label: 'Barely Goes In (0-2 Inches)',
+              emoji: '🔴',
+              description: 'Cannot push wire past 2 inches — severe compaction or hardpan',
+              value: 'wire_impossible',
             },
           ],
         };
@@ -367,10 +729,12 @@ export function GuidedSoilTest({ testType, onClose, onComplete }: GuidedSoilTest
 
   const handleNext = () => {
     if (isLastStep) {
-      // Complete test with observation
+      // Complete test with observation + accuracy metadata
       const result = {
         testType,
         observation: selectedObservation,
+        confidence: confidenceLevel,
+        sampleSpots: sampleSpots,
         timestamp: new Date(),
       };
       onComplete(result);
@@ -524,6 +888,28 @@ export function GuidedSoilTest({ testType, onClose, onComplete }: GuidedSoilTest
                     <p className="text-sm text-muted-foreground">Select the option that best matches your result</p>
                   </div>
                   
+                  {/* Color Swatches for color test */}
+                  {testType === 'color' && (
+                    <div className="p-4 bg-muted/30 rounded-xl border border-border/50 mb-4">
+                      <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Visual Color Reference</div>
+                      <div className="flex gap-2 justify-center flex-wrap">
+                        {[
+                          { color: '#2C1810', label: 'Dark/Black' },
+                          { color: '#5C3A21', label: 'Med. Brown' },
+                          { color: '#A0522D', label: 'Reddish' },
+                          { color: '#D4A340', label: 'Yellow' },
+                          { color: '#B8A898', label: 'Light Grey' },
+                          { color: '#E8E0D8', label: 'White/Salt' },
+                        ].map(s => (
+                          <div key={s.color} className="text-center">
+                            <div className="w-10 h-10 rounded-lg border border-border/50 shadow-sm mx-auto" style={{ backgroundColor: s.color }} />
+                            <div className="text-[9px] mt-1 text-muted-foreground font-medium">{s.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="grid gap-3">
                   {testConfig.observations.map((obs) => (
                     <button
@@ -554,6 +940,81 @@ export function GuidedSoilTest({ testType, onClose, onComplete }: GuidedSoilTest
                     </button>
                   ))}
                   </div>
+                  
+                  {/* Accuracy Metadata: Confidence + Sampling Spots */}
+                  {selectedObservation && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-4 p-5 bg-gradient-to-br from-blue-500/5 to-transparent rounded-2xl border border-blue-500/10"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center">
+                          <span className="text-xs">🎯</span>
+                        </div>
+                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Improve Accuracy</span>
+                      </div>
+                      
+                      {/* Confidence Slider */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-foreground">How sure are you?</span>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                            confidenceLevel >= 0.8 ? 'bg-emerald-500/10 text-emerald-600' :
+                            confidenceLevel >= 0.5 ? 'bg-amber-500/10 text-amber-600' :
+                            'bg-red-500/10 text-red-600'
+                          }`}>
+                            {confidenceLevel >= 0.8 ? 'Very Sure' : confidenceLevel >= 0.5 ? 'Somewhat Sure' : 'Not Sure'}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.3"
+                          max="1.0"
+                          step="0.1"
+                          value={confidenceLevel}
+                          onChange={(e) => setConfidenceLevel(parseFloat(e.target.value))}
+                          className="w-full h-2 bg-muted rounded-full appearance-none cursor-pointer accent-[#812F0F]"
+                        />
+                        <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                          <span>Not sure</span>
+                          <span>Very sure</span>
+                        </div>
+                      </div>
+                      
+                      {/* Sampling Spots */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-foreground">How many spots did you test?</span>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                            sampleSpots >= 5 ? 'bg-emerald-500/10 text-emerald-600' :
+                            sampleSpots >= 3 ? 'bg-amber-500/10 text-amber-600' :
+                            'bg-muted text-muted-foreground'
+                          }`}>
+                            {sampleSpots >= 5 ? 'Excellent sampling' : sampleSpots >= 3 ? 'Good sampling' : '1 spot'}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          {[1, 2, 3, 5, 7].map(n => (
+                            <button
+                              key={n}
+                              onClick={() => setSampleSpots(n)}
+                              className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                                sampleSpots === n
+                                  ? 'bg-[#812F0F] text-white shadow-md shadow-[#812F0F]/20'
+                                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                              }`}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1.5">
+                          Testing 3-5 spots increases accuracy by 15-25%
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
               )}
             </div>

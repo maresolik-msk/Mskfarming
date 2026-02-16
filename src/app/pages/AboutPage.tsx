@@ -1,7 +1,6 @@
-import { MouseEvent } from 'react';
+import { useNavigate } from 'react-router';
 import { motion } from 'motion/react';
 import { Heart, Users, Leaf, Globe } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 export function AboutPage() {
   const navigate = useNavigate();

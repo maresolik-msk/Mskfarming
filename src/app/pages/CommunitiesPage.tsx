@@ -42,7 +42,7 @@ export function CommunitiesPage() {
   ];
 
   return (
-    <div className="min-h-screen py-[32px] px-[16px]">
+    <div className="min-h-screen py-[32px] px-[16px] bg-background">
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
