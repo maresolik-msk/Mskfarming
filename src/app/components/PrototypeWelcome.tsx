@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, PlayCircle, FileText, Smartphone } from 'lucide-react';
+import { X, CirclePlay, FileText, Smartphone } from 'lucide-react';
 
 export function PrototypeWelcome() {
   const [show, setShow] = useState(false);
@@ -160,7 +160,7 @@ export function PrototypeWelcome() {
                 onClick={handleClose}
                 className="flex-1 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
               >
-                <PlayCircle className="w-5 h-5" />
+                <CirclePlay className="w-5 h-5" />
                 Start Prototype
               </button>
             </div>

@@ -4,7 +4,7 @@ import {
   Sprout, Droplets, Bug, BookOpen, Wallet, PieChart, ArrowRight,
   Search, MessageCircle, TrendingUp, Leaf, CloudRain, Mic, WifiOff,
   Satellite, Brain, Shield, Zap, ChevronRight, Users, MapPin, Lock,
-  CheckCircle2, Bell, Languages, BarChart3, Smartphone, Volume2,
+  CircleCheck, Bell, Languages, BarChart3, Smartphone, Volume2,
   Globe2, Sun, Thermometer, LineChart, Camera, Clock, Sparkles,
   Target, Activity, Layers, Database, Wifi, BatteryCharging
 } from 'lucide-react';
@@ -549,7 +549,7 @@ export function FeaturesPage() {
                     <motion.div className="mt-4 flex flex-wrap gap-2">
                       {sf.capabilities.map((cap, ci) => (
                         <span key={ci} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F7F6F2] border border-[#812F0F]/8 text-[10px] text-[#2A0F05]/60 font-medium">
-                          <CheckCircle2 className="w-3 h-3" style={{ color: sf.color }} />
+                          <CircleCheck className="w-3 h-3" style={{ color: sf.color }} />
                           {cap}
                         </span>
                       ))}
@@ -1064,7 +1064,7 @@ export function FeaturesPage() {
               <div className="space-y-3">
                 {['Soil analysis from photo', 'Daily weather alerts', 'Voice guidance (1 language)', 'Basic crop recommendations', 'Expense tracking', '1 field profile'].map((f, i) => (
                   <div key={i} className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-[#4F8F4A] shrink-0" />
+                    <CircleCheck className="w-4 h-4 text-[#4F8F4A] shrink-0" />
                     <span className="text-[#2A0F05]/60 text-sm">{f}</span>
                   </div>
                 ))}
@@ -1098,7 +1098,7 @@ export function FeaturesPage() {
               <div className="space-y-3">
                 {['Everything in Free', 'Satellite NDVI monitoring', 'All 4 languages + voice input', 'Advanced market analytics', 'AI crop planning + risk score', 'Unlimited fields', 'Profit analytics & reports', 'Priority support'].map((f, i) => (
                   <div key={i} className="flex items-center gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-[#812F0F] shrink-0" />
+                    <CircleCheck className="w-4 h-4 text-[#812F0F] shrink-0" />
                     <span className="text-[#2A0F05]/70 text-sm font-medium">{f}</span>
                   </div>
                 ))}

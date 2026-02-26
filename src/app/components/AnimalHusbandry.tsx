@@ -14,7 +14,7 @@ import {
   Edit2, 
   Syringe, 
   Baby, 
-  AlertCircle,
+  CircleAlert,
   Stethoscope
 } from 'lucide-react';
 import { toast } from 'sonner';

@@ -7,8 +7,8 @@ import {
   Package,
   MapPin,
   ShoppingBag,
-  AlertCircle,
-  CheckCircle2,
+  CircleAlert,
+  CircleCheck,
   X,
   ArrowLeft,
   Plus,
@@ -672,7 +672,7 @@ function NewHarvestForm({
             Cancel
           </Button>
           <Button type="submit" className="flex-1 gap-2">
-            <CheckCircle2 className="w-4 h-4" />
+            <CircleCheck className="w-4 h-4" />
             Save Harvest Record
           </Button>
         </div>
@@ -751,7 +751,7 @@ function HarvestDetail({
           <Card className="border-amber-200 bg-gradient-to-br from-amber-50/50 to-white dark:from-amber-950/10 dark:to-background">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-500">
-                <AlertCircle className="w-5 h-5" />
+                <CircleAlert className="w-5 h-5" />
                 Post-Harvest Advisories
               </CardTitle>
             </CardHeader>
@@ -759,7 +759,7 @@ function HarvestDetail({
               <ul className="space-y-2">
                 {record.postHarvestAdvisories.map((advisory, idx) => (
                   <li key={idx} className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                    <CircleCheck className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
                     <span>{advisory}</span>
                   </li>
                 ))}

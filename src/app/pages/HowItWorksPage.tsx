@@ -5,7 +5,7 @@ import {
   CloudRain, Mic, WifiOff, Satellite, Brain,
   Droplets, Shield, Zap, ChevronDown,
   ChevronRight, Users, MapPin, Wallet, Lock,
-  CheckCircle2, XCircle, LineChart, Bell, Languages
+  CircleCheck, XCircle, LineChart, Bell, Languages
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
@@ -572,7 +572,7 @@ export function HowItWorksPage() {
                           transition={{ delay: 0.3 + fi * 0.1 }}
                           className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/70 border border-[#812F0F]/10 text-[#2A0F05]/70 text-sm font-medium hover:bg-white hover:border-[#812F0F]/20 transition-all shadow-sm"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" style={{ color: step.color }} />
+                          <CircleCheck className="w-3.5 h-3.5" style={{ color: step.color }} />
                           {f}
                         </motion.div>
                       ))}
@@ -908,7 +908,7 @@ export function HowItWorksPage() {
               <div className="relative p-8 sm:p-10">
                 <div className="flex items-center gap-3 mb-8">
                   <div className="w-10 h-10 rounded-full bg-green-100 border border-green-200 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <CircleCheck className="w-5 h-5 text-green-600" />
                   </div>
                   <h3 className="text-xl font-bold text-[#2A0F05] font-sans">With MILA</h3>
                 </div>
@@ -922,7 +922,7 @@ export function HowItWorksPage() {
                       transition={{ delay: i * 0.08 + 0.2 }}
                       className="flex items-start gap-3 p-3 rounded-xl bg-white/60 border border-green-200/50"
                     >
-                      <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+                      <CircleCheck className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
                       <p className="text-[#2A0F05]/70 text-sm font-medium">{c.mila}</p>
                     </motion.div>
                   ))}

@@ -12,7 +12,7 @@ import {
   Clock,
   User,
   Phone,
-  AlertCircle
+  CircleAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -310,7 +310,7 @@ export function SampleSubmission({ onClose, onSubmit, testType }: SampleSubmissi
             {/* Info */}
             <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
               <div className="flex items-start gap-2">
-                <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                <CircleAlert className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-foreground">
                   Our lab partner will call you before arriving. Please keep your soil sample ready.
                 </div>

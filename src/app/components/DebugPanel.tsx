@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { CircleAlert, RefreshCw, Trash2 } from 'lucide-react';
 
 export function DebugPanel() {
   const [authToken, setAuthToken] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export function DebugPanel() {
     <div className="fixed top-4 right-4 z-50 max-w-md">
       <div className="bg-destructive/10 border-2 border-destructive/50 rounded-lg p-4 shadow-lg backdrop-blur-sm">
         <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+          <CircleAlert className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-destructive mb-1">
               Session Issue Detected

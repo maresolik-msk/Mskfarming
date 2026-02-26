@@ -9,7 +9,7 @@ import {
   Scale, 
   ShieldCheck, 
   Award, 
-  PlayCircle,
+  CirclePlay,
   AlertTriangle,
   Info,
   ChevronDown
@@ -405,7 +405,7 @@ export function SeedSelectionModal({ onClose, fieldId, fieldName, soilType = "Cl
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Top Recommendations</h3>
                 <button className="flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors">
-                  <PlayCircle className="w-3 h-3" />
+                  <CirclePlay className="w-3 h-3" />
                   Listen to Expert
                 </button>
               </div>

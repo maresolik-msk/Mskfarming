@@ -5,7 +5,7 @@ import {
   Mic, 
   Camera, 
   Wallet, 
-  ClipboardEdit, 
+  ClipboardPen, 
   TriangleAlert, 
   CircleCheck, 
   Circle, 
@@ -220,7 +220,7 @@ export function HomeView({
       <motion.div variants={item} className="bg-card border border-border rounded-2xl overflow-hidden">
         <div className="p-4 border-b border-border bg-muted/30 flex items-center justify-between">
           <h2 className="font-medium text-foreground flex items-center gap-2">
-            <ClipboardEdit className="w-4 h-4 text-primary" />
+            <ClipboardPen className="w-4 h-4 text-primary" />
             {t('home.dailyPlan.title')}
           </h2>
           <span className="text-xs font-medium px-2 py-1 bg-primary/10 text-primary rounded-full">

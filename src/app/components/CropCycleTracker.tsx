@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Sprout, Calendar, CheckCircle2, Circle, AlertTriangle,
+  Sprout, Calendar, CircleCheck, Circle, AlertTriangle,
   ChevronRight, ChevronDown, Plus, Loader2, Leaf, Droplets,
   Sun, Zap, Shield, Bell, Target, Trash2, X,
   ChevronLeft, Sparkles, Activity
@@ -60,6 +60,10 @@ interface ActiveCycle {
   };
   current_stage?: TimelineStage | null;
   progress_percent: number;
+  days_since_sowing?: number;
+  day_of_stage?: number;
+  stage_days_total?: number;
+  upcoming_activities?: CropActivity[];
 }
 
 // ─── Activity Type Config ───
@@ -71,7 +75,7 @@ const actTypeConfig: Record<string, { icon: typeof Sprout; color: string; bg: st
 
 const stageIcons: Record<number, typeof Sprout> = {
   1: Target, 2: Sparkles, 3: Sprout, 4: Leaf, 5: Activity,
-  6: Sun, 7: Droplets, 8: Zap, 9: CheckCircle2, 10: Shield,
+  6: Sun, 7: Droplets, 8: Zap, 9: CircleCheck, 10: Shield,
 };
 
 // ─── Subcomponents ───
@@ -114,7 +118,7 @@ function ActivityItem({
         className="mt-0.5 shrink-0"
       >
         {isDone ? (
-          <CheckCircle2 className="w-5 h-5 text-green-600" />
+          <CircleCheck className="w-5 h-5 text-green-600" />
         ) : (
           <Circle className="w-5 h-5 text-[#812F0F]/30 hover:text-[#812F0F]/60 transition-colors" />
         )}
@@ -577,8 +581,12 @@ export function CropCycleTracker() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-white text-xl font-bold">{cycle.progress_percent}%</p>
-                <p className="text-white/50 text-[10px] uppercase tracking-wider">Complete</p>
+                <p className="text-white text-2xl font-bold">
+                  {cycle.days_since_sowing != null ? `Day ${cycle.days_since_sowing}` : `${cycle.progress_percent}%`}
+                </p>
+                <p className="text-white/50 text-[10px] uppercase tracking-wider">
+                  {cycle.days_since_sowing != null ? 'Since Sowing' : 'Complete'}
+                </p>
               </div>
             </div>
           </div>
@@ -594,13 +602,37 @@ export function CropCycleTracker() {
               transition={{ duration: 1, ease: 'easeOut' }}
             />
           </div>
+          {/* Progress % label */}
+          <div className="flex items-center justify-between mt-1.5">
+            <p className="text-[10px] text-[#2A0F05]/40 font-medium">{cycle.progress_percent}% complete</p>
+            <p className="text-[10px] text-[#2A0F05]/40 font-medium">
+              Ends: {new Date(cycle.cycle_end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+            </p>
+          </div>
           {currentStage && (
-            <div className="flex items-center gap-2 mt-2.5">
-              <div className="p-1 rounded-md bg-[#E4490D]/10">
-                {(() => { const StIcon = stageIcons[currentStage.stage_id] || Sprout; return <StIcon className="w-3 h-3 text-[#E4490D]" />; })()}
+            <div className="flex items-center gap-2 mt-2.5 bg-[#E4490D]/5 rounded-xl px-3 py-2">
+              <div className="p-1.5 rounded-lg bg-[#E4490D]/10">
+                {(() => { const StIcon = stageIcons[currentStage.stage_id] || Sprout; return <StIcon className="w-4 h-4 text-[#E4490D]" />; })()}
               </div>
-              <p className="text-xs text-[#2A0F05]/60">
-                <span className="font-semibold text-[#2A0F05]/80">Stage {currentStage.stage_id}:</span> {currentStage.stage_name}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-[#E4490D]">
+                  Stage {currentStage.stage_id}: {currentStage.stage_name}
+                </p>
+                {cycle.day_of_stage != null && cycle.stage_days_total != null && (
+                  <p className="text-[10px] text-[#2A0F05]/45 mt-0.5">
+                    Day {cycle.day_of_stage} of {cycle.stage_days_total} · {Math.max(0, cycle.stage_days_total - cycle.day_of_stage)} days remaining
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          {!currentStage && cycle.days_since_sowing != null && (
+            <div className="flex items-center gap-2 mt-2.5 bg-amber-50 rounded-xl px-3 py-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <p className="text-xs text-amber-700 font-medium">
+                {cycle.progress_percent >= 100
+                  ? 'Cycle completed! Review your harvest records.'
+                  : 'Cycle hasn\'t started yet. Preparation stages begin soon.'}
               </p>
             </div>
           )}
@@ -670,10 +702,45 @@ export function CropCycleTracker() {
             )}
           </AnimatePresence>
 
+          {/* Current Stage Guidance Card */}
+          {currentStage && (
+            <div className="bg-gradient-to-br from-[#E4490D]/5 to-[#812F0F]/5 border border-[#E4490D]/12 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                {(() => { const StIcon = stageIcons[currentStage.stage_id] || Sprout; return <StIcon className="w-4 h-4 text-[#E4490D]" />; })()}
+                <p className="text-xs font-bold text-[#E4490D]">
+                  What to focus on — {currentStage.stage_name}
+                </p>
+              </div>
+              {currentStage.soil_specific_notes && (
+                <p className="text-[11px] text-[#2A0F05]/55 leading-relaxed italic">
+                  {currentStage.soil_specific_notes}
+                </p>
+              )}
+              {currentStage.key_actions && currentStage.key_actions.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {currentStage.key_actions.map((action, i) => (
+                    <span key={i} className="text-[9px] px-2 py-1 rounded-full bg-white/70 text-[#2A0F05]/60 border border-[#812F0F]/8 font-medium">
+                      {action}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {currentStage.risk_factors && currentStage.risk_factors.length > 0 && (
+                <div className="flex items-start gap-1.5 mt-1 bg-amber-50/60 rounded-lg px-2.5 py-1.5">
+                  <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-amber-700">
+                    <span className="font-bold">Watch out:</span> {currentStage.risk_factors.join(' · ')}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {todayActivities.length === 0 ? (
-            <div className="text-center py-10 bg-white/50 rounded-2xl border border-dashed border-[#812F0F]/10">
-              <Calendar className="w-8 h-8 text-[#812F0F]/20 mx-auto mb-2" />
-              <p className="text-sm text-[#2A0F05]/40">No activities for today</p>
+            <div className="text-center py-8 bg-white/50 rounded-2xl border border-dashed border-[#812F0F]/10">
+              <CircleCheck className="w-8 h-8 text-green-400/60 mx-auto mb-2" />
+              <p className="text-sm font-medium text-[#2A0F05]/50">All clear for today!</p>
+              <p className="text-[10px] text-[#2A0F05]/30 mt-1">No pending tasks. Add one or check upcoming.</p>
               <button
                 onClick={() => setShowAddForm(true)}
                 className="mt-3 text-xs text-[#812F0F] font-bold hover:underline"
@@ -694,6 +761,52 @@ export function CropCycleTracker() {
                   />
                 ))}
               </AnimatePresence>
+            </div>
+          )}
+
+          {/* Upcoming Activities (next 7 days) */}
+          {cycle.upcoming_activities && cycle.upcoming_activities.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <h4 className="text-xs font-bold text-[#2A0F05]/60 flex items-center gap-1.5">
+                <ChevronRight className="w-3 h-3" />
+                Coming Up (Next 7 Days)
+              </h4>
+              {cycle.upcoming_activities.slice(0, 5).map((act) => (
+                <div
+                  key={act.id}
+                  className="flex items-start gap-3 p-3 rounded-xl bg-white/40 border border-[#812F0F]/5"
+                >
+                  <div className="shrink-0 mt-0.5">
+                    <Calendar className="w-4 h-4 text-[#812F0F]/25" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-[#2A0F05]/70">{act.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-[10px] text-[#2A0F05]/35">
+                        {new Date(act.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      </p>
+                      {act.stage_name && (
+                        <p className="text-[9px] text-[#E4490D]/60 font-medium">
+                          {act.stage_name}
+                        </p>
+                      )}
+                      {act.priority === 'high' && (
+                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-red-50 text-red-500 font-bold uppercase">
+                          High
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {cycle.upcoming_activities.length > 5 && (
+                <button
+                  onClick={() => setView('calendar')}
+                  className="w-full text-center text-[10px] text-[#812F0F] font-bold py-2 hover:underline"
+                >
+                  View all {cycle.upcoming_activities.length} upcoming →
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -765,7 +878,7 @@ export function CropCycleTracker() {
                               </span>
                             )}
                             {isPast && (
-                              <CheckCircle2 className="w-3 h-3 text-green-500" />
+                              <CircleCheck className="w-3 h-3 text-green-500" />
                             )}
                           </div>
                           <p className="text-[10px] text-[#2A0F05]/35 mt-0.5">

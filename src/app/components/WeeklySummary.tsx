@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { X, Calendar, TrendingUp, Activity, Eye, AlertCircle, Lightbulb } from 'lucide-react';
+import { X, Calendar, TrendingUp, Activity, Eye, CircleAlert, Lightbulb } from 'lucide-react';
 
 interface WeeklySummaryProps {
   entries: any[];
@@ -186,7 +186,7 @@ export function WeeklySummary({ entries = [], onClose }: WeeklySummaryProps) {
 
           <div className="p-4 bg-gradient-to-br from-orange-500/10 to-orange-500/5 rounded-xl border border-orange-500/20">
             <div className="flex items-center gap-2 mb-2">
-              <AlertCircle className="w-5 h-5 text-orange-500" />
+              <CircleAlert className="w-5 h-5 text-orange-500" />
               <span className="text-sm text-muted-foreground">Issues</span>
             </div>
             <div className="text-3xl font-bold text-foreground">{issuesFound}</div>

@@ -8,7 +8,7 @@ import {
   Calendar, 
   Trash2, 
   AlertTriangle,
-  CheckCircle2,
+  CircleCheck,
   Hammer,
   Droplets,
   Tractor,
@@ -232,7 +232,7 @@ function MachineryCard({ item, onDelete }: { item: Machinery, onDelete: () => vo
     }[item.status];
 
     const StatusIcon = {
-        'Operational': CheckCircle2,
+        'Operational': CircleCheck,
         'Maintenance Needed': Wrench,
         'Broken': AlertTriangle,
     }[item.status];

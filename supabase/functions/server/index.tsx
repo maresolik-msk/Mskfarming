@@ -12,6 +12,7 @@ import { CropEngine as EngineV2 } from "./ce_simulation.ts";
 import { PADDY_PROFILE, WHEAT_PROFILE, MAIZE_PROFILE, GROUNDNUT_PROFILE, COTTON_PROFILE, SOYBEAN_PROFILE, SUGARCANE_PROFILE, BAJRA_PROFILE } from "./ce_data.ts";
 import { Field, DailyWeather, FarmOperation } from "./ce_models.ts";
 import { NUTRIENT_DATABASE } from "./nutrient_data.ts";
+import { HORTICULTURE_DATABASE, HORT_CATEGORIES, SEASONAL_CALENDAR } from "./horticulture_data.ts";
 import { CROP_MANAGEMENT_DATABASE } from "./crop_management_data.ts";
 import { analyzeSoil } from "./soil_analysis.ts";
 
@@ -102,6 +103,7 @@ function generateDailyActivities(timeline: any[]) {
     const stageStart = new Date(stage.start_date);
     const stageDuration = Math.max(stage.duration_days || 1, 1);
     
+    // 1. key_actions spread across stage
     if (stageData.key_actions && stageData.key_actions.length > 0) {
       const actions = stageData.key_actions;
       for (let i = 0; i < actions.length; i++) {
@@ -123,6 +125,7 @@ function generateDailyActivities(timeline: any[]) {
       }
     }
     
+    // 2. ai_alerts at stage start
     if (stageData.ai_alerts && stageData.ai_alerts.length > 0) {
       for (let i = 0; i < stageData.ai_alerts.length; i++) {
         const dayOffset = Math.min(i, Math.max(stageDuration - 1, 0));
@@ -143,6 +146,7 @@ function generateDailyActivities(timeline: any[]) {
       }
     }
     
+    // 3. risk_factor warnings at mid-stage
     if (stageData.risk_factors && stageData.risk_factors.length > 0) {
       const midOffset = Math.floor(stageDuration / 2);
       for (let ri = 0; ri < stageData.risk_factors.length; ri++) {
@@ -160,6 +164,42 @@ function generateDailyActivities(timeline: any[]) {
           notes: '',
           priority: 'medium',
         });
+      }
+    }
+
+    // 4. Fill gaps with periodic monitoring activities every 2-3 days
+    if (stageDuration > 2) {
+      const interval = stageDuration <= 7 ? 2 : 3;
+      const monitorMsgs = [
+        `Monitor ${stageData.stage_name} progress`,
+        `Observe crop health — ${stageData.stage_name} stage`,
+        `Daily field check — ${stageData.stage_name}`,
+        `Inspect for pests & diseases`,
+        `Check soil moisture levels`,
+        `Record observations in journal`,
+      ];
+      const existingDates = new Set<string>();
+      for (const a of activities) {
+        if (a.stage_id === stageData.stage_id) existingDates.add(a.date);
+      }
+      for (let d = 0; d < stageDuration; d += interval) {
+        const actDate = new Date(stageStart);
+        actDate.setDate(actDate.getDate() + d);
+        const dateStr = actDate.toISOString().split('T')[0];
+        if (!existingDates.has(dateStr)) {
+          activities.push({
+            id: `act_${actId++}`,
+            date: dateStr,
+            title: monitorMsgs[Math.floor(d / interval) % monitorMsgs.length],
+            type: 'action',
+            stage_id: stageData.stage_id,
+            stage_name: stageData.stage_name,
+            source: 'system',
+            status: 'pending',
+            notes: stageData.soil_specific_notes || '',
+            priority: 'low',
+          });
+        }
       }
     }
   }
@@ -2169,7 +2209,44 @@ app.post("/make-server-6fdef95d/crop-cycle/activate", async (c) => {
     console.log(`   Timeline: ${timeline[0].start_date} → ${cycleEndDate}`);
     console.log(`   Total activities generated: ${activities.length}`);
     
-    return c.json({ success: true, cycle: activeCycle });
+    // Enrich response with today's context
+    const todayStr = new Date().toISOString().split('T')[0];
+    const today = new Date(todayStr);
+    const todayActs = activities.filter((a: any) => a.date === todayStr);
+    const currentStageForToday = activeCycle.timeline.find((t: any) => todayStr >= t.start_date && todayStr <= t.end_date);
+    const sowDateObj2 = new Date(sowing_date);
+    const daysSinceSowing = Math.max(0, Math.floor((today.getTime() - sowDateObj2.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    let dayOfStage = 0, stageDaysTotal = 0;
+    if (currentStageForToday) {
+      const ss = new Date(currentStageForToday.start_date);
+      dayOfStage = Math.floor((today.getTime() - ss.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      stageDaysTotal = currentStageForToday.duration_days;
+    }
+    
+    const upcoming: any[] = [];
+    for (let d = 1; d <= 7; d++) {
+      const fd = new Date(today); fd.setDate(fd.getDate() + d);
+      const fds = fd.toISOString().split('T')[0];
+      for (const a of activities.filter((a: any) => a.date === fds)) upcoming.push(a);
+    }
+    
+    const firstDate2 = new Date(activeCycle.timeline[0].start_date);
+    const lastDate2 = new Date(cycleEndDate);
+    const totalD = (lastDate2.getTime() - firstDate2.getTime()) / (1000 * 60 * 60 * 24);
+    const elapsedD = (today.getTime() - firstDate2.getTime()) / (1000 * 60 * 60 * 24);
+    const pp = Math.min(Math.max(Math.round((elapsedD / totalD) * 100), 0), 100);
+    
+    return c.json({ success: true, cycle: {
+      ...activeCycle,
+      today_summary: { date: todayStr, activities: todayActs, pending: todayActs.filter((a: any) => a.status === 'pending').length, completed: 0, total: todayActs.length },
+      current_stage: currentStageForToday || null,
+      progress_percent: pp,
+      days_since_sowing: daysSinceSowing,
+      day_of_stage: dayOfStage,
+      stage_days_total: stageDaysTotal,
+      upcoming_activities: upcoming.slice(0, 10),
+    }});
     
   } catch (error) {
     console.error('Activate crop cycle error:', error);
@@ -2216,6 +2293,31 @@ app.get("/make-server-6fdef95d/crop-cycle/active", async (c) => {
       const elapsed = (today.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24);
       const progressPercent = Math.min(Math.max(Math.round((elapsed / totalDays) * 100), 0), 100);
       
+      // Days since sowing
+      const sowDate = new Date(cycle.sowing_date);
+      const daysSinceSowing = Math.max(0, Math.floor((today.getTime() - sowDate.getTime()) / (1000 * 60 * 60 * 24)));
+      
+      // Day within current stage
+      let dayOfStage = 0;
+      let stageDaysTotal = 0;
+      if (currentStage) {
+        const stageStart = new Date(currentStage.start_date);
+        dayOfStage = Math.floor((today.getTime() - stageStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        stageDaysTotal = currentStage.duration_days;
+      }
+      
+      // Upcoming activities (next 7 days)
+      const upcoming: any[] = [];
+      for (let d = 1; d <= 7; d++) {
+        const futureDate = new Date(today);
+        futureDate.setDate(futureDate.getDate() + d);
+        const futureDateStr = futureDate.toISOString().split('T')[0];
+        const dayActs = (cycle.activities || []).filter((a: any) => a.date === futureDateStr && a.status === 'pending');
+        for (const a of dayActs) {
+          upcoming.push(a);
+        }
+      }
+      
       return {
         ...cycle,
         today_summary: {
@@ -2227,6 +2329,10 @@ app.get("/make-server-6fdef95d/crop-cycle/active", async (c) => {
         },
         current_stage: currentStage || null,
         progress_percent: progressPercent,
+        days_since_sowing: daysSinceSowing,
+        day_of_stage: dayOfStage,
+        stage_days_total: stageDaysTotal,
+        upcoming_activities: upcoming.slice(0, 10),
       };
     });
     
@@ -2265,12 +2371,47 @@ app.get("/make-server-6fdef95d/crop-cycle/:id", async (c) => {
     const elapsed = (today.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24);
     const progressPercent = Math.min(Math.max(Math.round((elapsed / totalDays) * 100), 0), 100);
     
+    // Days since sowing
+    const sowDate = new Date(cycle.sowing_date);
+    const daysSinceSowing = Math.max(0, Math.floor((today.getTime() - sowDate.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    let dayOfStage = 0;
+    let stageDaysTotal = 0;
+    if (currentStage) {
+      const stageStart = new Date(currentStage.start_date);
+      dayOfStage = Math.floor((today.getTime() - stageStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      stageDaysTotal = currentStage.duration_days;
+    }
+    
+    // Upcoming activities (next 7 days)
+    const upcoming: any[] = [];
+    for (let d = 1; d <= 7; d++) {
+      const futureDate = new Date(today);
+      futureDate.setDate(futureDate.getDate() + d);
+      const futureDateStr = futureDate.toISOString().split('T')[0];
+      const dayActs = (cycle.activities || []).filter((a: any) => a.date === futureDateStr && a.status === 'pending');
+      for (const a of dayActs) upcoming.push(a);
+    }
+    
+    const pendingToday = todayActivities.filter((a: any) => a.status === 'pending').length;
+    const completedToday = todayActivities.filter((a: any) => a.status === 'completed').length;
+    
     return c.json({
       cycle: {
         ...cycle,
-        today_summary: { date: todayStr, activities: todayActivities },
+        today_summary: {
+          date: todayStr,
+          activities: todayActivities,
+          pending: pendingToday,
+          completed: completedToday,
+          total: todayActivities.length,
+        },
         current_stage: currentStage || null,
         progress_percent: progressPercent,
+        days_since_sowing: daysSinceSowing,
+        day_of_stage: dayOfStage,
+        stage_days_total: stageDaysTotal,
+        upcoming_activities: upcoming.slice(0, 10),
       }
     });
     
@@ -2637,6 +2778,200 @@ app.get("/make-server-6fdef95d/soil/history", async (c) => {
   } catch (error) {
     console.error('Soil history error:', error);
     return c.json({ error: 'Failed to fetch soil history' }, 500);
+  }
+});
+
+// ==================== HORTICULTURE ROUTES ====================
+
+// Get all horticulture crops (with optional category filter)
+app.get("/make-server-6fdef95d/horticulture/crops", async (c) => {
+  try {
+    const category = c.req.query('category');
+    const search = c.req.query('search')?.toLowerCase();
+    
+    let crops = [...HORTICULTURE_DATABASE];
+    
+    if (category && category !== 'all') {
+      crops = crops.filter(crop => crop.category === category);
+    }
+    
+    if (search) {
+      crops = crops.filter(crop => 
+        crop.name.toLowerCase().includes(search) ||
+        (crop.name_te && crop.name_te.includes(search)) ||
+        crop.category.includes(search)
+      );
+    }
+    
+    const cropList = crops.map(crop => ({
+      id: crop.id,
+      name: crop.name,
+      name_te: crop.name_te,
+      category: crop.category,
+      image_hint: crop.image_hint,
+      season: crop.season,
+      difficulty: crop.difficulty,
+      duration_days: crop.duration_days,
+      water_need: crop.water_need,
+      sunlight: crop.sunlight,
+      fun_fact: crop.fun_fact,
+    }));
+    
+    return c.json({ crops: cropList, total: cropList.length });
+  } catch (error) {
+    console.error('Horticulture crops list error:', error);
+    return c.json({ error: 'Failed to fetch horticulture crops' }, 500);
+  }
+});
+
+// Get categories
+app.get("/make-server-6fdef95d/horticulture/categories", async (c) => {
+  try {
+    const categoriesWithCount = HORT_CATEGORIES.map(cat => ({
+      ...cat,
+      count: cat.id === 'all' 
+        ? HORTICULTURE_DATABASE.length 
+        : HORTICULTURE_DATABASE.filter(cr => cr.category === cat.id).length,
+    }));
+    return c.json({ categories: categoriesWithCount });
+  } catch (error) {
+    console.error('Horticulture categories error:', error);
+    return c.json({ error: 'Failed to fetch categories' }, 500);
+  }
+});
+
+// Get seasonal calendar
+app.get("/make-server-6fdef95d/horticulture/seasonal", async (c) => {
+  try {
+    const month = c.req.query('month');
+    if (month && SEASONAL_CALENDAR[month]) {
+      const cropIds = SEASONAL_CALENDAR[month];
+      const seasonCrops = cropIds.map(id => {
+        const crop = HORTICULTURE_DATABASE.find(cr => cr.id === id);
+        return crop ? { id: crop.id, name: crop.name, name_te: crop.name_te, category: crop.category, image_hint: crop.image_hint } : null;
+      }).filter(Boolean);
+      return c.json({ month, crops: seasonCrops });
+    }
+    return c.json({ calendar: SEASONAL_CALENDAR });
+  } catch (error) {
+    console.error('Seasonal calendar error:', error);
+    return c.json({ error: 'Failed to fetch seasonal calendar' }, 500);
+  }
+});
+
+// Get single crop full detail
+app.get("/make-server-6fdef95d/horticulture/crop/:id", async (c) => {
+  try {
+    const cropId = c.req.param('id');
+    const crop = HORTICULTURE_DATABASE.find(cr => cr.id === cropId);
+    
+    if (!crop) {
+      return c.json({ error: 'Crop not found' }, 404);
+    }
+    
+    return c.json({ crop });
+  } catch (error) {
+    console.error('Horticulture crop detail error:', error);
+    return c.json({ error: 'Failed to fetch crop details' }, 500);
+  }
+});
+
+// Save/bookmark a crop for user
+app.post("/make-server-6fdef95d/horticulture/bookmark", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const userId = verification.user.id;
+    const { crop_id } = await c.req.json();
+    
+    const bKey = `hort_bookmarks_${userId}`;
+    const bookmarks: string[] = (await kv.get(bKey)) || [];
+    
+    if (bookmarks.includes(crop_id)) {
+      const updated = bookmarks.filter(id => id !== crop_id);
+      await kv.set(bKey, updated);
+      return c.json({ bookmarked: false, bookmarks: updated });
+    } else {
+      bookmarks.push(crop_id);
+      await kv.set(bKey, bookmarks);
+      return c.json({ bookmarked: true, bookmarks });
+    }
+  } catch (error) {
+    console.error('Bookmark error:', error);
+    return c.json({ error: 'Failed to toggle bookmark' }, 500);
+  }
+});
+
+// Get user bookmarks
+app.get("/make-server-6fdef95d/horticulture/bookmarks", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const bKey = `hort_bookmarks_${verification.user.id}`;
+    const bookmarks: string[] = (await kv.get(bKey)) || [];
+    
+    return c.json({ bookmarks });
+  } catch (error) {
+    console.error('Get bookmarks error:', error);
+    return c.json({ error: 'Failed to fetch bookmarks' }, 500);
+  }
+});
+
+// Save user notes for a crop
+app.post("/make-server-6fdef95d/horticulture/notes", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const userId = verification.user.id;
+    const { crop_id, note } = await c.req.json();
+    
+    const nKey = `hort_notes_${userId}_${crop_id}`;
+    const notes: any[] = (await kv.get(nKey)) || [];
+    
+    const newNote = {
+      id: `note_${Date.now()}`,
+      text: note,
+      created_at: new Date().toISOString(),
+    };
+    notes.push(newNote);
+    await kv.set(nKey, notes);
+    
+    return c.json({ note: newNote, total: notes.length });
+  } catch (error) {
+    console.error('Save note error:', error);
+    return c.json({ error: 'Failed to save note' }, 500);
+  }
+});
+
+// Get notes for a crop
+app.get("/make-server-6fdef95d/horticulture/notes/:cropId", async (c) => {
+  try {
+    const accessToken = getAccessTokenFromRequest(c);
+    if (!accessToken) return c.json({ error: 'Authorization required' }, 401);
+    
+    const verification = await authService.verifyAccessToken(accessToken);
+    if (!verification.valid || !verification.user) return c.json({ error: 'Invalid token' }, 401);
+    
+    const cropId = c.req.param('cropId');
+    const nKey = `hort_notes_${verification.user.id}_${cropId}`;
+    const notes: any[] = (await kv.get(nKey)) || [];
+    
+    return c.json({ notes });
+  } catch (error) {
+    console.error('Get notes error:', error);
+    return c.json({ error: 'Failed to fetch notes' }, 500);
   }
 });
 

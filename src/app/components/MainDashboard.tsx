@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
 import { 
   ChevronDown, 
-  CheckCircle2, 
+  CircleCheck, 
   Menu, 
   LayoutDashboard, 
   History, 
@@ -67,6 +67,8 @@ import { FieldScouting } from './FieldScouting';
 import { InputApplicationsLog } from './InputApplicationsLog';
 import { HarvestRecording } from './HarvestRecording';
 import { EnhancedFieldManagement } from './EnhancedFieldManagement';
+import { FarmerDashboard } from './FarmerDashboard';
+import { HorticultureGuide } from './HorticultureGuide';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetClose } from './ui/sheet';
 import { toast } from 'sonner';
 import { 
@@ -149,7 +151,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
   const [showPhotoCapture, setShowPhotoCapture] = useState(false);
   const [showExpenseTracker, setShowExpenseTracker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [activeView, setActiveView] = useState<'dashboard' | 'expenses' | 'profile' | 'crop_manager' | 'crop_cycle' | 'scouting' | 'inputs' | 'harvest'>('dashboard'); // Launch features only
+  const [activeView, setActiveView] = useState<'dashboard' | 'expenses' | 'profile' | 'crop_manager' | 'crop_cycle' | 'scouting' | 'inputs' | 'harvest' | 'horticulture'>('dashboard'); // Launch features only
 
   // Soil Testing State
   const [showSoilTestSelection, setShowSoilTestSelection] = useState(false);
@@ -751,7 +753,7 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                                 <div className={`text-xs ${selectedFieldId === field.id ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{field.crop} • Day {field.day}</div>
                             </div>
                             {selectedFieldId === field.id && (
-                                <CheckCircle2 className="w-4 h-4 text-white" />
+                                <CircleCheck className="w-4 h-4 text-white" />
                             )}
                           </button>
                           
@@ -938,6 +940,21 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
                          </button>
                          </SheetClose>
 
+                         {/* Horticulture Guide */}
+                         <SheetClose asChild>
+                         <button 
+                             onClick={() => setActiveView('horticulture')}
+                             className={`w-full flex items-center gap-[16px] px-[20px] py-[14px] transition-colors ${activeView === 'horticulture' ? 'bg-[#812f0f]' : 'hover:bg-[#812f0f]/5'}`}
+                         >
+                             <div className="w-[24px] h-[24px]">
+                                 <svg viewBox="0 0 24 24" fill="none">
+                                     <path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22L6.66 19.7C7.14 19.87 7.64 20 8 20C19 20 22 3 22 3C21 5 14 5.25 9 6.25C4 7.25 2 11.5 2 13.5C2 15.5 3.75 17.25 3.75 17.25C7 8 17 8 17 8Z" fill={activeView === 'horticulture' ? "white" : "#4F8F4A"} />
+                                 </svg>
+                             </div>
+                             <span className={`font-['Inter'] font-semibold text-[15px] ${activeView === 'horticulture' ? 'text-white' : 'text-[#2a0f05]'}`}>Horticulture</span>
+                         </button>
+                         </SheetClose>
+
                          {/* Expenses */}
                          <SheetClose asChild>
                          <button 
@@ -1067,286 +1084,45 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-4xl px-[16px] pt-[0px] pb-[32px] mx-[0px] mt-[0px] mb-[32px]">
+      <div className="max-w-4xl px-[16px] pt-[0px] pb-[32px] mx-auto mt-[0px] mb-[32px]">
         {activeView === 'dashboard' ? (
-          <>
-            {availableFields.length === 0 ? (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center py-16 px-6"
-              >
-                {/* Futuristic welcome card with glassmorphism */}
-                <div className="relative max-w-2xl mx-auto">
-                  {/* Ambient glow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F]/20 via-amber-500/10 to-orange-400/20 blur-3xl -z-10 animate-pulse" />
-                  
-                  <div className="backdrop-blur-xl bg-gradient-to-br from-white/10 to-white/5 dark:from-white/5 dark:to-white/[0.02] border border-white/20 dark:border-white/10 rounded-[32px] p-12 shadow-2xl relative overflow-hidden">
-                    {/* Decorative gradient overlay */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#812F0F]/20 via-amber-500/10 to-transparent rounded-full blur-3xl -z-10" />
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-orange-400/20 via-amber-300/10 to-transparent rounded-full blur-3xl -z-10" />
-                    
-                    {/* Logo with enhanced styling */}
-                    <motion.div 
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className="relative w-32 h-32 mx-auto mb-8"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F] to-amber-600 rounded-3xl rotate-6 opacity-20 blur-xl animate-pulse" />
-                      <div className="relative w-full h-full bg-gradient-to-br from-[#812F0F]/20 to-amber-500/20 rounded-3xl flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-2xl p-8">
-                        <Logo />
-                      </div>
-                    </motion.div>
-                    
-                    <motion.h2 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="text-4xl font-bold mb-4 bg-gradient-to-r from-[#812F0F] via-amber-600 to-orange-500 bg-clip-text text-transparent"
-                      style={{ fontFamily: 'Megrim, cursive' }}
-                    >
-                      {t('dashboard.welcomeMessage')}
-                    </motion.h2>
-                    
-                    <motion.p 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.4 }}
-                      className="text-muted-foreground/80 mb-10 max-w-md mx-auto text-lg leading-relaxed"
-                    >
-                      {t('dashboard.welcomeSub')}
-                    </motion.p>
-                    
-                    <motion.button
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 }}
-                      whileHover={{ scale: 1.05, y: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setShowAddFieldModal(true)}
-                      className="group relative px-10 py-5 bg-gradient-to-r from-[#812F0F] via-[#9a3810] to-[#812F0F] text-white rounded-3xl font-bold text-lg shadow-2xl shadow-[#812F0F]/40 flex items-center gap-3 mx-auto overflow-hidden"
-                    >
-                      {/* Shimmer effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                      
-                      <Plus className="w-6 h-6 relative z-10" />
-                      <span className="relative z-10">{t('dashboard.addNewField')}</span>
-                      
-                      {/* Golden hour glow */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-amber-400/20 to-amber-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    </motion.button>
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  {/* Enhanced HomeView container */}
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="relative"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F]/10 via-amber-500/5 to-orange-400/10 rounded-[32px] blur-2xl -z-10" />
-                    <HomeView 
-                    farmerName={userProfile?.name || farmerName}
-                    cropInfo={cropInfo}
-                    tasks={tasks}
-                    budget={budget}
-                    soilHealth={currentField?.soilProfile ? {
-                        lastTested: currentField.soilProfile.lastTested,
-                        status: currentField.soilProfile.results.riskLevel === 'high' ? 'Critical' : 
-                                currentField.soilProfile.results.riskLevel === 'medium' ? 'Attention' : 'Good',
-                        riskLevel: currentField.soilProfile.results.riskLevel
-                    } : undefined}
-                    onToggleTask={toggleTask}
-                    onAction={(action) => {
-                      switch(action) {
-                        case 'voice': setShowVoiceJournal(true); break;
-                        case 'photo': setShowPhotoCapture(true); break;
-                        case 'expense': setShowExpenseTracker(true); break;
-                        case 'journal': setShowFarmingJournal(true); break;
-                        case 'guidance': playGuidance(); break;
-                        case 'soil-test': handleTestSoil(); break;
-                        case 'seed-selection': setShowSeedSelection(true); break;
-                        case 'crop-details': setShowCropDetails(true); break;
-                      }
-                    }}
-                  />
-                  </motion.div>
-                  
-                  <motion.div 
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-6"
-                  >
-                      {/* Krishi Karma Widget with glow */}
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 via-orange-400/10 to-[#812F0F]/20 rounded-[28px] blur-xl -z-10" />
-                        <KrishiKarmaWidget 
-                          points={karmaPoints} 
-                          level={karmaLevel} 
-                          nextLevelPoints={nextLevelPoints} 
-                        />
-                      </div>
-
-                      {/* Daily Tasks with premium glassmorphism */}
-                      <div className="relative group">
-                        {/* Ambient glow */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F]/20 via-amber-500/10 to-orange-400/10 rounded-[28px] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
-                        
-                        <div className="backdrop-blur-xl bg-gradient-to-br from-white/80 to-white/60 dark:from-white/5 dark:to-white/[0.02] border border-white/30 dark:border-white/10 rounded-[28px] p-6 shadow-xl relative overflow-hidden">
-                          {/* Top gradient accent */}
-                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#812F0F]/50 to-transparent" />
-                          
-                          <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                              <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-[#812F0F] to-amber-600 flex items-center justify-center shadow-lg shadow-[#812F0F]/30">
-                                <CheckCircle2 className="w-5 h-5 text-white" />
-                                {/* Icon glow */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F] to-amber-600 rounded-2xl blur-md opacity-50 -z-10" />
-                              </div>
-                              <h3 className="font-bold text-foreground text-lg">Today's Tasks</h3>
-                            </div>
-                            <span className="text-sm font-bold text-muted-foreground backdrop-blur-sm bg-gradient-to-br from-muted/80 to-muted/60 px-4 py-1.5 rounded-full border border-white/20 shadow-sm">
-                              {tasks.filter(t => t.completed).length}/{tasks.length}
-                            </span>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            {tasks.length === 0 ? (
-                              <div className="text-center py-10">
-                                <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center backdrop-blur-sm border border-white/20">
-                                  <ClipboardList className="w-10 h-10 text-muted-foreground/40" />
-                                </div>
-                                <p className="text-muted-foreground font-medium">No tasks yet.</p>
-                                <p className="text-xs text-muted-foreground/60 mt-2">Add a field to get recommendations.</p>
-                              </div>
-                            ) : (
-                              tasks.map((task, idx) => (
-                                <motion.div 
-                                  key={task.id}
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ delay: idx * 0.05 }}
-                                  onClick={() => toggleTask(task.id)}
-                                  className={`group/task relative flex items-start gap-3 p-4 rounded-2xl transition-all cursor-pointer border overflow-hidden ${
-                                    task.completed 
-                                      ? 'bg-gradient-to-br from-muted/40 to-muted/20 border-white/10 opacity-60' 
-                                      : 'bg-gradient-to-br from-white/60 to-white/40 dark:from-white/5 dark:to-white/[0.02] border-white/30 dark:border-white/10 hover:border-[#812F0F]/40 hover:shadow-lg hover:shadow-[#812F0F]/10 backdrop-blur-sm'
-                                  }`}
-                                >
-                                  {/* Hover gradient effect */}
-                                  {!task.completed && (
-                                    <div className="absolute inset-0 bg-gradient-to-r from-[#812F0F]/5 via-amber-500/5 to-orange-400/5 opacity-0 group-hover/task:opacity-100 transition-opacity duration-300" />
-                                  )}
-                                  
-                                  <div className={`relative mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-                                    task.completed
-                                      ? 'bg-gradient-to-br from-[#812F0F] to-amber-600 border-[#812F0F] shadow-lg shadow-[#812F0F]/30'
-                                      : 'border-muted-foreground/30 group-hover/task:border-[#812F0F]/50 group-hover/task:scale-110'
-                                  }`}>
-                                    {task.completed && <CheckCircle2 className="w-4 h-4 text-white" />}
-                                  </div>
-                                  
-                                  <div className="flex-1 relative z-10">
-                                    <p className={`text-sm font-medium transition-all ${
-                                      task.completed ? 'text-muted-foreground line-through' : 'text-foreground'
-                                    }`}>
-                                      {task.text}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground/70 mt-1.5 flex items-center gap-1">
-                                      {task.time}
-                                    </p>
-                                  </div>
-                                </motion.div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                  </motion.div>
-                </div>
-                
-                {/* Premium Quick Actions Grid with glassmorphism */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="relative mb-20"
-                >
-                  {/* Section ambient glow */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F]/10 via-amber-500/5 to-orange-400/10 rounded-3xl blur-3xl -z-10" />
-                  
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {[
-                      { 
-                        icon: ScanLine, 
-                        label: 'Scout Field', 
-                        onClick: () => setActiveView('scouting'),
-                        gradient: 'from-emerald-500 to-green-500',
-                        bgGradient: 'from-emerald-100 to-green-100 dark:from-emerald-900/20 dark:to-green-900/20',
-                        iconColor: 'text-emerald-600 dark:text-emerald-400'
-                      },
-                      { 
-                        icon: Droplets, 
-                        label: 'Log Input', 
-                        onClick: () => setActiveView('inputs'),
-                        gradient: 'from-blue-500 to-cyan-500',
-                        bgGradient: 'from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20',
-                        iconColor: 'text-blue-600 dark:text-blue-400'
-                      },
-                      { 
-                        icon: Wheat, 
-                        label: 'Harvest', 
-                        onClick: () => setActiveView('harvest'),
-                        gradient: 'from-amber-500 to-orange-500',
-                        bgGradient: 'from-amber-100 to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20',
-                        iconColor: 'text-amber-600 dark:text-amber-400'
-                      },
-                      { 
-                        icon: Wallet, 
-                        label: 'Add Expense', 
-                        onClick: () => setActiveView('expenses'),
-                        gradient: 'from-[#812F0F] to-rose-600',
-                        bgGradient: 'from-rose-100 to-red-100 dark:from-rose-900/20 dark:to-red-900/20',
-                        iconColor: 'text-[#812F0F] dark:text-rose-400'
-                      }
-                    ].map((action, idx) => {
-                      const Icon = action.icon;
-                      return (
-                      <motion.button
-                        key={idx}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.3 + idx * 0.1 }}
-                        whileHover={{ scale: 1.05, y: -4 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={action.onClick}
-                        className="group/action relative flex flex-col items-center gap-3 p-5 backdrop-blur-xl bg-gradient-to-br from-white/70 to-white/50 dark:from-white/5 dark:to-white/[0.02] border border-white/30 dark:border-white/10 rounded-3xl hover:border-white/50 dark:hover:border-white/20 transition-all overflow-hidden shadow-lg hover:shadow-xl"
-                      >
-                        {/* Animated gradient background on hover */}
-                        <div className={`absolute inset-0 bg-gradient-to-br ${action.bgGradient} opacity-0 group-hover/action:opacity-100 transition-opacity duration-500`} />
-                        
-                        {/* Icon container with premium styling */}
-                        <div className={`relative w-14 h-14 rounded-2xl bg-gradient-to-br ${action.bgGradient} flex items-center justify-center group-hover/action:scale-110 transition-all duration-300 shadow-lg`}>
-                          {Icon && <Icon className={`w-6 h-6 ${action.iconColor}`} />}
-                          {/* Icon glow effect */}
-                          <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} rounded-2xl blur-xl opacity-0 group-hover/action:opacity-50 transition-opacity -z-10`} />
-                        </div>
-                        
-                        <span className="relative text-xs font-bold text-center text-foreground/80 group-hover/action:text-foreground transition-colors z-10">
-                          {action.label}
-                        </span>
-                      </motion.button>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </>
+          <FarmerDashboard
+            farmerName={userProfile?.name || farmerName}
+            cropInfo={cropInfo}
+            tasks={tasks}
+            budget={budget}
+            soilHealth={currentField?.soilProfile ? {
+              lastTested: currentField.soilProfile.lastTested,
+              status: currentField.soilProfile.results.riskLevel === 'high' ? 'Critical' :
+                      currentField.soilProfile.results.riskLevel === 'medium' ? 'Attention' : 'Good',
+              riskLevel: currentField.soilProfile.results.riskLevel
+            } : undefined}
+            karmaPoints={karmaPoints}
+            karmaLevel={karmaLevel}
+            nextLevelPoints={nextLevelPoints}
+            onToggleTask={toggleTask}
+            onAction={(action) => {
+              switch(action) {
+                case 'voice': setShowVoiceJournal(true); break;
+                case 'photo': setShowPhotoCapture(true); break;
+                case 'expense': setShowExpenseTracker(true); break;
+                case 'journal': setShowFarmingJournal(true); break;
+                case 'guidance': playGuidance(); break;
+                case 'soil-test': handleTestSoil(); break;
+                case 'seed-selection': setShowSeedSelection(true); break;
+                case 'crop-details': setShowCropDetails(true); break;
+              }
+            }}
+            setActiveView={setActiveView}
+            setShowAddFieldModal={setShowAddFieldModal}
+            setShowExpenseTracker={setShowExpenseTracker}
+            setShowFarmingJournal={setShowFarmingJournal}
+            setShowVoiceJournal={setShowVoiceJournal}
+            setShowPhotoCapture={setShowPhotoCapture}
+            setShowSeedSelection={setShowSeedSelection}
+            handleTestSoil={handleTestSoil}
+            availableFields={availableFields}
+          />
         ) : activeView === 'crop_manager' ? (
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
@@ -1443,6 +1219,15 @@ export function MainDashboard({ farmerName, onLogout }: MainDashboardProps) {
           >
             <HarvestRecording 
               fields={availableFields} 
+              onClose={() => setActiveView('dashboard')} 
+            />
+          </motion.div>
+        ) : activeView === 'horticulture' ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <HorticultureGuide 
               onClose={() => setActiveView('dashboard')} 
             />
           </motion.div>

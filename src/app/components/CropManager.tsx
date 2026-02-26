@@ -12,8 +12,8 @@ import {
   FileText,
   ChevronRight,
   Info,
-  CheckCircle2,
-  AlertCircle,
+  CircleCheck,
+  CircleAlert,
   ArrowRight,
   Beaker
 } from 'lucide-react';
@@ -508,7 +508,7 @@ export function CropManager() {
                                 {stage.nutrient_quantities.micronutrients?.map((p: string, i: number) => (
                                   <div key={`m-${i}`} className="flex items-center gap-3 p-3 rounded-xl border border-amber-200 bg-amber-50/50 hover:bg-amber-50 transition-colors">
                                     <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                                      <AlertCircle className="w-4 h-4 text-amber-600" />
+                                      <CircleAlert className="w-4 h-4 text-amber-600" />
                                     </div>
                                     <span className="text-sm font-medium text-amber-900">{p}</span>
                                   </div>
@@ -564,7 +564,7 @@ export function CropManager() {
                            {stage.protection.diseases.length > 0 && (
                              <div className="space-y-3">
                                <h5 className="text-xs font-bold text-orange-600 flex items-center gap-2 uppercase tracking-wide">
-                                 <AlertCircle className="w-3.5 h-3.5" /> Disease Management
+                                 <CircleAlert className="w-3.5 h-3.5" /> Disease Management
                                </h5>
                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
                                  {stage.protection.diseases.map((d: any, i: number) => (
@@ -650,7 +650,7 @@ export function CropManager() {
                                 {stage.practices.map((practice: string, i: number) => (
                                   <div key={i} className="flex items-start gap-3 text-sm p-3.5 rounded-xl bg-muted/40 hover:bg-muted/70 transition-colors border border-transparent hover:border-border">
                                     <div className="mt-0.5 w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
-                                       <CheckCircle2 className="w-3 h-3 text-green-600" />
+                                       <CircleCheck className="w-3 h-3 text-green-600" />
                                     </div>
                                     <span className="text-foreground/90 font-medium">{practice}</span>
                                   </div>

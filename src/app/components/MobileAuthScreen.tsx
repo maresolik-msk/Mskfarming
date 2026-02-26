@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Leaf, ArrowRight, Check, AlertCircle, Loader2, Phone, Hash, CheckCircle, User, ArrowLeft } from 'lucide-react';
+import { Leaf, ArrowRight, Check, CircleAlert, Loader2, Phone, Hash, CheckCircle, User, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 import { setAuthToken } from '../../lib/api';
@@ -262,7 +262,7 @@ export function MobileAuthScreen({ onAuthSuccess }: MobileAuthScreenProps) {
               animate={{ opacity: 1, y: 0 }}
               className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-start gap-2"
             >
-              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <CircleAlert className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
               <p className="text-sm text-destructive">{error}</p>
             </motion.div>
           )}

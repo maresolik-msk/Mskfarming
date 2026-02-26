@@ -1276,3 +1276,55 @@ export async function getSoilAnalysisHistory() {
   const response = await apiRequest('/soil/history');
   return response;
 }
+
+// ============= HORTICULTURE API =============
+
+export async function getHortCrops(category?: string, search?: string) {
+  const params = new URLSearchParams();
+  if (category) params.set('category', category);
+  if (search) params.set('search', search);
+  const response = await apiRequest(`/horticulture/crops?${params.toString()}`);
+  return response;
+}
+
+export async function getHortCategories() {
+  const response = await apiRequest('/horticulture/categories');
+  return response;
+}
+
+export async function getHortCropDetail(id: string) {
+  const response = await apiRequest(`/horticulture/crop/${encodeURIComponent(id)}`);
+  return response;
+}
+
+export async function getHortSeasonal(month?: string) {
+  const params = month ? `?month=${encodeURIComponent(month)}` : '';
+  const response = await apiRequest(`/horticulture/seasonal${params}`);
+  return response;
+}
+
+export async function toggleHortBookmark(cropId: string) {
+  const response = await apiRequest('/horticulture/bookmark', {
+    method: 'POST',
+    body: JSON.stringify({ crop_id: cropId }),
+  });
+  return response;
+}
+
+export async function getHortBookmarks() {
+  const response = await apiRequest('/horticulture/bookmarks');
+  return response;
+}
+
+export async function saveHortNote(cropId: string, note: string) {
+  const response = await apiRequest('/horticulture/notes', {
+    method: 'POST',
+    body: JSON.stringify({ crop_id: cropId, note }),
+  });
+  return response;
+}
+
+export async function getHortNotes(cropId: string) {
+  const response = await apiRequest(`/horticulture/notes/${encodeURIComponent(cropId)}`);
+  return response;
+}

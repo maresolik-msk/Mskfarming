@@ -12,7 +12,7 @@ import {
   DollarSign,
   Filter,
   Download,
-  CheckCircle2,
+  CircleCheck,
   AlertTriangle,
   X,
   ArrowLeft,
@@ -703,7 +703,7 @@ function NewApplicationForm({
             Cancel
           </Button>
           <Button type="submit" className="flex-1 gap-2" disabled={!applicationType}>
-            <CheckCircle2 className="w-4 h-4" />
+            <CircleCheck className="w-4 h-4" />
             Save Application Log
           </Button>
         </div>

@@ -1,6 +1,4 @@
-import { CSSProperties } from 'react';
-import { motion } from 'motion/react';
-import { Sprout, Plus, AlertCircle, Mic, Camera, IndianRupee, ArrowRight, Calendar, Cloud, Droplets } from 'lucide-react';
+import { Sprout, Plus, CircleAlert, Mic, Camera, IndianRupee, ArrowRight, Calendar, Cloud, Droplets } from 'lucide-react';
 import Logo from '../../imports/Logo';
 
 export function DashboardPage() {
@@ -189,7 +187,7 @@ export function DashboardPage() {
             >
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm">
-                  <AlertCircle className="w-6 h-6 text-destructive" />
+                  <CircleAlert className="w-6 h-6 text-destructive" />
                 </div>
                 <h3 className="text-xl font-bold text-foreground">Action Required</h3>
               </div>

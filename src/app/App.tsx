@@ -3,7 +3,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { Toaster } from 'sonner';
 import './i18n'; // Import i18n first
 import { Navigation } from './components/Navigation';
-import LoginSignup from './components/LoginSignup';
+import MilaAuth from './components/MilaAuth';
 import { OnboardingFlow } from './components/OnboardingFlow';
 import { MainDashboard } from './components/MainDashboard';
 import { HomePage } from './pages/HomePage';
@@ -183,7 +183,7 @@ function App() {
               element={
               !isLoggedIn ? (
                 <>
-                  <LoginSignup onLogin={handleLogin} />
+                  <MilaAuth onLogin={handleLogin} />
                   <Toaster position="top-center" richColors />
                 </>
               ) : !hasCompletedOnboarding ? (
@@ -206,7 +206,7 @@ function App() {
             element={
               !isLoggedIn ? (
                 <>
-                  <LoginSignup onLogin={handleLogin} />
+                  <MilaAuth onLogin={handleLogin} />
                   <Toaster position="top-center" richColors />
                 </>
               ) : (

@@ -7,7 +7,7 @@ import {
   Sprout, 
   Droplets, 
   AlertTriangle, 
-  CheckCircle2, 
+  CircleCheck, 
   Calendar,
   ThermometerSun,
   Leaf
@@ -150,7 +150,7 @@ export function VarietyDetailView({ cropId, varietyId, onBack }: VarietyDetailVi
               {data.seed.treatment.required && (
                 <div className="flex items-start gap-3 text-sm border-t border-dashed border-border pt-3">
                   <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                    <CircleCheck className="w-3 h-3 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div>
                     <p className="font-medium text-foreground">Seed Treatment Required</p>
@@ -222,7 +222,7 @@ export function VarietyDetailView({ cropId, varietyId, onBack }: VarietyDetailVi
              
              <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-lg border border-blue-100 dark:border-blue-900/30">
                <h4 className="font-bold text-blue-800 dark:text-blue-300 text-sm mb-2 flex items-center gap-2">
-                 <CheckCircle2 className="w-4 h-4" /> Care Notes
+                 <CircleCheck className="w-4 h-4" /> Care Notes
                </h4>
                <ul className="list-disc list-inside text-sm text-blue-700 dark:text-blue-400 space-y-1">
                  {data.risksAndCare.careNotes.map((c, i) => (

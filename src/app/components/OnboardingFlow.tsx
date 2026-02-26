@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  User, MapPin, Sprout, Target, Calendar, CheckCircle2, 
+  User, MapPin, Sprout, Target, Calendar, CircleCheck, 
   ChevronRight, ChevronLeft, Droplets, Sun, Map as MapIcon, 
   Navigation, Plus, Trash2, AlertTriangle, FileText
 } from 'lucide-react';
@@ -810,7 +810,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   disabled={isLoading}
                   className="flex items-center gap-2 px-8 py-3 bg-green-700 text-white rounded-lg hover:bg-green-800 shadow-lg shadow-green-700/20 transition-all transform hover:scale-105 disabled:opacity-70"
                 >
-                  {isLoading ? 'Setting up...' : 'Start Farming'} <CheckCircle2 className="w-4 h-4" />
+                  {isLoading ? 'Setting up...' : 'Start Farming'} <CircleCheck className="w-4 h-4" />
                 </button>
               )}
             </div>

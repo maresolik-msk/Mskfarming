@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import {
   ChevronDown,
-  CheckCircle2,
+  CircleCheck,
   Plus,
   TrendingUp,
   BookOpen,
@@ -216,7 +216,7 @@ export function MainDashboardContent({
                         <div className="flex items-center justify-between mb-6">
                           <div className="flex items-center gap-3">
                             <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-[#812F0F] to-amber-600 flex items-center justify-center shadow-lg shadow-[#812F0F]/30">
-                              <CheckCircle2 className="w-5 h-5 text-white" />
+                              <CircleCheck className="w-5 h-5 text-white" />
                               {/* Icon glow */}
                               <div className="absolute inset-0 bg-gradient-to-br from-[#812F0F] to-amber-600 rounded-2xl blur-md opacity-50 -z-10" />
                             </div>
@@ -260,7 +260,7 @@ export function MainDashboardContent({
                                     ? 'bg-gradient-to-br from-[#812F0F] to-amber-600 border-[#812F0F] shadow-lg shadow-[#812F0F]/30'
                                     : 'border-muted-foreground/30 group-hover/task:border-[#812F0F]/50 group-hover/task:scale-110'
                                 }`}>
-                                  {task.completed && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                  {task.completed && <CircleCheck className="w-4 h-4 text-white" />}
                                 </div>
                                 
                                 <div className="flex-1 relative z-10">

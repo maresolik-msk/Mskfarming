@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { 
   X, 
-  CheckCircle2, 
-  AlertCircle, 
+  CircleCheck, 
+  CircleAlert, 
   TrendingUp, 
   Droplets, 
   Sprout,
@@ -430,7 +430,7 @@ export function SoilHealthSummary({ testResults, onClose, onSaveProfile, fields,
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                 <div className="flex items-center gap-4 relative z-10">
                     <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                        <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                        <CircleCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div>
                         <div className="text-lg text-foreground font-bold">Test Completed Successfully!</div>
@@ -510,7 +510,7 @@ export function SoilHealthSummary({ testResults, onClose, onSaveProfile, fields,
                     {compositeAnalysis.identified_soil.match_reasons.length > 0 && (
                       <ul className="space-y-1 mb-2">
                         {compositeAnalysis.identified_soil.match_reasons.slice(0, 4).map((r: string, i: number) => (
-                          <li key={i} className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-2"><CheckCircle2 className="w-3 h-3 shrink-0" />{r}</li>
+                          <li key={i} className="text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-2"><CircleCheck className="w-3 h-3 shrink-0" />{r}</li>
                         ))}
                       </ul>
                     )}
@@ -634,7 +634,7 @@ export function SoilHealthSummary({ testResults, onClose, onSaveProfile, fields,
                     <ul className="space-y-2">
                       {compositeAnalysis.cross_test_warnings.map((w: string, i: number) => (
                         <li key={i} className="text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2 bg-amber-500/5 p-3 rounded-xl border border-amber-500/10">
-                          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <CircleAlert className="w-4 h-4 shrink-0 mt-0.5" />
                           <span>{w}</span>
                         </li>
                       ))}
@@ -798,7 +798,7 @@ export function SoilHealthSummary({ testResults, onClose, onSaveProfile, fields,
             <div className="p-5 bg-orange-500/5 rounded-2xl border border-orange-500/10">
                 <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center shrink-0 border border-orange-500/20">
-                    <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    <CircleAlert className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div className="flex-1">
                     <div className="text-foreground font-bold mb-3">Watch Out For</div>
@@ -917,7 +917,7 @@ export function SoilHealthSummary({ testResults, onClose, onSaveProfile, fields,
                 </div>
               ) : (
                  <div className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800 flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <CircleAlert className="w-5 h-5 shrink-0" />
                   You need to add a field in the dashboard before you can save this profile.
                 </div>
               )}
@@ -927,7 +927,7 @@ export function SoilHealthSummary({ testResults, onClose, onSaveProfile, fields,
                 disabled={!selectedFieldId}
                 className="w-full flex items-center justify-center gap-2 py-4 bg-[#812F0F] text-white rounded-xl hover:bg-[#963714] transition-all shadow-lg shadow-[#812F0F]/20 disabled:opacity-50 disabled:cursor-not-allowed font-bold"
               >
-                <CheckCircle2 className="w-5 h-5" />
+                <CircleCheck className="w-5 h-5" />
                 Save to My Soil Profile
               </button>
             </>

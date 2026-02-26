@@ -12,8 +12,8 @@ import {
   MapPin,
   X,
   ChevronRight,
-  CheckCircle2,
-  AlertCircle,
+  CircleCheck,
+  CircleAlert,
   Info,
   Upload,
   Trash2,
@@ -296,7 +296,7 @@ function ScoutingRecordCard({
             <p className="text-sm line-clamp-2">{record.notes}</p>
             {record.diagnosis && (
               <div className="mt-3 flex items-center gap-2 text-xs text-primary">
-                <CheckCircle2 className="w-4 h-4" />
+                <CircleCheck className="w-4 h-4" />
                 <span className="font-semibold">
                   {record.diagnosis.likelyIssues.length} diagnosis • {record.diagnosis.immediateActions.length} actions
                 </span>
@@ -512,7 +512,7 @@ function NewScoutingForm({
               </>
             ) : (
               <>
-                <CheckCircle2 className="w-4 h-4" />
+                <CircleCheck className="w-4 h-4" />
                 Submit & Get Diagnosis
               </>
             )}
@@ -594,7 +594,7 @@ function ScoutingDetail({ record, onClose }: { record: ScoutingRecord; onClose: 
             <Card className="border-orange-200 bg-gradient-to-br from-orange-50/50 to-white dark:from-orange-950/10 dark:to-background">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-orange-600">
-                  <AlertCircle className="w-5 h-5" />
+                  <CircleAlert className="w-5 h-5" />
                   Likely Issues
                 </CardTitle>
               </CardHeader>
@@ -616,7 +616,7 @@ function ScoutingDetail({ record, onClose }: { record: ScoutingRecord; onClose: 
             <Card className="border-green-200 bg-gradient-to-br from-green-50/50 to-white dark:from-green-950/10 dark:to-background">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-green-600">
-                  <CheckCircle2 className="w-5 h-5" />
+                  <CircleCheck className="w-5 h-5" />
                   Immediate Actions
                 </CardTitle>
               </CardHeader>
@@ -624,7 +624,7 @@ function ScoutingDetail({ record, onClose }: { record: ScoutingRecord; onClose: 
                 <ul className="space-y-2">
                   {record.diagnosis.immediateActions.map((action, idx) => (
                     <li key={idx} className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+                      <CircleCheck className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
                       <span>{action}</span>
                     </li>
                   ))}

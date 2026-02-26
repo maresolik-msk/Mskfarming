@@ -1,5 +1,4 @@
-import { motion } from 'motion/react';
-import { Sprout, ChevronRight, TrendingUp, AlertCircle } from 'lucide-react';
+import { Sprout, ChevronRight, TrendingUp, CircleAlert } from 'lucide-react';
 
 interface SoilHealthCardProps {
   onTestSoil: () => void;
@@ -74,9 +73,7 @@ export function SoilHealthCard({ onTestSoil }: SoilHealthCardProps) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className="bg-card rounded-2xl p-6 border border-border"
     >
       {/* Header */}
@@ -117,7 +114,7 @@ export function SoilHealthCard({ onTestSoil }: SoilHealthCardProps) {
           {/* Progress Bar */}
           <div className="mb-4">
             <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <motion.div
+              <div
                 initial={{ width: 0 }}
                 animate={{ width: `${lastTest.healthScore}%` }}
                 transition={{ duration: 1, delay: 0.2 }}
@@ -149,7 +146,7 @@ export function SoilHealthCard({ onTestSoil }: SoilHealthCardProps) {
             </div>
             {isDueForTest() && (
               <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 rounded-lg">
-                <AlertCircle className="w-4 h-4 text-orange-500" />
+                <CircleAlert className="w-4 h-4 text-orange-500" />
                 <span className="text-xs text-orange-500">Due for test</span>
               </div>
             )}
@@ -218,6 +215,6 @@ export function SoilHealthCard({ onTestSoil }: SoilHealthCardProps) {
           View Full Report
         </button>
       )}
-    </motion.div>
+    </div>
   );
 }

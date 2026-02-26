@@ -7,10 +7,10 @@ import {
   Check, 
   Clock, 
   MapPin, 
-  AlertCircle,
   Volume2,
-  CheckCircle2,
-  Circle
+  Circle,
+  CircleAlert,
+  CircleCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -319,7 +319,7 @@ export function SampleCollectionGuide({ onClose, onComplete, testType }: SampleC
             {step.warnings && step.warnings.length > 0 && (
               <div className="mb-6 p-4 bg-orange-500/10 rounded-lg border border-orange-500/20">
                 <div className="flex items-start gap-2 mb-3">
-                  <AlertCircle className="w-5 h-5 text-orange-500 mt-0.5" />
+                  <CircleAlert className="w-5 h-5 text-orange-500 mt-0.5" />
                   <div className="font-medium text-foreground">Important:</div>
                 </div>
                 <ul className="space-y-2">
@@ -349,7 +349,7 @@ export function SampleCollectionGuide({ onClose, onComplete, testType }: SampleC
                     >
                       <div className="mt-0.5">
                         {isChecked ? (
-                          <CheckCircle2 className="w-5 h-5 text-primary" />
+                          <CircleCheck className="w-5 h-5 text-primary" />
                         ) : (
                           <Circle className="w-5 h-5 text-muted-foreground" />
                         )}

@@ -76,8 +76,11 @@ export async function checkRateLimit(mobileNumber: string): Promise<{
     };
   }
 
+  // Ensure attempts is an array (guard against corrupted KV data)
+  const attemptsArray = Array.isArray(rateLimitData.attempts) ? rateLimitData.attempts : [];
+
   // Filter attempts within the last hour
-  const recentAttempts = rateLimitData.attempts.filter(
+  const recentAttempts = attemptsArray.filter(
     (attempt) => new Date(attempt.created_at) > oneHourAgo
   );
 
@@ -113,7 +116,7 @@ export async function updateRateLimit(mobileNumber: string, otpRecord: OTPRecord
 
   let attempts: OTPRecord[] = [];
   
-  if (rateLimitData) {
+  if (rateLimitData && Array.isArray(rateLimitData.attempts)) {
     // Filter out attempts older than 1 hour
     attempts = rateLimitData.attempts.filter(
       (attempt) => new Date(attempt.created_at) > oneHourAgo

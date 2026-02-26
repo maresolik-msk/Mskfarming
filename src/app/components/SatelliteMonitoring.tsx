@@ -16,7 +16,7 @@ import {
   Loader2, 
   Eye, 
   EyeOff,
-  AlertCircle 
+  CircleAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { projectId, publicAnonKey } from '../../../utils/supabase/info';
@@ -728,7 +728,7 @@ export function SatelliteMonitoring({ onClose, fields: propFields, onUpdateField
                         </div>
                         {field.vegetation_data.stress_zones_percent > 0 && (
                           <div className="flex items-center gap-2 text-xs bg-orange-500/10 text-orange-600 px-2 py-1 rounded-lg">
-                            <AlertCircle className="w-3 h-3" />
+                            <AlertTriangle className="w-3 h-3" />
                             {field.vegetation_data.stress_zones_percent}% stressed zones
                           </div>
                         )}
@@ -829,7 +829,7 @@ export function SatelliteMonitoring({ onClose, fields: propFields, onUpdateField
                     }`}
                     title="Click for instructions"
                   >
-                    <AlertCircle className="w-5 h-5 md:w-6 md:h-6" />
+                    <AlertTriangle className="w-5 h-5 md:w-6 md:h-6" />
                   </summary>
                   
                   <div 
