@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import type { Plugin } from 'vite'
 
 // Inline plugin: intercepts all figma:asset/ imports and replaces with transparent PNG
@@ -23,7 +24,7 @@ function figmaAssetsPlugin(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), figmaAssetsPlugin()],
+  plugins: [tailwindcss(), react(), figmaAssetsPlugin()],
   optimizeDeps: {
     include: ['mapbox-gl'],
   },
