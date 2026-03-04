@@ -2,8 +2,7 @@ import { Link } from 'react-router';
 import { Instagram, Twitter, Linkedin, Facebook } from 'lucide-react';
 import { RainEffect } from './RainEffect';
 import { MilaLogo } from './MilaLogo';
-import imgFooterIllustrstion1 from "figma:asset/172b9bdf4429e9780a0743b76be1fdd2d87b53b5.png";
-
+const logo = "/logo.png"
 export function AppFooter() {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
