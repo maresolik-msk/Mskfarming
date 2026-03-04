@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { Instagram, Twitter, Linkedin, Facebook } from 'lucide-react';
 import { RainEffect } from './RainEffect';
 import { MilaLogo } from './MilaLogo';
-const logo = "/logo.png"
+
 export function AppFooter() {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -15,9 +15,9 @@ export function AppFooter() {
         {/* Subtle dark vignette for cinematic depth */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,transparent_40%,rgba(20,8,3,0.35)_100%)] pointer-events-none z-0" />
 
-        {/* Background Illustration - Precisely positioned as per import */}
+        {/* Background Illustration - removed figma asset, using gradient background instead */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[393px] h-[370px] pointer-events-none z-0">
-             <img src={imgFooterIllustrstion1} alt="" className="w-full h-full object-cover" />
+          <div className="w-full h-full bg-gradient-to-t from-[#5a1a08]/60 to-transparent rounded-t-full" />
         </div>
         
         <RainEffect />
